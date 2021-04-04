@@ -1,0 +1,111 @@
+{
+    "name": "tree",
+    "version": "v3",
+    "num_class": 1,
+    "num_tree_per_iteration": 1,
+    "label_index": 0,
+    "max_feature_idx": 9,
+    "objective": "regression",
+    "average_output": false,
+    "feature_names": [
+        "Column_0",
+        "Column_1",
+        "Column_2",
+        "Column_3",
+        "Column_4",
+        "Column_5",
+        "Column_6",
+        "Column_7",
+        "Column_8",
+        "Column_9"
+    ],
+    "monotone_constraints": [],
+    "feature_infos": {
+        "Column_0": {
+            "min_value": 0.00048605953368108246,
+            "max_value": 0.9998759372583098,
+            "values": []
+        },
+        "Column_1": {
+            "min_value": 0.0013038502080028325,
+            "max_value": 0.9990076064786888,
+            "values": []
+        },
+        "Column_2": {
+            "min_value": 0.0021836185970678375,
+            "max_value": 0.9990977041168739,
+            "values": []
+        },
+        "Column_3": {
+            "min_value": 0.003790203613679988,
+            "max_value": 0.9925822896858426,
+            "values": []
+        },
+        "Column_4": {
+            "min_value": 0.005721636104533467,
+            "max_value": 0.999724958986292,
+            "values": []
+        },
+        "Column_5": {
+            "min_value": 0.002250066239597115,
+            "max_value": 0.9998595345378086,
+            "values": []
+        },
+        "Column_6": {
+            "min_value": 0.0019105466140756369,
+            "max_value": 0.99842139612065,
+            "values": []
+        },
+        "Column_7": {
+            "min_value": 0.0004369498828554752,
+            "max_value": 0.9993905890256841,
+            "values": []
+        },
+        "Column_8": {
+            "min_value": 0.0011821392297582944,
+            "max_value": 0.9979148245630071,
+            "values": []
+        },
+        "Column_9": {
+            "min_value": 0.003906844751186856,
+            "max_value": 0.9965990938343248,
+            "values": []
+        }
+    },
+    "tree_info": [
+        {
+            "tree_index": 0,
+            "num_leaves": 2,
+            "num_cat": 0,
+            "shrinkage": 1,
+            "tree_structure": {
+                "split_index": 0,
+                "split_feature": 7,
+                "split_gain": 3.19500994682312,
+                "threshold": 0.4585070476511332,
+                "decision_type": "<=",
+                "default_left": true,
+                "missing_type": "None",
+                "internal_value": 0.49,
+                "internal_weight": 0,
+                "internal_count": 500,
+                "left_child": {
+                    "leaf_index": 0,
+                    "leaf_value": 0.4809082559270596,
+                    "leaf_weight": 218,
+                    "leaf_count": 218
+                },
+                "right_child": {
+                    "leaf_index": 1,
+                    "leaf_value": 0.4970283678406519,
+                    "leaf_weight": 282,
+                    "leaf_count": 282
+                }
+            }
+        }
+    ],
+    "feature_importances": {
+        "Column_7": 1
+    },
+    "pandas_categorical": null
+}
