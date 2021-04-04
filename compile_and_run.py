@@ -50,5 +50,5 @@ func_ptr = engine.get_function_address("tree")
 
 # Run the function via ctypes
 cfunc = CFUNCTYPE(c_double, c_double, c_double)(func_ptr)
-res = cfunc(1.0, 3.5)
+res = cfunc(8.0, 3.5)
 print("fpadd(...) =", res)
