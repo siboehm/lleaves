@@ -12,12 +12,15 @@ def scalar_func(n_args):
 class Forest:
     def __init__(self, json):
         self.trees = [
-            Tree(tree_json["tree_structure"], len(json["feature_infos"]))
+            Tree(tree_json, len(json["feature_infos"]))
             for tree_json in json["tree_info"]
         ]
 
     def get_ir(self):
         return [tree.gen_code() for tree in self.trees]
+
+    def _run_pymode(self, input):
+        return sum(tree._run_pymode(input) for tree in self.trees)
 
 
 class Tree:
@@ -30,13 +33,16 @@ class Tree:
         func = ir.Function(module, scalar_func(n_args), name=str(self) + "_pred")
 
         self.func = func
-        self.root_node = Node(json, n_args)
+        self.root_node = Node(json["tree_structure"], n_args)
 
     def __str__(self):
         return f"t_{self.index}"
 
     def gen_code(self):
         return self.root_node.gen_code(self.func)
+
+    def _run_pymode(self, input):
+        return self.root_node._run_pymode(input)
 
 
 class Node:
@@ -54,7 +60,7 @@ class Node:
         else:
             self.right = Leaf(json["right_child"])
 
-        self.index = json["split_index"]
+        self.node_index = json["split_index"]
         self.split_feature = json["split_feature"]
         self.threshold = json["threshold"]
         self.decision_type = json["decision_type"]
@@ -65,7 +71,9 @@ class Node:
         args = func.args
 
         thresh = ir.Constant(DOUBLE, self.threshold)
-        comp = builder.fcmp_ordered(self.decision_type, args[self.split_feature], thresh, name=str(self) + "_c")
+        comp = builder.fcmp_ordered(
+            self.decision_type, args[self.split_feature], thresh, name=str(self) + "_c"
+        )
         with builder.if_else(comp) as (left, right):
             with left:
                 builder.branch(self.left.gen_code(func, res))
@@ -75,7 +83,13 @@ class Node:
         builder.ret(res)
 
     def __str__(self):
-        return f"n_{self.index}"
+        return f"n_{self.node_index}"
+
+    def _run_pymode(self, input):
+        if input[self.split_feature] <= self.threshold:
+            return self.left._run_pymode(input)
+        else:
+            return self.right._run_pymode(input)
 
 
 class Leaf:
@@ -84,3 +98,6 @@ class Leaf:
 
     def gen_code(self):
         pass
+
+    def _run_pymode(self, input):
+        return self.return_value
