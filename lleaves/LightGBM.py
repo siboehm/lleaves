@@ -14,9 +14,9 @@ class LGBM:
     _compiled_module = None
     _c_entry_func = None
 
-    def __init__(self, *, file_path=None, json_str=None):
-        if file_path:
-            with open(file_path) as f:
+    def __init__(self, *, model_json=None, json_str=None):
+        if model_json:
+            with open(model_json) as f:
                 self.model_json = json.load(f)
         else:
             self.model_json = json.loads(json_str)
@@ -75,7 +75,6 @@ class LGBM:
             addr = self._execution_engine.get_function_address("forest_root")
             self._c_entry_func = CFUNCTYPE(c_double, *(self.n_args * (c_double,)))(addr)
 
-    def __call__(self, arr: list[float]):
-        assert len(arr) == self.n_args
+    def predict(self, arrs: list[list[float]]):
         self.compile()
-        return self._c_entry_func(*arr)
+        return [self._c_entry_func(*arr) for arr in arrs]

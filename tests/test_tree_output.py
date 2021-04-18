@@ -15,7 +15,7 @@ MODEL_DIRS = [
 ]
 MODELS = [
     (
-        lleaves.LGBM(file_path=path + "model.json"),
+        lleaves.LGBM(model_json=path + "model.json"),
         lightgbm.Booster(model_file=path + "model.txt"),
         n_attributes,
     )
@@ -55,4 +55,4 @@ def test_forest_llvm_mode(data, llvm_model, lightgbm_model, n_attributes):
             min_size=n_attributes,
         )
     )
-    assert llvm_model(input) == lightgbm_model.predict([input])[0]
+    assert llvm_model.predict([input])[0] == lightgbm_model.predict([input])[0]
