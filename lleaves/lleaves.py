@@ -6,12 +6,14 @@ import llvmlite.binding as llvm
 from lleaves.tree_compiler import ir_from_json
 
 
-class LGBM:
-    # IR of tree
-    _llvm_ir = None
-    _llvm_is_initialized = False
+class Model:
+    # machine-targeted compiler & exec engine
     _execution_engine = None
+    # IR representation of model
+    _ir_module = None
+    # compiled representation of IR
     _compiled_module = None
+    compiled = False
     _c_entry_func = None
 
     def __init__(self, *, model_json=None, json_str=None):
@@ -21,33 +23,28 @@ class LGBM:
         else:
             self.model_json = json.loads(json_str)
 
-        self.compiled = False
-
     @property
-    def n_args(self):
+    def n_features(self):
+        """number of features"""
         return len(self.model_json["feature_names"])
 
-    def _init_codegen(self):
-        if not self._llvm_is_initialized:
-            llvm.initialize()
-            llvm.initialize_native_target()
-            llvm.initialize_native_asmprinter()
-
     @property
-    def llvm_ir(self):
-        if not self._llvm_ir:
-            self._llvm_ir = ir_from_json(self.model_json)
-        return self._llvm_ir
+    def ir_module(self):
+        if not self._ir_module:
+            self._ir_module = ir_from_json(self.model_json)
+        return self._ir_module
 
     @property
     def execution_engine(self):
         """
         Create an ExecutionEngine suitable for JIT code generation on
-        the host CPU.  The engine is reusable for an arbitrary number of
+        the host CPU. The engine is reusable for an arbitrary number of
         modules.
         """
         if not self._execution_engine:
-            self._init_codegen()
+            llvm.initialize()
+            llvm.initialize_native_target()
+            llvm.initialize_native_asmprinter()
 
             # Create a target machine representing the host
             target = llvm.Target.from_default_triple()
@@ -60,9 +57,13 @@ class LGBM:
         return self._execution_engine
 
     def compile(self):
+        """
+        Generate the LLVM IR for this model and compile it to ASM
+        This function can be called multiple time, but will only compile once.
+        """
         if not self._compiled_module:
             # Create a LLVM module object from the IR
-            module = llvm.parse_assembly(str(self.llvm_ir))
+            module = llvm.parse_assembly(str(self.ir_module))
             module.verify()
 
             # add module and make sure it is ready for execution
@@ -71,9 +72,9 @@ class LGBM:
             self.execution_engine.run_static_constructors()
             self._compiled_module = module
 
-            # construct entry function
+            # construct entry func
             addr = self._execution_engine.get_function_address("forest_root")
-            self._c_entry_func = CFUNCTYPE(c_double, *(self.n_args * (c_double,)))(addr)
+            self._c_entry_func = CFUNCTYPE(c_double, *(self.n_features * (c_double,)))(addr)
 
     def predict(self, arrs: list[list[float]]):
         self.compile()

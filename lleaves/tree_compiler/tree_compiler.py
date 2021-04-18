@@ -1,8 +1,6 @@
 from llvmlite import ir
 
-# Create some useful types
 DOUBLE = ir.DoubleType()
-D_POINTER = ir.PointerType(DOUBLE)
 
 
 def scalar_func(n_args):
@@ -10,16 +8,25 @@ def scalar_func(n_args):
 
 
 class Forest:
+    """
+    Basic outline of the IR representation:
+
+    Forest is a function, which calls the Tree functions
+
+    Trees are functions
+    Every node in the tree is a block
+    """
+
     def __init__(self, json):
         self.n_args = len(json["feature_infos"])
         self.trees = [Tree(tree_json, self.n_args) for tree_json in json["tree_info"]]
 
     def get_ir(self):
-        # Create an empty module...
         module = ir.Module(name=f"forest")
 
         tree_funcs = [tree.gen_code(module) for tree in self.trees]
 
+        # entry function, do not change name
         root_func = ir.Function(module, scalar_func(self.n_args), name="forest_root")
         block = root_func.append_basic_block()
         builder = ir.IRBuilder(block)
@@ -49,11 +56,8 @@ class Tree:
     def gen_code(self, module):
         # Declare the function for this tree
         func = ir.Function(module, scalar_func(self.n_args), name=str(self))
-        block = func.append_basic_block()
-
-        builder = ir.IRBuilder(block)
-        res = builder.alloca(DOUBLE, name="result")
-        builder.branch(self.root_node.gen_block(func, res))
+        # root node will provide the first block, which is the entry into the tree function
+        self.root_node.gen_block(func)
         return func
 
     def _run_pymode(self, input):
@@ -75,12 +79,14 @@ class Node:
         else:
             self.right = Leaf(json["right_child"])
 
+        self.all_children_leaves = isinstance(self.left, Leaf) and isinstance(self.right, Leaf)
+
         self.node_index = json["split_index"]
         self.split_feature = json["split_feature"]
         self.threshold = json["threshold"]
         self.decision_type = json["decision_type"]
 
-    def gen_block(self, func, res):
+    def gen_block(self, func):
         block = func.append_basic_block(name=str(self))
         builder = ir.IRBuilder(block)
         args = func.args
@@ -89,17 +95,13 @@ class Node:
         comp = builder.fcmp_ordered(
             self.decision_type, args[self.split_feature], thresh
         )
-        with builder.if_then(comp):
-            self._branch_or_ret(self.left, builder, func, res)
-        self._branch_or_ret(self.right, builder, func, res)
-        return block
-
-    @staticmethod
-    def _branch_or_ret(target, builder, func, res):
-        if isinstance(target, Leaf):
-            target.add_return(builder)
+        if self.all_children_leaves:
+            ret = builder.select(comp, self.left.return_const, self.right.return_const)
+            builder.ret(ret)
         else:
-            builder.branch(target.gen_block(func, res))
+            builder.cbranch(comp, self.left.gen_block(func), self.right.gen_block(func))
+
+        return block
 
     def __str__(self):
         return f"node_{self.node_index}"
@@ -115,10 +117,13 @@ class Leaf:
     def __init__(self, json):
         self.leaf_index = json["leaf_index"]
         self.return_value = json["leaf_value"]
+        self.return_const = ir.Constant(DOUBLE, json["leaf_value"])
 
-    def add_return(self, builder):
-        result = ir.Constant(DOUBLE, self.return_value)
-        builder.ret(result)
+    def gen_block(self, func):
+        block = func.append_basic_block(name=str(self))
+        builder = ir.IRBuilder(block)
+        builder.ret(self.return_const)
+        return block
 
     def _run_pymode(self, input):
         return self.return_value

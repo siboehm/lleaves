@@ -1,1 +1,1 @@
-from lleaves.LightGBM import LGBM
+from lleaves.lleaves import Model

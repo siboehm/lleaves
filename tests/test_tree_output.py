@@ -6,7 +6,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import lleaves
-from lleaves.tree_compiler.decision_tree import Forest
+from lleaves.tree_compiler.tree_compiler import Forest
 
 MODEL_DIRS = [
     ("tests/models/boston_housing/", 13),
@@ -15,7 +15,7 @@ MODEL_DIRS = [
 ]
 MODELS = [
     (
-        lleaves.LGBM(model_json=path + "model.json"),
+        lleaves.Model(model_json=path + "model.json"),
         lightgbm.Booster(model_file=path + "model.txt"),
         n_attributes,
     )
