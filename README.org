@@ -1,0 +1,12 @@
+* LLeaVes
+LLVM-based compiler for LightGBM decision trees
+** Performance Benchmarking
+Single row prediction performance, 100 iterations over the Boston housing dataset.
+Same model used for all three.
+Commit @c3a0e6
+
+| Model            |  Time |
+|------------------+-------|
+| LightGBM Booster |  4.15 |
+| LLeaVes          |  0.35 |
+| Treelite         | 11.68 |
