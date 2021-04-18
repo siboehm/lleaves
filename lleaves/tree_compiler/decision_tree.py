@@ -11,13 +11,26 @@ def scalar_func(n_args):
 
 class Forest:
     def __init__(self, json):
-        self.trees = [
-            Tree(tree_json, len(json["feature_infos"]))
-            for tree_json in json["tree_info"]
-        ]
+        self.n_args = len(json["feature_infos"])
+        self.trees = [Tree(tree_json, self.n_args) for tree_json in json["tree_info"]]
 
     def get_ir(self):
-        return [str(tree.gen_code()) for tree in self.trees]
+        # Create an empty module...
+        module = ir.Module(name=f"forest")
+
+        tree_funcs = [tree.gen_code(module) for tree in self.trees]
+
+        root_func = ir.Function(module, scalar_func(self.n_args), name="forest_root")
+        block = root_func.append_basic_block()
+        builder = ir.IRBuilder(block)
+
+        res = builder.call(tree_funcs[0], root_func.args)
+        for func in tree_funcs[1:]:
+            tmp = builder.call(func, root_func.args)
+            res = builder.fadd(tmp, res)
+        builder.ret(res)
+
+        return module
 
     def _run_pymode(self, input):
         return sum(tree._run_pymode(input) for tree in self.trees)
@@ -33,18 +46,15 @@ class Tree:
     def __str__(self):
         return f"tree_{self.index}"
 
-    def gen_code(self):
-        # Create an empty module...
-        module = ir.Module(name=f"tree_{self.index}")
+    def gen_code(self, module):
         # Declare the function for this tree
-        func = ir.Function(module, scalar_func(self.n_args), name=str(self) + "_pred")
-        block = func.append_basic_block("entry")
+        func = ir.Function(module, scalar_func(self.n_args), name=str(self))
+        block = func.append_basic_block()
 
         builder = ir.IRBuilder(block)
         res = builder.alloca(DOUBLE, name="result")
         builder.branch(self.root_node.gen_block(func, res))
-
-        return module
+        return func
 
     def _run_pymode(self, input):
         return self.root_node._run_pymode(input)

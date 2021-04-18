@@ -1,7 +1,9 @@
 import json
 from ctypes import CFUNCTYPE, c_double
-from lleaves.tree_compiler import ir_from_json
+
 import llvmlite.binding as llvm
+
+from lleaves.tree_compiler import ir_from_json
 
 
 class LGBM:
@@ -60,7 +62,7 @@ class LGBM:
     def compile(self):
         if not self._compiled_module:
             # Create a LLVM module object from the IR
-            module = llvm.parse_assembly(self.llvm_ir[0])
+            module = llvm.parse_assembly(str(self.llvm_ir))
             module.verify()
 
             # add module and make sure it is ready for execution
@@ -70,7 +72,7 @@ class LGBM:
             self._compiled_module = module
 
             # construct entry function
-            addr = self._execution_engine.get_function_address("tree_0_pred")
+            addr = self._execution_engine.get_function_address("forest_root")
             self._c_entry_func = CFUNCTYPE(c_double, *(self.n_args * (c_double,)))(addr)
 
     def __call__(self, arr: list[float]):
