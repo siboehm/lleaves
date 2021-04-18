@@ -17,7 +17,7 @@ class Forest:
         ]
 
     def get_ir(self):
-        return [tree.gen_code() for tree in self.trees]
+        return [str(tree.gen_code()) for tree in self.trees]
 
     def _run_pymode(self, input):
         return sum(tree._run_pymode(input) for tree in self.trees)
@@ -26,20 +26,25 @@ class Forest:
 class Tree:
     def __init__(self, json, n_args):
         self.index = json["tree_index"]
+        self.n_args = n_args
 
-        # Create an empty module...
-        module = ir.Module(name=f"tree_{self.index}")
-        # Declare the root node
-        func = ir.Function(module, scalar_func(n_args), name=str(self) + "_pred")
-
-        self.func = func
         self.root_node = Node(json["tree_structure"], n_args)
 
     def __str__(self):
-        return f"t_{self.index}"
+        return f"tree_{self.index}"
 
     def gen_code(self):
-        return self.root_node.gen_code(self.func)
+        # Create an empty module...
+        module = ir.Module(name=f"tree_{self.index}")
+        # Declare the function for this tree
+        func = ir.Function(module, scalar_func(self.n_args), name=str(self) + "_pred")
+        block = func.append_basic_block("entry")
+
+        builder = ir.IRBuilder(block)
+        res = builder.alloca(DOUBLE, name="result")
+        builder.branch(self.root_node.gen_block(func, res))
+
+        return module
 
     def _run_pymode(self, input):
         return self.root_node._run_pymode(input)
@@ -65,25 +70,29 @@ class Node:
         self.threshold = json["threshold"]
         self.decision_type = json["decision_type"]
 
-    def gen_code(self, func, res):
+    def gen_block(self, func, res):
         block = func.append_basic_block(name=str(self))
         builder = ir.IRBuilder(block)
         args = func.args
 
         thresh = ir.Constant(DOUBLE, self.threshold)
         comp = builder.fcmp_ordered(
-            self.decision_type, args[self.split_feature], thresh, name=str(self) + "_c"
+            self.decision_type, args[self.split_feature], thresh
         )
-        with builder.if_else(comp) as (left, right):
-            with left:
-                builder.branch(self.left.gen_code(func, res))
-            with right:
-                builder.branch(self.right.gen_code(func, res))
-        result = builder.load(res)
-        builder.ret(res)
+        with builder.if_then(comp):
+            self._branch_or_ret(self.left, builder, func, res)
+        self._branch_or_ret(self.right, builder, func, res)
+        return block
+
+    @staticmethod
+    def _branch_or_ret(target, builder, func, res):
+        if isinstance(target, Leaf):
+            target.add_return(builder)
+        else:
+            builder.branch(target.gen_block(func, res))
 
     def __str__(self):
-        return f"n_{self.node_index}"
+        return f"node_{self.node_index}"
 
     def _run_pymode(self, input):
         if input[self.split_feature] <= self.threshold:
@@ -94,10 +103,15 @@ class Node:
 
 class Leaf:
     def __init__(self, json):
+        self.leaf_index = json["leaf_index"]
         self.return_value = json["leaf_value"]
 
-    def gen_code(self):
-        pass
+    def add_return(self, builder):
+        result = ir.Constant(DOUBLE, self.return_value)
+        builder.ret(result)
 
     def _run_pymode(self, input):
         return self.return_value
+
+    def __str__(self):
+        return f"leaf_{self.leaf_index}"

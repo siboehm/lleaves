@@ -1,0 +1,106 @@
+{
+    "name": "tree",
+    "version": "v3",
+    "num_class": 1,
+    "num_tree_per_iteration": 1,
+    "label_index": 0,
+    "max_feature_idx": 2,
+    "objective": "regression",
+    "average_output": false,
+    "feature_names": [
+        "Column_0",
+        "Column_1",
+        "Column_2"
+    ],
+    "monotone_constraints": [],
+    "feature_infos": {
+        "Column_0": {
+            "min_value": 0.002179391250498819,
+            "max_value": 0.9995505440831257,
+            "values": []
+        },
+        "Column_1": {
+            "min_value": 0.0012873821812783293,
+            "max_value": 0.9983565153322764,
+            "values": []
+        },
+        "Column_2": {
+            "min_value": 0.005579177829028836,
+            "max_value": 0.9970577757374165,
+            "values": []
+        }
+    },
+    "tree_info": [
+        {
+            "tree_index": 0,
+            "num_leaves": 4,
+            "num_cat": 0,
+            "shrinkage": 1,
+            "tree_structure": {
+                "split_index": 0,
+                "split_feature": 1,
+                "split_gain": 0.5680109858512878,
+                "threshold": 0.7314494145219632,
+                "decision_type": "<=",
+                "default_left": true,
+                "missing_type": "None",
+                "internal_value": 0.498415,
+                "internal_weight": 0,
+                "internal_count": 500,
+                "left_child": {
+                    "split_index": 1,
+                    "split_feature": 2,
+                    "split_gain": 0.4836060106754303,
+                    "threshold": 0.9070836626874522,
+                    "decision_type": "<=",
+                    "default_left": true,
+                    "missing_type": "None",
+                    "internal_value": 0.496366,
+                    "internal_weight": 365,
+                    "internal_count": 365,
+                    "left_child": {
+                        "leaf_index": 0,
+                        "leaf_value": 0.4951066126651434,
+                        "leaf_weight": 326,
+                        "leaf_count": 326
+                    },
+                    "right_child": {
+                        "leaf_index": 2,
+                        "leaf_value": 0.5068894836955886,
+                        "leaf_weight": 39,
+                        "leaf_count": 39
+                    }
+                },
+                "right_child": {
+                    "split_index": 2,
+                    "split_feature": 2,
+                    "split_gain": 0.4566900134086609,
+                    "threshold": 0.8555160147839012,
+                    "decision_type": "<=",
+                    "default_left": true,
+                    "missing_type": "None",
+                    "internal_value": 0.503957,
+                    "internal_weight": 135,
+                    "internal_count": 135,
+                    "left_child": {
+                        "leaf_index": 1,
+                        "leaf_value": 0.5064538220029984,
+                        "leaf_weight": 114,
+                        "leaf_count": 114
+                    },
+                    "right_child": {
+                        "leaf_index": 3,
+                        "leaf_value": 0.49040602357823876,
+                        "leaf_weight": 21,
+                        "leaf_count": 21
+                    }
+                }
+            }
+        }
+    ],
+    "feature_importances": {
+        "Column_1": 1,
+        "Column_2": 2
+    },
+    "pandas_categorical": null
+}

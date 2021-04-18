@@ -58,20 +58,22 @@ class LGBM:
         return self._execution_engine
 
     def compile(self):
-        # Create a LLVM module object from the IR
-        module = llvm.parse_assembly(self.llvm_ir)
-        module.verify()
+        if not self._compiled_module:
+            # Create a LLVM module object from the IR
+            module = llvm.parse_assembly(self.llvm_ir[0])
+            module.verify()
 
-        # add module and make sure it is ready for execution
-        self._execution_engine.add_module(module)
-        self._execution_engine.finalize_object()
-        self._execution_engine.run_static_constructors()
-        self._compiled_module = module
+            # add module and make sure it is ready for execution
+            self.execution_engine.add_module(module)
+            self.execution_engine.finalize_object()
+            self.execution_engine.run_static_constructors()
+            self._compiled_module = module
 
-        # construct entry function
-        addr = self._execution_engine.get_function_address("root_node")
-        self._c_entry_func = CFUNCTYPE(c_double, *(self.n_args * (c_double,)))(addr)
+            # construct entry function
+            addr = self._execution_engine.get_function_address("tree_0_pred")
+            self._c_entry_func = CFUNCTYPE(c_double, *(self.n_args * (c_double,)))(addr)
 
     def __call__(self, arr: list[float]):
         assert len(arr) == self.n_args
-        return self._c_entry_func(arr)
+        self.compile()
+        return self._c_entry_func(*arr)
