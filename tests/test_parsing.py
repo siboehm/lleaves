@@ -1,4 +1,4 @@
-from lleaves.tree_compiler.parser import parse_model_file, _get_next_block_of_lines
+from lleaves.tree_compiler.parser import parse_model_file
 
 
 def test_parser():

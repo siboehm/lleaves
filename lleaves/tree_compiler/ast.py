@@ -1,4 +1,4 @@
-from lleaves.tree_compiler.frontend import Leaf, Node, Tree, Forest
+from lleaves.tree_compiler.frontend import Forest, Leaf, Node, Tree
 from lleaves.tree_compiler.parser import parse_model_file
 
 
@@ -31,6 +31,9 @@ def parse_to_forest(model_path):
         ]
 
         for node in nodes:
+            # in the model_file.txt, the outgoing left + right nodes are specified
+            # via their index in the list. negative numbers are leaves, positive numbers
+            # are other nodes
             children = [
                 leaves[abs(idx) - 1] if idx < 0 else nodes[idx]
                 for idx in (node.left_idx, node.right_idx)

@@ -1,10 +1,8 @@
-import json
 from ctypes import CFUNCTYPE, c_double
 
 import llvmlite.binding as llvm
 
-from lleaves.tree_compiler import ir_from_model_file
-from lleaves.tree_compiler import parser
+from lleaves.tree_compiler import ir_from_model_file, parser
 
 
 class Model:

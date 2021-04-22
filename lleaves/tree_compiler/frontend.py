@@ -1,4 +1,5 @@
 from llvmlite import ir
+
 from lleaves.tree_compiler.utils import decision_idx_to_llvmlite_str
 
 DOUBLE = ir.DoubleType()

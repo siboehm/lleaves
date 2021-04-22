@@ -1,5 +1,3 @@
-import json
-
 import lightgbm
 import pytest
 from hypothesis import given, settings
@@ -7,7 +5,6 @@ from hypothesis import strategies as st
 
 import lleaves
 from lleaves.tree_compiler.ast import parse_to_forest
-from lleaves.tree_compiler.frontend import Forest
 
 MODEL_DIRS = [
     ("tests/models/boston_housing/", 13),
