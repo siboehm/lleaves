@@ -3,7 +3,8 @@ from ctypes import CFUNCTYPE, c_double
 
 import llvmlite.binding as llvm
 
-from lleaves.tree_compiler import ir_from_json
+from lleaves.tree_compiler import ir_from_model_file
+from lleaves.tree_compiler import parser
 
 
 class Model:
@@ -16,22 +17,19 @@ class Model:
     compiled = False
     _c_entry_func = None
 
-    def __init__(self, *, model_json=None, json_str=None):
-        if model_json:
-            with open(model_json) as f:
-                self.model_json = json.load(f)
-        else:
-            self.model_json = json.loads(json_str)
+    def __init__(self, *, model_file=None):
+        self.model_file = model_file
+        self._general_info = parser.parse_model_file(model_file)["general_info"]
 
     @property
     def n_features(self):
         """number of features"""
-        return len(self.model_json["feature_names"])
+        return self._general_info["max_feature_idx"] + 1
 
     @property
     def ir_module(self):
         if not self._ir_module:
-            self._ir_module = ir_from_json(self.model_json)
+            self._ir_module = ir_from_model_file(self.model_file)
         return self._ir_module
 
     @property
@@ -74,7 +72,9 @@ class Model:
 
             # construct entry func
             addr = self._execution_engine.get_function_address("forest_root")
-            self._c_entry_func = CFUNCTYPE(c_double, *(self.n_features * (c_double,)))(addr)
+            self._c_entry_func = CFUNCTYPE(c_double, *(self.n_features * (c_double,)))(
+                addr
+            )
 
     def predict(self, arrs: list[list[float]]):
         self.compile()

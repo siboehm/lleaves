@@ -6,7 +6,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import lleaves
-from lleaves.tree_compiler.tree_compiler import Forest
+from lleaves.tree_compiler.ast import parse_to_forest
+from lleaves.tree_compiler.frontend import Forest
 
 MODEL_DIRS = [
     ("tests/models/boston_housing/", 13),
@@ -15,7 +16,7 @@ MODEL_DIRS = [
 ]
 MODELS = [
     (
-        lleaves.Model(model_json=path + "model.json"),
+        lleaves.Model(model_file=path + "model.txt"),
         lightgbm.Booster(model_file=path + "model.txt"),
         n_attributes,
     )
@@ -33,13 +34,10 @@ def test_forest_py_mode(data, model_dir, n_attributes):
             min_size=n_attributes,
         )
     )
-    j_path = model_dir + "model.json"
     t_path = model_dir + "model.txt"
     bst = lightgbm.Booster(model_file=t_path)
 
-    with open(j_path, "r") as f:
-        j = json.load(f)
-    f = Forest(j)
+    f = parse_to_forest(t_path)
 
     assert f._run_pymode(input) == bst.predict([input])[0]
 

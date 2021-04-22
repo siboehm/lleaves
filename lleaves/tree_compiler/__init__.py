@@ -1,1 +1,1 @@
-from lleaves.tree_compiler.frontend import ir_from_json
+from lleaves.tree_compiler.tree_compiler import ir_from_model_file
