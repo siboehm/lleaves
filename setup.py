@@ -4,9 +4,10 @@ setup(
     name="lleaves",
     version="",
     packages=["lleaves", "lleaves.tree_compiler"],
-    url="",
+    url="https://github.com/siboehm/LLeaVes",
     license="MIT",
-    author="simon",
+    author="Simon Boehm",
     author_email="simon@siboehm.com",
     description="LLVM-based compiler for LightGBM models",
+    install_requires=["llvmlite"],
 )
