@@ -10,3 +10,9 @@ Commit @c3a0e6
 | LightGBM Booster |  4.15 |
 | LLeaVes          |  0.35 |
 | Treelite         | 11.68 |
+
+** Development
+#+begin_src bash
+conda env create
+pytest
+#+end_src
