@@ -38,7 +38,7 @@ def test_forest_py_mode(data, model_dir):
         )
     )
 
-    assert f._run_pymode(input) == bst.predict([input])[0]
+    assert f._run_pymode(input) == bst.predict([input])
 
 
 @settings(deadline=1000)
@@ -52,4 +52,4 @@ def test_forest_llvm_mode(data, llvm_lgbm_model):
             min_size=llvm_model.num_features(),
         )
     )
-    assert llvm_model.predict([input])[0] == lightgbm_model.predict([input])[0]
+    assert llvm_model.predict([input]) == lightgbm_model.predict([input])

@@ -15,7 +15,7 @@ class Model:
     compiled = False
     _c_entry_func = None
 
-    def __init__(self, *, model_file=None):
+    def __init__(self, model_file=None):
         self.model_file = model_file
         self._general_info = parser.parse_model_file(model_file)["general_info"]
 
