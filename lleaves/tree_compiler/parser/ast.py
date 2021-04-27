@@ -1,5 +1,5 @@
 from lleaves.tree_compiler.frontend import Forest, Leaf, Node, Tree
-from lleaves.tree_compiler.parser import parse_model_file
+from lleaves.tree_compiler.parser.parsing import parse_model_file
 
 
 def parse_to_forest(model_path):
@@ -8,9 +8,14 @@ def parse_to_forest(model_path):
 
     trees = []
     for tree_struct in parsed_model["trees"]:
+        n_cat = tree_struct["num_cat"]
+        n_nodes = len(tree_struct["decision_type"])
         leaves = [
             Leaf(idx, value) for idx, value in enumerate(tree_struct["leaf_value"])
         ]
+
+        # Create the nodes using all non-specific data
+        # categorical nodes are finalized later
         nodes = [
             Node(idx, split_feature, threshold, decision_type_id, left_idx, right_idx)
             for idx, (
@@ -29,7 +34,7 @@ def parse_to_forest(model_path):
                 )
             )
         ]
-
+        assert len(nodes) == n_nodes
         for node in nodes:
             # in the model_file.txt, the outgoing left + right nodes are specified
             # via their index in the list. negative numbers are leaves, positive numbers

@@ -4,7 +4,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import lleaves
-from lleaves.tree_compiler.ast import parse_to_forest
+from lleaves.tree_compiler.parser.ast import parse_to_forest
 
 MODEL_DIRS = [
     "tests/models/boston_housing/",
@@ -20,6 +20,11 @@ def llvm_lgbm_model(request):
         lleaves.Model(model_file=path + "model.txt"),
         lightgbm.Booster(model_file=path + "model.txt"),
     )
+
+
+def test_attribute_similarity(llvm_lgbm_model):
+    llvm_model, lightgbm_model = llvm_lgbm_model
+    assert llvm_model.num_feature() == lightgbm_model.num_feature()
 
 
 @pytest.mark.parametrize("model_dir", MODEL_DIRS)

@@ -8,3 +8,4 @@ dependencies:
   - hypothesis
   - lightgbm
   - pytest-xdist
+  - numpy

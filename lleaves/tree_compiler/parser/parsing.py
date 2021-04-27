@@ -19,12 +19,17 @@ def parse_model_file(file_path):
         lines = _get_next_block_of_lines(f)
         while lines:
             if lines[0].startswith("Tree="):
-                res["trees"].append(_struct_from_block(lines, TREE_PARSED_KEYS))
+                res["trees"].append(_parse_tree(lines))
             else:
                 assert lines[0] == "end of trees"
                 return res
             lines = _get_next_block_of_lines(f)
     raise ValueError(f"Ill formatted file {file_path}")
+
+
+def _parse_tree(lines):
+    struct = _struct_from_block(lines, TREE_PARSED_KEYS)
+    return struct
 
 
 def _get_next_block_of_lines(file):
@@ -39,24 +44,33 @@ def _get_next_block_of_lines(file):
     return result
 
 
-INPUT_PARSED_KEYS = {"max_feature_idx": "int", "version": "str"}
+class ParsedValue:
+    def __init__(self, type: type, is_list=False, null_ok=False):
+        self.type = type
+        self.is_list = is_list
+        self.null_ok = null_ok
+
+
+INPUT_PARSED_KEYS = {"max_feature_idx": ParsedValue(int), "version": ParsedValue(str)}
 TREE_PARSED_KEYS = {
-    "Tree": "int",
-    "num_leaves": "int",
-    "split_feature": "list[int]",
-    "threshold": "list[float]",
-    "decision_type": "list[int]",
-    "left_child": "list[int]",
-    "right_child": "list[int]",
-    "leaf_value": "list[float]",
+    "Tree": ParsedValue(int),
+    "num_leaves": ParsedValue(int),
+    "num_cat": ParsedValue(int),
+    "split_feature": ParsedValue(int, True),
+    "threshold": ParsedValue(float, True),
+    "decision_type": ParsedValue(int, True),
+    "left_child": ParsedValue(int, True),
+    "right_child": ParsedValue(int, True),
+    "leaf_value": ParsedValue(float, True),
+    "cat_threshold": ParsedValue(int, True, True),
 }
 
 
-def _struct_from_block(lines: list, parsed_keys: dict):
+def _struct_from_block(lines: list, keys_to_parse: dict):
     """
     Parses a block (= list of lines) into a key: value struct
     @param lines: list of lines in the block
-    @param parsed_keys: dict with 'key': 'type of value' of keys to parse
+    @param keys_to_parse: dict with 'key': 'type of value' of keys to parse
     """
     struct = {}
     for line in lines:
@@ -65,18 +79,17 @@ def _struct_from_block(lines: list, parsed_keys: dict):
             continue
 
         key, value = line.split("=")
-        if key in parsed_keys.keys():
-            value_type = parsed_keys[key]
-            if value_type == "list[int]":
-                parsed_value = [int(x) for x in value.split(" ")]
-            elif value_type == "list[float]":
-                parsed_value = [float(x) for x in value.split(" ")]
-            elif value_type == "int":
-                parsed_value = int(value)
+        if key in keys_to_parse.keys():
+            value_type = keys_to_parse[key]
+            if value_type.is_list:
+                parsed_value = [value_type.type(x) for x in value.split(" ")]
             else:
-                assert value_type == "str"
-                parsed_value = value
+                parsed_value = value_type.type(value)
             struct[key] = parsed_value
-    # make sure we managed to parse all desired keys
-    assert struct.keys() == parsed_keys.keys()
+
+    missing_keys = keys_to_parse.keys() - struct.keys()
+    for key in missing_keys:
+        value = keys_to_parse[key]
+        assert value.null_ok, f"Non-nullable key {key} wasn't found"
+        struct[key] = None
     return struct

@@ -1,4 +1,4 @@
-from lleaves.tree_compiler.ast import parse_to_forest
+from lleaves.tree_compiler.parser.ast import parse_to_forest
 
 
 def ir_from_model_file(file_path):

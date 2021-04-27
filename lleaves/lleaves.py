@@ -19,7 +19,7 @@ class Model:
         self.model_file = model_file
         self._general_info = parser.parse_model_file(model_file)["general_info"]
 
-    def num_features(self):
+    def num_feature(self):
         """number of features"""
         return self._general_info["max_feature_idx"] + 1
 
@@ -70,7 +70,7 @@ class Model:
             # construct entry func
             addr = self._execution_engine.get_function_address("forest_root")
             self._c_entry_func = CFUNCTYPE(
-                c_double, *(self.num_features() * (c_double,))
+                c_double, *(self.num_feature() * (c_double,))
             )(addr)
 
     def predict(self, arrs: list):
