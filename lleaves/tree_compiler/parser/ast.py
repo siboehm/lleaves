@@ -35,6 +35,17 @@ def parse_to_forest(model_path):
             )
         ]
         assert len(nodes) == n_nodes
+
+        categorical_nodes = [
+            idx
+            for idx, decision_type in enumerate(tree_struct["decision_type"])
+            if decision_type == 1
+        ]
+        assert len(categorical_nodes) == n_cat
+
+        for i, idx in enumerate(categorical_nodes):
+            nodes[idx].finalize_categorical(tree_struct["cat_threshold"][i])
+
         for node in nodes:
             # in the model_file.txt, the outgoing left + right nodes are specified
             # via their index in the list. negative numbers are leaves, positive numbers
@@ -44,5 +55,9 @@ def parse_to_forest(model_path):
                 for idx in (node.left_idx, node.right_idx)
             ]
             node.add_children(*children)
+
+        for node in nodes:
+            node.validate()
+
         trees.append(Tree(tree_struct["Tree"], nodes[0], n_args))
     return Forest(trees, n_args)

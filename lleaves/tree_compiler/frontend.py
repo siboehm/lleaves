@@ -1,6 +1,9 @@
 from llvmlite import ir
 
-from lleaves.tree_compiler.utils import decision_idx_to_llvmlite_str
+from lleaves.tree_compiler.utils import (
+    calc_pymode_cat_thresholds,
+    decision_idx_to_llvmlite_str,
+)
 
 DOUBLE = ir.DoubleType()
 
@@ -24,7 +27,7 @@ class Forest:
         self.n_args = n_args
 
     def get_ir(self):
-        module = ir.Module(name=f"forest")
+        module = ir.Module(name="forest")
 
         tree_funcs = [tree.gen_code(module) for tree in self.trees]
 
@@ -67,6 +70,11 @@ class Tree:
 
 
 class Node:
+    # the threshold in bit-representation if this node is categorical
+    cat_threshold = None
+    # the threshold in array-representation
+    cat_threshold_arr = None
+
     def __init__(
         self,
         idx: int,
@@ -91,19 +99,44 @@ class Node:
             self.right, Leaf
         )
 
+    def finalize_categorical(self, cat_threshold):
+        self.cat_threshold = cat_threshold
+        self.cat_threshold_arr = calc_pymode_cat_thresholds(cat_threshold)
+
+    def validate(self):
+        if self.decision_type_id == 1:
+            assert self.cat_threshold is not None
+        else:
+            assert self.threshold
+
     def gen_block(self, func):
         block = func.append_basic_block(name=str(self))
         builder = ir.IRBuilder(block)
         args = func.args
 
-        thresh = ir.Constant(DOUBLE, self.threshold)
-        decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
-        comp = builder.fcmp_ordered(decision_type, args[self.split_feature], thresh)
-        if self.all_children_leaves:
-            ret = builder.select(comp, self.left.return_const, self.right.return_const)
-            builder.ret(ret)
+        # numerical float compare
+        if self.decision_type_id == 2:
+            thresh = ir.Constant(DOUBLE, self.threshold)
+            decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
+            comp = builder.fcmp_ordered(decision_type, args[self.split_feature], thresh)
+            if self.all_children_leaves:
+                ret = builder.select(
+                    comp, self.left.return_const, self.right.return_const
+                )
+                builder.ret(ret)
+            else:
+                builder.cbranch(
+                    comp, self.left.gen_block(func), self.right.gen_block(func)
+                )
+        # categorical int compare
         else:
-            builder.cbranch(comp, self.left.gen_block(func), self.right.gen_block(func))
+            thresh = ir.Constant(
+                ir.VectorType(int, len(self.cat_threshold_arr)), self.cat_threshold_arr
+            )
+            decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
+            comp = builder.icmp_unsigned(
+                decision_type, args[self.split_feature], thresh
+            )
 
         return block
 
@@ -111,7 +144,12 @@ class Node:
         return f"node_{self.idx}"
 
     def _run_pymode(self, input):
-        if input[self.split_feature] <= self.threshold:
+        if self.decision_type_id == 2:
+            go_left = input[self.split_feature] <= self.threshold
+        else:
+            go_left = input[self.split_feature] in self.cat_threshold_arr
+
+        if go_left:
             return self.left._run_pymode(input)
         else:
             return self.right._run_pymode(input)
