@@ -74,6 +74,6 @@ class Model:
                 addr
             )
 
-    def predict(self, arrs: list[list[float]]):
+    def predict(self, arrs: list):
         self.compile()
         return [self._c_entry_func(*arr) for arr in arrs]

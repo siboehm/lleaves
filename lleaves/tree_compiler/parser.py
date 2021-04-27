@@ -39,20 +39,20 @@ def _get_next_block_of_lines(file):
     return result
 
 
-INPUT_PARSED_KEYS = {"max_feature_idx": int, "version": str}
+INPUT_PARSED_KEYS = {"max_feature_idx": "int", "version": "str"}
 TREE_PARSED_KEYS = {
-    "Tree": int,
-    "num_leaves": int,
-    "split_feature": list[int],
-    "threshold": list[float],
-    "decision_type": list[int],
-    "left_child": list[int],
-    "right_child": list[int],
-    "leaf_value": list[float],
+    "Tree": "int",
+    "num_leaves": "int",
+    "split_feature": "list[int]",
+    "threshold": "list[float]",
+    "decision_type": "list[int]",
+    "left_child": "list[int]",
+    "right_child": "list[int]",
+    "leaf_value": "list[float]",
 }
 
 
-def _struct_from_block(lines: list[str], parsed_keys: dict):
+def _struct_from_block(lines: list, parsed_keys: dict):
     """
     Parses a block (= list of lines) into a key: value struct
     @param lines: list of lines in the block
@@ -66,15 +66,15 @@ def _struct_from_block(lines: list[str], parsed_keys: dict):
 
         key, value = line.split("=")
         if key in parsed_keys.keys():
-            typ = parsed_keys[key]
-            if typ == list[int]:
+            value_type = parsed_keys[key]
+            if value_type == "list[int]":
                 parsed_value = [int(x) for x in value.split(" ")]
-            elif typ == list[float]:
+            elif value_type == "list[float]":
                 parsed_value = [float(x) for x in value.split(" ")]
-            elif typ == int:
+            elif value_type == "int":
                 parsed_value = int(value)
             else:
-                assert typ == str
+                assert value_type == "str"
                 parsed_value = value
             struct[key] = parsed_value
     # make sure we managed to parse all desired keys

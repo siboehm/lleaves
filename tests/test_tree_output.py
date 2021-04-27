@@ -11,14 +11,17 @@ MODEL_DIRS = [
     ("tests/models/single_tree/", 10),
     ("tests/models/tiniest_single_tree/", 3),
 ]
-MODELS = [
-    (
+
+
+@pytest.fixture(scope="session", params=MODEL_DIRS, ids=[x[0] for x in MODEL_DIRS])
+def model(request):
+    path = request.param[0]
+    n_attr = request.param[1]
+    return (
         lleaves.Model(model_file=path + "model.txt"),
         lightgbm.Booster(model_file=path + "model.txt"),
-        n_attributes,
+        n_attr,
     )
-    for path, n_attributes in MODEL_DIRS
-]
 
 
 @pytest.mark.parametrize("model_dir, n_attributes", MODEL_DIRS)
@@ -39,10 +42,10 @@ def test_forest_py_mode(data, model_dir, n_attributes):
     assert f._run_pymode(input) == bst.predict([input])[0]
 
 
-@pytest.mark.parametrize("llvm_model, lightgbm_model, n_attributes", MODELS)
 @settings(deadline=1000)
 @given(data=st.data())
-def test_forest_llvm_mode(data, llvm_model, lightgbm_model, n_attributes):
+def test_forest_llvm_mode(data, model):
+    llvm_model, lightgbm_model, n_attributes = model
     input = data.draw(
         st.lists(
             st.floats(allow_nan=False, allow_infinity=False),
