@@ -1,9 +1,12 @@
-from ctypes import CFUNCTYPE, c_double, c_int
+import ctypes
+from ctypes import CFUNCTYPE, c_float, c_int
 from pathlib import Path
 
 import llvmlite.binding as llvm
 
 # All these initializations are required for code generation!
+import numpy as np
+
 llvm.initialize()
 llvm.initialize_native_target()
 llvm.initialize_native_asmprinter()  # yes, even this one
@@ -49,7 +52,12 @@ mod = compile_ir(engine, llvm_ir)
 func_ptr = engine.get_function_address("forest_root")
 
 # Run the function via ctypes
-cfunc = CFUNCTYPE(c_double, c_int, c_int, c_int)(func_ptr)
-args = [0, 9, 0]
-res = cfunc(*args)
-print(f"forest_root({', '.join(map(str, args))}) = {res}")
+cfunc = CFUNCTYPE(
+    None, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)
+)(func_ptr)
+args = np.array([[0.0, 9.0, 0.0]], dtype=np.float64)
+args_ptr = args.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+preds = np.zeros(1, dtype=np.float64)
+ptr_preds = preds.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+cfunc(args_ptr, ptr_preds)
+print(f"forest_root({', '.join(map(str, args))}) = {preds}")
