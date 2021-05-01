@@ -6,9 +6,12 @@ from lleaves.tree_compiler.utils import (
 )
 
 BOOL = ir.IntType(bits=1)
-ZERO_V = ir.Constant(BOOL, 0)
 DOUBLE = ir.DoubleType()
+FLOAT = ir.FloatType()
 INT_CAT = ir.IntType(bits=32)
+ZERO_V = ir.Constant(BOOL, 0)
+FLOAT_POINTER = ir.PointerType(FLOAT)
+DOUBLE_PTR = ir.PointerType(DOUBLE)
 
 
 def scalar_func(cat_bitmap):
@@ -30,6 +33,7 @@ class Forest:
     def __init__(self, trees, categorical_bitmap):
         self.trees = trees
         self.categorical_bitmap = categorical_bitmap
+        self.n_args = len(categorical_bitmap)
 
     def get_ir(self):
         module = ir.Module(name="forest")
@@ -38,17 +42,32 @@ class Forest:
 
         # entry function, do not change name
         root_func = ir.Function(
-            module, scalar_func(self.categorical_bitmap), name="forest_root"
+            module,
+            ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, DOUBLE_PTR)),
+            name="forest_root",
         )
         block = root_func.append_basic_block()
         builder = ir.IRBuilder(block)
 
-        res = builder.call(tree_funcs[0], root_func.args)
+        args = []
+        raw_ptrs = [
+            builder.gep(root_func.args[0], (ir.Constant(INT_CAT, i),))
+            for i in range(self.n_args)
+        ]
+        for is_cat, ptr in zip(self.categorical_bitmap, raw_ptrs):
+            el = builder.load(ptr)
+            if is_cat:
+                args.append(builder.fptoui(el, INT_CAT))
+            else:
+                args.append(el)
+
+        res = builder.call(tree_funcs[0], args)
         for func in tree_funcs[1:]:
             # should probably inline this, but optimizer does it automatically
-            tmp = builder.call(func, root_func.args)
+            tmp = builder.call(func, args)
             res = builder.fadd(tmp, res)
-        builder.ret(res)
+        builder.store(res, root_func.args[1])
+        builder.ret_void()
 
         return module
 

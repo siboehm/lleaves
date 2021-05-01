@@ -1,4 +1,5 @@
 import lightgbm
+import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -95,7 +96,8 @@ def test_forest_llvm_mode(data, llvm_lgbm_model):
             min_size=llvm_model.num_feature(),
         )
     )
-    assert llvm_model.predict([input_data]) == lightgbm_model.predict([input_data])
+    input_data = np.array([input_data])
+    assert llvm_model.predict(input_data) == lightgbm_model.predict(input_data)
 
 
 @pytest.mark.parametrize(

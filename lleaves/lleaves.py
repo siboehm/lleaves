@@ -1,6 +1,8 @@
-from ctypes import CFUNCTYPE, c_double, c_int
+import ctypes
+from ctypes import CFUNCTYPE, POINTER, c_double
 
 import llvmlite.binding as llvm
+import numpy as np
 
 from lleaves.tree_compiler import ir_from_model_file
 from lleaves.tree_compiler.ast import parser
@@ -60,24 +62,51 @@ class Model:
         Generate the LLVM IR for this model and compile it to ASM
         This function can be called multiple time, but will only compile once.
         """
-        if not self._compiled_module:
-            # Create a LLVM module object from the IR
-            module = llvm.parse_assembly(str(self.ir_module))
-            module.verify()
+        if self._compiled_module:
+            return
 
-            # add module and make sure it is ready for execution
-            self.execution_engine.add_module(module)
-            self.execution_engine.finalize_object()
-            self.execution_engine.run_static_constructors()
-            self._compiled_module = module
+        # Create a LLVM module object from the IR
+        module = llvm.parse_assembly(str(self.ir_module))
+        module.verify()
 
-            # construct entry func
-            addr = self._execution_engine.get_function_address("forest_root")
-            self._c_entry_func = CFUNCTYPE(
-                c_double,
-                *[c_int if is_int else c_double for is_int in self.categorical_bitmap]
-            )(addr)
+        # add module and make sure it is ready for execution
+        self.execution_engine.add_module(module)
+        self.execution_engine.finalize_object()
+        self.execution_engine.run_static_constructors()
+        self._compiled_module = module
 
-    def predict(self, arrs: list):
+        # construct entry func
+        addr = self._execution_engine.get_function_address("forest_root")
+        self._c_entry_func = CFUNCTYPE(None, POINTER(c_double), POINTER(c_double))(addr)
+
+    def predict(self, data):
         self.compile()
-        return [self._c_entry_func(*arr) for arr in arrs]
+
+        data, n_preds = self._to_1d_ndarray(data)
+        ptr_data = data.ctypes.data_as(POINTER(c_double))
+
+        preds = np.zeros(n_preds, dtype=np.float64)
+        ptr_preds = preds.ctypes.data_as(POINTER(c_double))
+        self._c_entry_func(ptr_data, ptr_preds)
+        return preds
+
+    def _to_1d_ndarray(self, data):
+        if isinstance(data, list):
+            try:
+                data = np.array(data)
+            except BaseException:
+                raise ValueError("Cannot convert data list to appropriate np array")
+
+        if not isinstance(data, np.ndarray):
+            raise ValueError(f"Expecting list or numpy.ndarray, got {type(data)}")
+        if len(data.shape) != 2:
+            raise ValueError(
+                f"Data must be 2 dimensional, is {len(data.shape)} dimensional"
+            )
+        n_preds = data.shape[0]
+        if data.dtype == np.float64:
+            # flatten the array to 1D
+            data = np.array(data.reshape(data.size), dtype=np.float64, copy=False)
+        else:
+            data = np.array(data.reshape(data.size), dtype=np.float64)
+        return data, n_preds
