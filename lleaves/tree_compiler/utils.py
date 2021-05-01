@@ -12,6 +12,10 @@ def decision_idx_to_llvmlite_str(idx):
 
 
 def calc_pymode_cat_thresholds(threshold):
+    """
+    :param threshold: An integer representing a bitvector
+    :return: list of ints, each item corresponding to entry in the bitvector
+    """
     thresh = threshold
     cat_thresholds = []
     i = 0

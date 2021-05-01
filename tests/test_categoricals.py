@@ -2,7 +2,7 @@ import lightgbm as lgb
 import numpy as np
 import numpy.random
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from lleaves import Model
@@ -98,12 +98,13 @@ def test_pymode_cat_threshold(threshold, result):
 
 
 @given(data=st.data())
+@settings(max_examples=50)
 def test_mixed_categorical_prediction_pymode_real(data, categorical_model_txt):
     llvm_model = parse_to_ast(str(categorical_model_txt))
     lgbm_model = lgb.Booster(model_file=str(categorical_model_txt))
     input = data.draw(
         st.lists(
-            st.integers(min_value=-100, max_value=100),
+            st.integers(min_value=0, max_value=2 ** 31 - 2),
             max_size=lgbm_model.num_feature(),
             min_size=lgbm_model.num_feature(),
         )
@@ -113,13 +114,13 @@ def test_mixed_categorical_prediction_pymode_real(data, categorical_model_txt):
 
 
 @given(data=st.data())
-def test_categorical_prediction_llvm(data, categorical_model_txt):
+def test_categorical_prediction_llvm_real(data, categorical_model_txt):
     lgbm_model = lgb.Booster(model_file=str(categorical_model_txt))
     llvm_model = Model(model_file=categorical_model_txt)
 
     input = data.draw(
         st.lists(
-            st.integers(min_value=-100, max_value=100),
+            st.integers(min_value=0, max_value=2 ** 31 - 2),
             max_size=llvm_model.num_feature(),
             min_size=llvm_model.num_feature(),
         )
@@ -127,30 +128,8 @@ def test_categorical_prediction_llvm(data, categorical_model_txt):
     assert llvm_model.predict([input]) == lgbm_model.predict([input])
 
 
-def test_pure_categorical_prediction_pymode():
-    llvm_model = parse_to_ast("tests/models/pure_categorical/model.txt")
-    lgbm_model = lgb.Booster(model_file="tests/models/pure_categorical/model.txt")
-
-    results = [12.616231057968633, 10.048276920678525, 9.2489478721549396]
-    for data, res_idx in zip(
-        [
-            [0, 9, 0],
-            [1, 9, 0],
-            [0, 6, 5],
-            [1, 5, 1],
-            [2, 5, 1],
-            [4, 5, 1],
-            [5, 5, 9],
-            [6, 5, 3],
-            [9, 5, 2],
-        ],
-        [0, 0, 0, 1, 1, 1, 2, 2, 2],
-    ):
-        assert llvm_model._run_pymode(data) == results[res_idx]
-        assert lgbm_model.predict([data]) == results[res_idx]
-
-
-def test_pure_categorical_prediction_llvm():
+def test_pure_categorical_prediction():
+    llvm_forest = parse_to_ast("tests/models/pure_categorical/model.txt")
     llvm_model = Model("tests/models/pure_categorical/model.txt")
     lgbm_model = lgb.Booster(model_file="tests/models/pure_categorical/model.txt")
 
@@ -169,5 +148,6 @@ def test_pure_categorical_prediction_llvm():
         ],
         [0, 0, 0, 1, 1, 1, 2, 2, 2],
     ):
+        assert llvm_forest._run_pymode(data) == results[res_idx]
         assert llvm_model.predict([data]) == [results[res_idx]]
-        assert lgbm_model.predict([data]) == [results[res_idx]]
+        assert lgbm_model.predict([data]) == results[res_idx]

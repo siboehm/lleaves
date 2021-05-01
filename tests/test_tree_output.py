@@ -17,6 +17,7 @@ MODEL_DIRS_CATEGORICAL = [
     "tests/models/mixed_categorical/",
     "tests/models/pure_categorical/",
 ]
+CAT_BITVEC_CATEGORICAL = [(True, True, True, False, False), (True, True, True)]
 
 
 @pytest.fixture(scope="session", params=MODEL_DIRS_NUMERICAL)
@@ -34,6 +35,7 @@ def test_attribute_similarity(llvm_lgbm_model):
 
 
 @pytest.mark.parametrize("model_dir", MODEL_DIRS_NUMERICAL)
+@settings(max_examples=50)
 @given(data=st.data())
 def test_forest_py_mode(data, model_dir):
     t_path = model_dir + "model.txt"
@@ -51,35 +53,75 @@ def test_forest_py_mode(data, model_dir):
     assert f._run_pymode(input) == bst.predict([input])
 
 
-@pytest.mark.parametrize("model_dir", MODEL_DIRS_CATEGORICAL)
+@pytest.mark.parametrize(
+    "model_dir, cat_bitvec", zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
+)
+@settings(max_examples=50)
 @given(data=st.data())
-def test_forest_py_mode_cat(data, model_dir):
+def test_forest_py_mode_cat(data, model_dir, cat_bitvec):
     t_path = model_dir + "model.txt"
     bst = lightgbm.Booster(model_file=t_path)
 
     f = parse_to_ast(t_path)
 
-    input = data.draw(
+    input_cats = data.draw(
         st.lists(
-            st.integers(max_value=20, min_value=-20),
-            max_size=bst.num_feature(),
-            min_size=bst.num_feature(),
+            st.integers(min_value=0, max_value=2 ** 31 - 2),
+            min_size=sum(cat_bitvec),
+            max_size=sum(cat_bitvec),
         )
     )
-    print(input)
-    print(f._run_pymode(input), bst.predict([input]))
-    assert f._run_pymode(input) == bst.predict([input])
+    input_floats = data.draw(
+        st.lists(
+            st.floats(allow_nan=False, allow_infinity=False),
+            max_size=bst.num_feature() - sum(cat_bitvec),
+            min_size=bst.num_feature() - sum(cat_bitvec),
+        )
+    )
+    input_data = [
+        input_cats.pop() if is_cat else input_floats.pop() for is_cat in cat_bitvec
+    ]
+    assert f._run_pymode(input_data) == bst.predict([input_data])
 
 
 @settings(deadline=1000)
 @given(data=st.data())
 def test_forest_llvm_mode(data, llvm_lgbm_model):
     llvm_model, lightgbm_model = llvm_lgbm_model
-    input = data.draw(
+    input_data = data.draw(
         st.lists(
             st.floats(allow_nan=False, allow_infinity=False),
             max_size=llvm_model.num_feature(),
             min_size=llvm_model.num_feature(),
         )
     )
-    assert llvm_model.predict([input]) == lightgbm_model.predict([input])
+    assert llvm_model.predict([input_data]) == lightgbm_model.predict([input_data])
+
+
+@pytest.mark.parametrize(
+    "model_dir, cat_bitvec", zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
+)
+@given(data=st.data())
+def test_forest_llvm_mode_cat(data, model_dir, cat_bitvec):
+    t_path = model_dir + "model.txt"
+    lgbm_model = lightgbm.Booster(model_file=t_path)
+    llvm_model = lleaves.Model(t_path)
+
+    input_cats = data.draw(
+        st.lists(
+            st.integers(min_value=0, max_value=2 ** 31 - 2),
+            min_size=sum(cat_bitvec),
+            max_size=sum(cat_bitvec),
+        )
+    )
+    input_floats = data.draw(
+        st.lists(
+            st.floats(allow_nan=False, allow_infinity=False),
+            max_size=lgbm_model.num_feature() - sum(cat_bitvec),
+            min_size=lgbm_model.num_feature() - sum(cat_bitvec),
+        )
+    )
+    input_data = [
+        input_cats.pop() if is_cat else input_floats.pop() for is_cat in cat_bitvec
+    ]
+    assert llvm_model.predict([input_data]) == lgbm_model.predict([input_data])
