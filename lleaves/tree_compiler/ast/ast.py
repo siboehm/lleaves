@@ -1,10 +1,12 @@
-from lleaves.tree_compiler.frontend import Forest, Leaf, Node, Tree
-from lleaves.tree_compiler.parser.parsing import parse_model_file
+from lleaves.tree_compiler.ast.nodes import Forest, Leaf, Node, Tree
+from lleaves.tree_compiler.ast.parser import cat_args_bitmap, parse_model_file
 
 
-def parse_to_forest(model_path):
+def parse_to_ast(model_path):
     parsed_model = parse_model_file(model_path)
     n_args = parsed_model["general_info"]["max_feature_idx"] + 1
+    cat_bitmap = cat_args_bitmap(parsed_model["general_info"]["feature_infos"])
+    assert n_args == len(cat_bitmap), "Ill formed model file"
 
     trees = []
     for tree_struct in parsed_model["trees"]:
@@ -59,5 +61,5 @@ def parse_to_forest(model_path):
         for node in nodes:
             node.validate()
 
-        trees.append(Tree(tree_struct["Tree"], nodes[0], n_args))
-    return Forest(trees, n_args)
+        trees.append(Tree(tree_struct["Tree"], nodes[0], cat_bitmap))
+    return Forest(trees, cat_bitmap)

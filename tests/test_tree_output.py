@@ -4,7 +4,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 import lleaves
-from lleaves.tree_compiler.parser.ast import parse_to_forest
+from lleaves.tree_compiler.ast import parse_to_ast
 
 MODEL_DIRS_NUMERICAL = [
     "tests/models/boston_housing/",
@@ -39,7 +39,7 @@ def test_forest_py_mode(data, model_dir):
     t_path = model_dir + "model.txt"
     bst = lightgbm.Booster(model_file=t_path)
 
-    f = parse_to_forest(t_path)
+    f = parse_to_ast(t_path)
 
     input = data.draw(
         st.lists(
@@ -57,7 +57,7 @@ def test_forest_py_mode_cat(data, model_dir):
     t_path = model_dir + "model.txt"
     bst = lightgbm.Booster(model_file=t_path)
 
-    f = parse_to_forest(t_path)
+    f = parse_to_ast(t_path)
 
     input = data.draw(
         st.lists(

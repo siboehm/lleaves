@@ -1,8 +1,9 @@
-from ctypes import CFUNCTYPE, c_double
+from ctypes import CFUNCTYPE, c_double, c_int
 
 import llvmlite.binding as llvm
 
-from lleaves.tree_compiler import ir_from_model_file, parser
+from lleaves.tree_compiler import ir_from_model_file
+from lleaves.tree_compiler.ast import parser
 
 
 class Model:
@@ -18,6 +19,9 @@ class Model:
     def __init__(self, model_file=None):
         self.model_file = model_file
         self._general_info = parser.parse_model_file(model_file)["general_info"]
+        self.categorical_bitmap = parser.cat_args_bitmap(
+            self._general_info["feature_infos"]
+        )
 
     def num_feature(self):
         """number of features"""
@@ -70,7 +74,8 @@ class Model:
             # construct entry func
             addr = self._execution_engine.get_function_address("forest_root")
             self._c_entry_func = CFUNCTYPE(
-                c_double, *(self.num_feature() * (c_double,))
+                c_double,
+                *[c_int if is_int else c_double for is_int in self.categorical_bitmap]
             )(addr)
 
     def predict(self, arrs: list):

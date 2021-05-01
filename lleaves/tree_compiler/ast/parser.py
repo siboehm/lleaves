@@ -44,6 +44,12 @@ def _get_next_block_of_lines(file):
     return result
 
 
+def cat_args_bitmap(arr):
+    # Feature infos for floats look like [x.xxxx:y.yyyy]
+    # for categoricals like X:Y:Z:
+    return [not val.startswith("[") for val in arr]
+
+
 class ParsedValue:
     def __init__(self, type: type, is_list=False, null_ok=False):
         self.type = type
@@ -51,7 +57,11 @@ class ParsedValue:
         self.null_ok = null_ok
 
 
-INPUT_PARSED_KEYS = {"max_feature_idx": ParsedValue(int), "version": ParsedValue(str)}
+INPUT_PARSED_KEYS = {
+    "max_feature_idx": ParsedValue(int),
+    "version": ParsedValue(str),
+    "feature_infos": ParsedValue(str, True),
+}
 TREE_PARSED_KEYS = {
     "Tree": ParsedValue(int),
     "num_leaves": ParsedValue(int),

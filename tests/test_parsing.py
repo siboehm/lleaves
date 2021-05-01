@@ -1,4 +1,4 @@
-from lleaves.tree_compiler.parser import parse_model_file
+from lleaves.tree_compiler.ast.parser import parse_model_file
 
 
 def test_parser():

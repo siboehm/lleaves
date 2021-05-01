@@ -5,11 +5,16 @@ from lleaves.tree_compiler.utils import (
     decision_idx_to_llvmlite_str,
 )
 
+BOOL = ir.IntType(bits=1)
+ZERO_V = ir.Constant(BOOL, 0)
 DOUBLE = ir.DoubleType()
+INT_CAT = ir.IntType(bits=32)
 
 
-def scalar_func(n_args):
-    return ir.FunctionType(DOUBLE, n_args * (DOUBLE,))
+def scalar_func(cat_bitmap):
+    return ir.FunctionType(
+        DOUBLE, (INT_CAT if is_cat else DOUBLE for is_cat in cat_bitmap)
+    )
 
 
 class Forest:
@@ -22,9 +27,9 @@ class Forest:
     Every node in the tree is a block
     """
 
-    def __init__(self, trees, n_args):
+    def __init__(self, trees, categorical_bitmap):
         self.trees = trees
-        self.n_args = n_args
+        self.categorical_bitmap = categorical_bitmap
 
     def get_ir(self):
         module = ir.Module(name="forest")
@@ -32,7 +37,9 @@ class Forest:
         tree_funcs = [tree.gen_code(module) for tree in self.trees]
 
         # entry function, do not change name
-        root_func = ir.Function(module, scalar_func(self.n_args), name="forest_root")
+        root_func = ir.Function(
+            module, scalar_func(self.categorical_bitmap), name="forest_root"
+        )
         block = root_func.append_basic_block()
         builder = ir.IRBuilder(block)
 
@@ -50,17 +57,17 @@ class Forest:
 
 
 class Tree:
-    def __init__(self, idx, root_node, n_args):
+    def __init__(self, idx, root_node, categorical_bitmap):
         self.idx = idx
         self.root_node = root_node
-        self.n_args = n_args
+        self.categorical_bitmap = categorical_bitmap
 
     def __str__(self):
         return f"tree_{self.idx}"
 
     def gen_code(self, module):
         # Declare the function for this tree
-        func = ir.Function(module, scalar_func(self.n_args), name=str(self))
+        func = ir.Function(module, scalar_func(self.categorical_bitmap), name=str(self))
         # root node will provide the first block, which is the entry into the tree function
         self.root_node.gen_block(func)
         return func
@@ -119,24 +126,25 @@ class Node:
             thresh = ir.Constant(DOUBLE, self.threshold)
             decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
             comp = builder.fcmp_ordered(decision_type, args[self.split_feature], thresh)
-            if self.all_children_leaves:
-                ret = builder.select(
-                    comp, self.left.return_const, self.right.return_const
-                )
-                builder.ret(ret)
-            else:
-                builder.cbranch(
-                    comp, self.left.gen_block(func), self.right.gen_block(func)
-                )
         # categorical int compare
         else:
-            thresh = ir.Constant(
-                ir.VectorType(int, len(self.cat_threshold_arr)), self.cat_threshold_arr
-            )
             decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
-            comp = builder.icmp_unsigned(
-                decision_type, args[self.split_feature], thresh
-            )
+            acc = ZERO_V
+            thresholds = [
+                ir.Constant(INT_CAT, thresh) for thresh in self.cat_threshold_arr
+            ]
+            for idx, threshold in enumerate(thresholds):
+                tmp = builder.icmp_unsigned(
+                    decision_type, args[self.split_feature], threshold
+                )
+                acc = builder.or_(tmp, acc)
+            comp = acc
+
+        if self.all_children_leaves:
+            ret = builder.select(comp, self.left.return_const, self.right.return_const)
+            builder.ret(ret)
+        else:
+            builder.cbranch(comp, self.left.gen_block(func), self.right.gen_block(func))
 
         return block
 

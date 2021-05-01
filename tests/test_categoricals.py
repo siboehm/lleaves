@@ -1,14 +1,12 @@
-import hypothesis
 import lightgbm as lgb
-import matplotlib
 import numpy as np
 import numpy.random
 import pytest
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 
 from lleaves import Model
-from lleaves.tree_compiler.parser.ast import parse_to_forest
+from lleaves.tree_compiler.ast import parse_to_ast
 from lleaves.tree_compiler.utils import calc_pymode_cat_thresholds
 
 numpy.random.seed(1337)
@@ -101,7 +99,7 @@ def test_pymode_cat_threshold(threshold, result):
 
 @given(data=st.data())
 def test_mixed_categorical_prediction_pymode_real(data, categorical_model_txt):
-    llvm_model = parse_to_forest(str(categorical_model_txt))
+    llvm_model = parse_to_ast(str(categorical_model_txt))
     lgbm_model = lgb.Booster(model_file=str(categorical_model_txt))
     input = data.draw(
         st.lists(
@@ -130,7 +128,7 @@ def test_categorical_prediction_llvm(data, categorical_model_txt):
 
 
 def test_pure_categorical_prediction_pymode():
-    llvm_model = parse_to_forest("tests/models/pure_categorical/model.txt")
+    llvm_model = parse_to_ast("tests/models/pure_categorical/model.txt")
     lgbm_model = lgb.Booster(model_file="tests/models/pure_categorical/model.txt")
 
     results = [12.616231057968633, 10.048276920678525, 9.2489478721549396]
@@ -150,3 +148,26 @@ def test_pure_categorical_prediction_pymode():
     ):
         assert llvm_model._run_pymode(data) == results[res_idx]
         assert lgbm_model.predict([data]) == results[res_idx]
+
+
+def test_pure_categorical_prediction_llvm():
+    llvm_model = Model("tests/models/pure_categorical/model.txt")
+    lgbm_model = lgb.Booster(model_file="tests/models/pure_categorical/model.txt")
+
+    results = [12.616231057968633, 10.048276920678525, 9.2489478721549396]
+    for data, res_idx in zip(
+        [
+            [0, 9, 0],
+            [1, 9, 0],
+            [0, 6, 5],
+            [1, 5, 1],
+            [2, 5, 1],
+            [4, 5, 1],
+            [5, 5, 9],
+            [6, 5, 3],
+            [9, 5, 2],
+        ],
+        [0, 0, 0, 1, 1, 1, 2, 2, 2],
+    ):
+        assert llvm_model.predict([data]) == [results[res_idx]]
+        assert lgbm_model.predict([data]) == [results[res_idx]]
