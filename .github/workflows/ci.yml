@@ -23,6 +23,7 @@ jobs:
           use-mamba: true
           python-version: ${{ matrix.PYTHON_VERSION }}
           environment-file: environment.yml
+          use-only-tar-bz2: true
       - name: Setup hypothesis DB cache
         uses: actions/cache@v2
         with:
