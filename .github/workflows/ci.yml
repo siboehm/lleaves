@@ -23,21 +23,16 @@ jobs:
           use-mamba: true
           python-version: ${{ matrix.PYTHON_VERSION }}
           environment-file: environment.yml
-      - name: Restore hypothesis database
-        uses: actions/download-artifact@v2
+      - name: Setup hypothesis DB cache
+        uses: actions/cache@v2
         with:
-          name: hypothesisDB ${{ matrix.PYTHON_VERSION }}
           path: ./.hypothesis
+          key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
       - name: Run the unittests
         shell: bash -x -l {0}
         run: |
           pip install --no-deps .
           pytest -n auto
-      - name: Upload hypothesis database
-        uses: actions/upload-artifact@v2
-        with:
-          name: hypothesisDB ${{ matrix.PYTHON_VERSION }}
-          path: ./.hypothesis
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
