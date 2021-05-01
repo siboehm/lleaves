@@ -17,11 +17,12 @@ jobs:
           use-mamba: true
           python-version: ${{ matrix.PYTHON_VERSION }}
           environment-file: environment.yml
-      - name: Restore hypothesis database
-        uses: actions/download-artifact@v2
+      - name: Cache conda
+        uses: actions/cache@v2
         with:
-          name: hypothesisDB ${{ matrix.PYTHON_VERSION }}
-          path: ./hypothesis
+          path: ~/conda_pkgs_dir
+          key:
+            mamba-${{ hashFiles('environment.yml') }}
       - name: Run the unittests
         shell: bash -x -l {0}
         run: |
@@ -31,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: hypothesisDB ${{ matrix.PYTHON_VERSION }}
-          path: ./hypothesis
+          path: ./.hypothesis
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
