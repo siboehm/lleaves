@@ -1,4 +1,4 @@
-name: LLVes
+name: lleaves
 channels:
   - conda-forge
   - defaults

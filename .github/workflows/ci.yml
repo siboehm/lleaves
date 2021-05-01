@@ -19,11 +19,13 @@ jobs:
             mamba--${{ hashFiles('environment.yml') }}-${{ matrix.PYTHON_VERSION }}
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          miniforge-variant: Mambaforge
-          use-mamba: true
           python-version: ${{ matrix.PYTHON_VERSION }}
+          miniforge-variant: Mambaforge
+          miniforge-version: latest
+          activate-environment: lleaves
           environment-file: environment.yml
           use-only-tar-bz2: true
+          use-mamba: true
       - name: Setup hypothesis DB cache
         uses: actions/cache@v2
         with:
