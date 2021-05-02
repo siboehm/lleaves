@@ -9,6 +9,7 @@ BOOL = ir.IntType(bits=1)
 DOUBLE = ir.DoubleType()
 FLOAT = ir.FloatType()
 INT_CAT = ir.IntType(bits=32)
+INT = ir.IntType(bits=32)
 ZERO_V = ir.Constant(BOOL, 0)
 FLOAT_POINTER = ir.PointerType(FLOAT)
 DOUBLE_PTR = ir.PointerType(DOUBLE)
@@ -26,7 +27,6 @@ class Forest:
 
     Forest is a function, which calls the Tree functions
 
-    Trees are functions
     Every node in the tree is a block
     """
 
@@ -40,34 +40,67 @@ class Forest:
 
         tree_funcs = [tree.gen_code(module) for tree in self.trees]
 
-        # entry function, do not change name
+        # entry function called from Python via CFUNC
         root_func = ir.Function(
             module,
-            ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, DOUBLE_PTR)),
+            ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, INT, DOUBLE_PTR)),
             name="forest_root",
         )
-        block = root_func.append_basic_block()
-        builder = ir.IRBuilder(block)
 
+        data_arr, n_pred, out_arr = root_func.args
+
+        # -- SETUP BLOCK
+        setup_block = root_func.append_basic_block("setup")
+        builder = ir.IRBuilder(setup_block)
+        loop_iter = builder.alloca(INT, 1, "loop-idx")
+        builder.store(ir.Constant(INT, 0), loop_iter)
+        condition_block = root_func.append_basic_block("loop-condition")
+        builder.branch(condition_block)
+        # -- END SETUP BLOCK
+
+        # -- CONDITION BLOCK
+        builder = ir.IRBuilder(condition_block)
+        comp = builder.icmp_signed("<", builder.load(loop_iter), n_pred)
+        core_block = root_func.append_basic_block("loop-core")
+        term_block = root_func.append_basic_block("term")
+        builder.cbranch(comp, core_block, term_block)
+        # -- END CONDITION BLOCK
+
+        # -- CORE LOOP BLOCK
+        builder = ir.IRBuilder(core_block)
+        # build args arr, convert categoricals vars from float to int
         args = []
-        raw_ptrs = [
-            builder.gep(root_func.args[0], (ir.Constant(INT_CAT, i),))
-            for i in range(self.n_args)
+        loop_iter_reg = builder.load(loop_iter)
+
+        n_args = ir.Constant(INT, self.n_args)
+        iter_mul_nargs = builder.mul(loop_iter_reg, n_args)
+        idx = [
+            builder.add(iter_mul_nargs, c)
+            for c in (ir.Constant(INT, i) for i in range(self.n_args))
         ]
+        raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
         for is_cat, ptr in zip(self.categorical_bitmap, raw_ptrs):
             el = builder.load(ptr)
             if is_cat:
                 args.append(builder.fptoui(el, INT_CAT))
             else:
                 args.append(el)
-
+        # iterate over each tree, sum up results
         res = builder.call(tree_funcs[0], args)
         for func in tree_funcs[1:]:
-            # should probably inline this, but optimizer does it automatically
-            tmp = builder.call(func, args)
-            res = builder.fadd(tmp, res)
-        builder.store(res, root_func.args[1])
-        builder.ret_void()
+            # could be inlined this, but optimizer does it automatically
+            tree_res = builder.call(func, args)
+            res = builder.fadd(tree_res, res)
+        ptr = builder.gep(out_arr, (loop_iter_reg,))
+        builder.store(res, ptr)
+        tmpp1 = builder.add(loop_iter_reg, ir.Constant(INT, 1))
+        builder.store(tmpp1, loop_iter)
+        builder.branch(condition_block)
+        # -- END CORE LOOP BLOCK
+
+        # -- TERMINAL BLOCK
+        ir.IRBuilder(term_block).ret_void()
+        # -- END TERMINAL BLOCK
 
         return module
 

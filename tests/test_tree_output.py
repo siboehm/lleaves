@@ -100,6 +100,27 @@ def test_forest_llvm_mode(data, llvm_lgbm_model):
     assert llvm_model.predict(input_data) == lightgbm_model.predict(input_data)
 
 
+@settings(max_examples=10)
+@given(data=st.data())
+def test_batchmode(data, llvm_lgbm_model):
+    llvm_model, lightgbm_model = llvm_lgbm_model
+    input_data = []
+    for i in range(10):
+        input_data.append(
+            data.draw(
+                st.lists(
+                    st.floats(allow_nan=False, allow_infinity=False),
+                    max_size=llvm_model.num_feature(),
+                    min_size=llvm_model.num_feature(),
+                )
+            )
+        )
+    input_data = np.array(input_data)
+    np.testing.assert_array_equal(
+        llvm_model.predict(input_data), lightgbm_model.predict(input_data)
+    )
+
+
 @pytest.mark.parametrize(
     "model_dir, cat_bitvec", zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
 )

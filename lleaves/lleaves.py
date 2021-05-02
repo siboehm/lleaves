@@ -1,5 +1,4 @@
-import ctypes
-from ctypes import CFUNCTYPE, POINTER, c_double
+from ctypes import CFUNCTYPE, POINTER, c_double, c_int
 
 import llvmlite.binding as llvm
 import numpy as np
@@ -77,7 +76,10 @@ class Model:
 
         # construct entry func
         addr = self._execution_engine.get_function_address("forest_root")
-        self._c_entry_func = CFUNCTYPE(None, POINTER(c_double), POINTER(c_double))(addr)
+        # Return Value, pointer to 1D data, n_preds, pointer to alloced results arr
+        self._c_entry_func = CFUNCTYPE(
+            None, POINTER(c_double), c_int, POINTER(c_double)
+        )(addr)
 
     def predict(self, data):
         self.compile()
@@ -87,7 +89,7 @@ class Model:
 
         preds = np.zeros(n_preds, dtype=np.float64)
         ptr_preds = preds.ctypes.data_as(POINTER(c_double))
-        self._c_entry_func(ptr_data, ptr_preds)
+        self._c_entry_func(ptr_data, n_preds, ptr_preds)
         return preds
 
     def _to_1d_ndarray(self, data):

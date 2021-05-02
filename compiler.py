@@ -53,11 +53,18 @@ func_ptr = engine.get_function_address("forest_root")
 
 # Run the function via ctypes
 cfunc = CFUNCTYPE(
-    None, ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_double)
+    None, ctypes.POINTER(ctypes.c_double), c_int, ctypes.POINTER(ctypes.c_double)
 )(func_ptr)
-args = np.array([[0.0, 9.0, 0.0]], dtype=np.float64)
+args = np.array(
+    [
+        [0.0, 9.0, 0.0],
+        [0.0, 0.0, 0.0],
+        [0.0, 9.0, 0.0],
+    ],
+    dtype=np.float64,
+)
 args_ptr = args.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-preds = np.zeros(1, dtype=np.float64)
+preds = np.zeros(3, dtype=np.float64)
 ptr_preds = preds.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-cfunc(args_ptr, ptr_preds)
+cfunc(args_ptr, 3, ptr_preds)
 print(f"forest_root({', '.join(map(str, args))}) = {preds}")
