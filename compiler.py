@@ -57,14 +57,13 @@ cfunc = CFUNCTYPE(
 )(func_ptr)
 args = np.array(
     [
-        [0.0, 9.0, 0.0],
-        [0.0, 0.0, 0.0],
-        [0.0, 9.0, 0.0],
+        [1.0, 0.0, 0.0],
     ],
     dtype=np.float64,
 )
 args_ptr = args.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-preds = np.zeros(3, dtype=np.float64)
+n_preds = args.shape[0]
+preds = np.zeros(n_preds, dtype=np.float64)
 ptr_preds = preds.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-cfunc(args_ptr, 3, ptr_preds)
+cfunc(args_ptr, n_preds, ptr_preds)
 print(f"forest_root({', '.join(map(str, args))}) = {preds}")

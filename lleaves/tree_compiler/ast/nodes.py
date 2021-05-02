@@ -88,7 +88,7 @@ class Forest:
         # iterate over each tree, sum up results
         res = builder.call(tree_funcs[0], args)
         for func in tree_funcs[1:]:
-            # could be inlined this, but optimizer does it automatically
+            # could be inlined, but optimizer does for us
             tree_res = builder.call(func, args)
             res = builder.fadd(tree_res, res)
         ptr = builder.gep(out_arr, (loop_iter_reg,))
@@ -176,24 +176,22 @@ class Node:
         args = func.args
 
         # numerical float compare
-        if self.decision_type_id == 2:
+        decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
+        if decision_type == "<=":
             thresh = ir.Constant(DOUBLE, self.threshold)
             decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
             comp = builder.fcmp_ordered(decision_type, args[self.split_feature], thresh)
         # categorical int compare
         else:
-            decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
-            acc = ZERO_V
-            thresholds = [
-                ir.Constant(INT_CAT, thresh)
-                for thresh in calc_pymode_cat_thresholds(self.cat_threshold)
-            ]
-            for idx, threshold in enumerate(thresholds):
-                tmp = builder.icmp_unsigned(
-                    decision_type, args[self.split_feature], threshold
-                )
-                acc = builder.or_(tmp, acc)
-            comp = acc
+            comp1 = builder.icmp_signed(
+                "<", args[self.split_feature], ir.Constant(INT, 32)
+            )
+            bitvec = ir.Constant(INT, self.cat_threshold)
+            shift = builder.srem(args[self.split_feature], ir.Constant(INT, 32))
+            bit_entry = builder.lshr(bitvec, shift)
+            bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
+            comp2 = builder.icmp_signed("==", bit_val, ir.Constant(INT, 1))
+            comp = builder.and_(comp1, comp2)
 
         if self.all_children_leaves:
             ret = builder.select(comp, self.left.return_const, self.right.return_const)
