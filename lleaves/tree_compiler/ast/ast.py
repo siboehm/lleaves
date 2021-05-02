@@ -45,11 +45,13 @@ def parse_to_ast(model_path):
         ]
         assert len(categorical_nodes) == n_cat
 
-        for i, idx in enumerate(categorical_nodes):
-            nodes[idx].finalize_categorical(
-                tree_struct["cat_threshold"][i],
-                tree_struct["cat_boundaries"][i],
-                tree_struct["cat_boundaries"][i + 1],
+        for idx in categorical_nodes:
+            node = nodes[idx]
+            thresh = int(node.threshold)
+            node.finalize_categorical(
+                cat_threshold=tree_struct["cat_threshold"],
+                cat_boundary=tree_struct["cat_boundaries"][thresh],
+                cat_boundary_pp=tree_struct["cat_boundaries"][thresh + 1],
             )
 
         for node in nodes:

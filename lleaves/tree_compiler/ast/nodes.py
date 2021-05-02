@@ -163,6 +163,7 @@ class Node:
         self.cat_threshold = cat_threshold
         self.cat_boundary = cat_boundary
         self.cat_boundary_pp = cat_boundary_pp
+        self.threshold = int(self.threshold)
 
     def validate(self):
         if self.decision_type_id == 1:
@@ -171,6 +172,7 @@ class Node:
             assert self.threshold
 
     def gen_block(self, func):
+        print("dkdkd")
         block = func.append_basic_block(name=str(self))
         builder = ir.IRBuilder(block)
         args = func.args
@@ -183,12 +185,21 @@ class Node:
             comp = builder.fcmp_ordered(decision_type, args[self.split_feature], thresh)
         # categorical int compare
         else:
+            # find in bitset
+            # check > max
+            i1 = builder.sdiv(args[self.split_feature], ir.Constant(INT, 32))
             comp1 = builder.icmp_signed(
-                "<", args[self.split_feature], ir.Constant(INT, 32)
+                "<", i1, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
             )
-            bitvec = ir.Constant(INT, self.cat_threshold)
+            # check arg contained in bitvector
+            bit_entries = self.cat_threshold[self.cat_boundary :]
+            bit_vecs = ir.Constant(
+                ir.VectorType(INT, len(bit_entries)),
+                [ir.Constant(INT, i) for i in bit_entries],
+            )
             shift = builder.srem(args[self.split_feature], ir.Constant(INT, 32))
-            bit_entry = builder.lshr(bitvec, shift)
+            bit_vec = builder.extract_element(bit_vecs, i1)
+            bit_entry = builder.lshr(bit_vec, shift)
             bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
             comp2 = builder.icmp_signed("==", bit_val, ir.Constant(INT, 1))
             comp = builder.and_(comp1, comp2)
@@ -209,7 +220,7 @@ class Node:
             go_left = input[self.split_feature] <= self.threshold
         else:
             go_left = input[self.split_feature] in calc_pymode_cat_thresholds(
-                self.cat_threshold
+                self.cat_threshold[self.cat_boundary]
             )
 
         if go_left:
