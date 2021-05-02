@@ -74,10 +74,9 @@ class Forest:
 
         n_args = ir.Constant(INT, self.n_args)
         iter_mul_nargs = builder.mul(loop_iter_reg, n_args)
-        idx = [
-            builder.add(iter_mul_nargs, c)
-            for c in (ir.Constant(INT, i) for i in range(self.n_args))
-        ]
+        idx = (
+            builder.add(iter_mul_nargs, ir.Constant(INT, i)) for i in range(self.n_args)
+        )
         raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
         for is_cat, ptr in zip(self.categorical_bitmap, raw_ptrs):
             el = builder.load(ptr)
@@ -172,7 +171,6 @@ class Node:
             assert self.threshold
 
     def gen_block(self, func):
-        print("dkdkd")
         block = func.append_basic_block(name=str(self))
         builder = ir.IRBuilder(block)
         args = func.args
