@@ -131,8 +131,9 @@ class Tree:
 class Node:
     # the threshold in bit-representation if this node is categorical
     cat_threshold = None
-    # the threshold in array-representation
-    cat_threshold_arr = None
+    # The boundary conditions if this node is categorical
+    cat_boundary = None
+    cat_boundary_pp = None
 
     def __init__(
         self,
@@ -158,9 +159,10 @@ class Node:
             self.right, Leaf
         )
 
-    def finalize_categorical(self, cat_threshold):
+    def finalize_categorical(self, cat_threshold, cat_boundary, cat_boundary_pp):
         self.cat_threshold = cat_threshold
-        self.cat_threshold_arr = calc_pymode_cat_thresholds(cat_threshold)
+        self.cat_boundary = cat_boundary
+        self.cat_boundary_pp = cat_boundary_pp
 
     def validate(self):
         if self.decision_type_id == 1:
@@ -183,7 +185,8 @@ class Node:
             decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
             acc = ZERO_V
             thresholds = [
-                ir.Constant(INT_CAT, thresh) for thresh in self.cat_threshold_arr
+                ir.Constant(INT_CAT, thresh)
+                for thresh in calc_pymode_cat_thresholds(self.cat_threshold)
             ]
             for idx, threshold in enumerate(thresholds):
                 tmp = builder.icmp_unsigned(
@@ -207,7 +210,9 @@ class Node:
         if self.decision_type_id == 2:
             go_left = input[self.split_feature] <= self.threshold
         else:
-            go_left = input[self.split_feature] in self.cat_threshold_arr
+            go_left = input[self.split_feature] in calc_pymode_cat_thresholds(
+                self.cat_threshold
+            )
 
         if go_left:
             return self.left._run_pymode(input)

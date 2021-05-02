@@ -73,6 +73,7 @@ TREE_PARSED_KEYS = {
     "right_child": ParsedValue(int, True),
     "leaf_value": ParsedValue(float, True),
     "cat_threshold": ParsedValue(int, True, True),
+    "cat_boundaries": ParsedValue(int, True, True),
 }
 
 
