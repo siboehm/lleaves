@@ -51,7 +51,7 @@ def test_forest_py_mode(data, model_dir):
             min_size=bst.num_feature(),
         )
     )
-    assert f._run_pymode(input) == bst.predict([input])
+    assert f._run_pymode([input]) == bst.predict([input])
 
 
 @pytest.mark.parametrize(
@@ -82,7 +82,7 @@ def test_forest_py_mode_cat(data, model_dir, cat_bitvec):
     input_data = [
         input_cats.pop() if is_cat else input_floats.pop() for is_cat in cat_bitvec
     ]
-    assert f._run_pymode(input_data) == bst.predict([input_data])
+    assert f._run_pymode([input_data]) == bst.predict([input_data])
 
 
 @settings(deadline=1000)

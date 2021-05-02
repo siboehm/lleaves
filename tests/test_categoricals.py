@@ -110,7 +110,7 @@ def test_mixed_categorical_prediction_pymode_real(data, categorical_model_txt):
         )
     )
 
-    assert llvm_model._run_pymode(input) == lgbm_model.predict([input])
+    assert llvm_model._run_pymode([input]) == lgbm_model.predict([input])
 
 
 @given(data=st.data())
@@ -148,6 +148,6 @@ def test_pure_categorical_prediction():
         ],
         [0, 0, 0, 1, 1, 1, 2, 2, 2],
     ):
-        assert llvm_forest._run_pymode(data) == results[res_idx]
+        assert llvm_forest._run_pymode([data]) == [results[res_idx]]
         assert llvm_model.predict([data]) == [results[res_idx]]
-        assert lgbm_model.predict([data]) == results[res_idx]
+        assert lgbm_model.predict([data]) == [results[res_idx]]

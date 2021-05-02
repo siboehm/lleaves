@@ -104,8 +104,8 @@ class Forest:
 
         return module
 
-    def _run_pymode(self, input):
-        return sum(tree._run_pymode(input) for tree in self.trees)
+    def _run_pymode(self, inputs):
+        return [sum(tree._run_pymode(input) for tree in self.trees) for input in inputs]
 
 
 class Tree:
