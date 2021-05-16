@@ -61,6 +61,7 @@ INPUT_PARSED_KEYS = {
     "max_feature_idx": ParsedValue(int),
     "version": ParsedValue(str),
     "feature_infos": ParsedValue(str, True),
+    "objective": ParsedValue(str, True),
 }
 TREE_PARSED_KEYS = {
     "Tree": ParsedValue(int),

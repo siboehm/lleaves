@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 ISSUE_ERROR_MSG = "Please file an issue at https://github.com/siboehm/lleaves."
 
 
@@ -45,3 +47,20 @@ def bitset_to_py_list(threshold):
             cat_thresholds.append(i)
         i += 1
     return cat_thresholds
+
+
+def get_objective_transform_func(objective):
+    if objective[0] == "regression":
+
+        def f(x):
+            return x
+
+    elif objective[0] == "binary":
+        func, alpha = objective[1].split(":")
+
+        def f(x):
+            return 0.5 * (1 + np.tanh(0.5 * x * float(alpha)))
+
+    else:
+        raise ValueError(f"{objective} not recognised. {ISSUE_ERROR_MSG}")
+    return f

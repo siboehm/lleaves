@@ -5,6 +5,7 @@ import numpy as np
 
 from lleaves.tree_compiler import ir_from_model_file
 from lleaves.tree_compiler.ast import parser
+from lleaves.tree_compiler.utils import get_objective_transform_func
 
 
 class Model:
@@ -22,6 +23,9 @@ class Model:
         self._general_info = parser.parse_model_file(model_file)["general_info"]
         self.categorical_bitmap = parser.cat_args_bitmap(
             self._general_info["feature_infos"]
+        )
+        self.objective_transf = get_objective_transform_func(
+            self._general_info["objective"]
         )
 
     def num_feature(self):
@@ -90,7 +94,7 @@ class Model:
         preds = np.zeros(n_preds, dtype=np.float64)
         ptr_preds = preds.ctypes.data_as(POINTER(c_double))
         self._c_entry_func(ptr_data, n_preds, ptr_preds)
-        return preds
+        return self.objective_transf(preds)
 
     def _to_1d_ndarray(self, data):
         if isinstance(data, list):
