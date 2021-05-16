@@ -3,7 +3,8 @@ NUMERCIAL_DECISION = 2
 
 
 def decision_idx_to_llvmlite_str(idx):
-    if idx == 1:
+    # categoricals (1: <32 unique categories, 9: >32 unique categories)
+    if idx == 1 or idx == 9:
         return "=="
     elif idx == 2:
         return "<="

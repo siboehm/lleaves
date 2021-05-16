@@ -165,7 +165,7 @@ class Node:
         self.threshold = int(self.threshold)
 
     def validate(self):
-        if self.decision_type_id == 1:
+        if self.decision_type_id == 1 or self.decision_type_id == 9:
             assert self.cat_threshold is not None
         else:
             assert self.threshold
@@ -189,14 +189,16 @@ class Node:
             comp1 = builder.icmp_signed(
                 "<", i1, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
             )
-            # check arg contained in bitvector
+
             bit_entries = self.cat_threshold[self.cat_boundary :]
             bit_vecs = ir.Constant(
                 ir.VectorType(INT, len(bit_entries)),
                 [ir.Constant(INT, i) for i in bit_entries],
             )
             shift = builder.srem(args[self.split_feature], ir.Constant(INT, 32))
+            # pick relevant bitvector
             bit_vec = builder.extract_element(bit_vecs, i1)
+            # check bitvector contains
             bit_entry = builder.lshr(bit_vec, shift)
             bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
             comp2 = builder.icmp_signed("==", bit_val, ir.Constant(INT, 1))

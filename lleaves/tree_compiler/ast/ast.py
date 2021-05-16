@@ -41,7 +41,7 @@ def parse_to_ast(model_path):
         categorical_nodes = [
             idx
             for idx, decision_type in enumerate(tree_struct["decision_type"])
-            if decision_type == 1
+            if decision_type == 1 or decision_type == 9
         ]
         assert len(categorical_nodes) == n_cat
 

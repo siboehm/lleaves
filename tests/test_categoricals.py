@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import lightgbm as lgb
 import numpy as np
 import numpy.random
@@ -16,6 +18,7 @@ numpy.random.seed(1337)
 def categorical_model_txt(tmpdir_factory, request):
     n_features = 5
     n_rows = 500
+    # specify a tree and generate data from it
     if request.param == "pure_cat":
         n_categorical = 5
 
@@ -74,6 +77,30 @@ def categorical_model_txt(tmpdir_factory, request):
     model_path = tmpdir / "model.txt"
     lightgbm_model.save_model(str(model_path))
     return model_path
+
+
+def test_large_categorical(tmpdir_factory):
+    # test categorical var with >32 different entries
+    # will result in decision_type == 9
+    f = lambda x: x % 3
+    train_data_cat = np.repeat(
+        np.expand_dims(np.arange(1, 100), axis=1), repeats=40, axis=0
+    )
+    label = np.apply_along_axis(f, axis=1, arr=train_data_cat)
+    train_data = lgb.Dataset(train_data_cat, label=label, categorical_feature=[0])
+    lightgbm_model = lgb.train({}, train_data, 1)
+
+    tmpdir = tmpdir_factory.mktemp("model")
+    model_path = str(tmpdir / "model.txt")
+    lightgbm_model.save_model(model_path)
+    assert "decision_type=9 9 9" in Path(model_path).read_text()
+
+    llvm_model = Model(model_file=model_path)
+    lgbm_model = lgb.Booster(model_file=model_path)
+    tests_data = np.expand_dims(np.arange(0, 210), axis=1)
+    numpy.testing.assert_equal(
+        llvm_model.predict(tests_data), lgbm_model.predict(tests_data)
+    )
 
 
 @pytest.mark.parametrize(
