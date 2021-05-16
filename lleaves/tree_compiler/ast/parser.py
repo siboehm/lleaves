@@ -93,7 +93,10 @@ def _struct_from_block(lines: list, keys_to_parse: dict):
         if key in keys_to_parse.keys():
             value_type = keys_to_parse[key]
             if value_type.is_list:
-                parsed_value = [value_type.type(x) for x in value.split(" ")]
+                if value:
+                    parsed_value = [value_type.type(x) for x in value.split(" ")]
+                else:
+                    parsed_value = []
             else:
                 parsed_value = value_type.type(value)
             struct[key] = parsed_value

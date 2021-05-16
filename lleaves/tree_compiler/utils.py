@@ -13,7 +13,6 @@ class DecisionType:
                 f"Decision type {idx} not yet tested for. {ISSUE_ERROR_MSG}"
             )
         self.idx = idx
-        assert False
 
     @property
     def is_categorical(self):

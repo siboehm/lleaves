@@ -67,5 +67,10 @@ def parse_to_ast(model_path):
         for node in nodes:
             node.validate()
 
-        trees.append(Tree(tree_struct["Tree"], nodes[0], cat_bitmap))
+        if nodes:
+            trees.append(Tree(tree_struct["Tree"], nodes[0], cat_bitmap))
+        else:
+            # special case for when tree is just single leaf
+            assert len(leaves) == 1
+            trees.append(Tree(tree_struct["Tree"], leaves[0], cat_bitmap))
     return Forest(trees, cat_bitmap)
