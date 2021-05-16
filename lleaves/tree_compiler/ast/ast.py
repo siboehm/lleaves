@@ -1,5 +1,6 @@
 from lleaves.tree_compiler.ast.nodes import Forest, Leaf, Node, Tree
 from lleaves.tree_compiler.ast.parser import cat_args_bitmap, parse_model_file
+from lleaves.tree_compiler.utils import DecisionType
 
 
 def parse_to_ast(model_path):
@@ -40,10 +41,9 @@ def parse_to_ast(model_path):
 
         categorical_nodes = [
             idx
-            for idx, decision_type in enumerate(tree_struct["decision_type"])
-            if decision_type == 1 or decision_type == 9
+            for idx, decision_type_id in enumerate(tree_struct["decision_type"])
+            if DecisionType(decision_type_id).is_categorical
         ]
-        assert len(categorical_nodes) == n_cat
 
         for idx in categorical_nodes:
             node = nodes[idx]

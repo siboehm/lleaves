@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from lleaves import Model
 from lleaves.tree_compiler.ast import parse_to_ast
-from lleaves.tree_compiler.utils import calc_pymode_cat_thresholds
+from lleaves.tree_compiler.utils import bitset_to_py_list
 
 numpy.random.seed(1337)
 
@@ -121,7 +121,7 @@ def test_large_categorical(tmpdir_factory):
     ),
 )
 def test_pymode_cat_threshold(threshold, result):
-    assert calc_pymode_cat_thresholds(threshold) == result
+    assert bitset_to_py_list(threshold) == result
 
 
 @given(data=st.data())

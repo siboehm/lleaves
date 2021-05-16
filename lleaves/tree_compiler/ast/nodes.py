@@ -1,9 +1,6 @@
 from llvmlite import ir
 
-from lleaves.tree_compiler.utils import (
-    calc_pymode_cat_thresholds,
-    decision_idx_to_llvmlite_str,
-)
+from lleaves.tree_compiler.utils import DecisionType, bitset_to_py_list
 
 BOOL = ir.IntType(bits=1)
 DOUBLE = ir.DoubleType()
@@ -146,7 +143,7 @@ class Node:
         self.idx = idx
         self.split_feature = split_feature
         self.threshold = threshold
-        self.decision_type_id = decision_type_id
+        self.decision_type = DecisionType(decision_type_id)
         self.right_idx = right_idx
         self.left_idx = left_idx
 
@@ -165,7 +162,7 @@ class Node:
         self.threshold = int(self.threshold)
 
     def validate(self):
-        if self.decision_type_id == 1 or self.decision_type_id == 9:
+        if self.decision_type.is_categorical:
             assert self.cat_threshold is not None
         else:
             assert self.threshold
@@ -175,14 +172,8 @@ class Node:
         builder = ir.IRBuilder(block)
         args = func.args
 
-        # numerical float compare
-        decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
-        if decision_type == "<=":
-            thresh = ir.Constant(DOUBLE, self.threshold)
-            decision_type = decision_idx_to_llvmlite_str(self.decision_type_id)
-            comp = builder.fcmp_ordered(decision_type, args[self.split_feature], thresh)
         # categorical int compare
-        else:
+        if self.decision_type.is_categorical:
             # find in bitset
             # check > max
             i1 = builder.sdiv(args[self.split_feature], ir.Constant(INT, 32))
@@ -203,6 +194,12 @@ class Node:
             bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
             comp2 = builder.icmp_signed("==", bit_val, ir.Constant(INT, 1))
             comp = builder.and_(comp1, comp2)
+        # numerical float compare
+        else:
+            thresh = ir.Constant(DOUBLE, self.threshold)
+            comp = builder.fcmp_ordered(
+                str(self.decision_type), args[self.split_feature], thresh
+            )
 
         if self.all_children_leaves:
             ret = builder.select(comp, self.left.return_const, self.right.return_const)
@@ -215,18 +212,18 @@ class Node:
     def __str__(self):
         return f"node_{self.idx}"
 
-    def _run_pymode(self, input):
-        if self.decision_type_id == 2:
-            go_left = input[self.split_feature] <= self.threshold
-        else:
-            go_left = input[self.split_feature] in calc_pymode_cat_thresholds(
+    def _run_pymode(self, data):
+        if self.decision_type.is_categorical:
+            go_left = data[self.split_feature] in bitset_to_py_list(
                 self.cat_threshold[self.cat_boundary]
             )
+        else:
+            go_left = data[self.split_feature] <= self.threshold
 
         if go_left:
-            return self.left._run_pymode(input)
+            return self.left._run_pymode(data)
         else:
-            return self.right._run_pymode(input)
+            return self.right._run_pymode(data)
 
 
 class Leaf:
@@ -241,7 +238,7 @@ class Leaf:
         builder.ret(self.return_const)
         return block
 
-    def _run_pymode(self, input):
+    def _run_pymode(self, data):
         return self.value
 
     def __str__(self):
