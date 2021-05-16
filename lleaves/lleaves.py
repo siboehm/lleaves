@@ -5,7 +5,7 @@ import numpy as np
 
 from lleaves.tree_compiler import ir_from_model_file
 from lleaves.tree_compiler.ast import parser
-from lleaves.tree_compiler.utils import get_objective_transform_func
+from lleaves.tree_compiler.objective_funcs import get_objective_func
 
 
 class Model:
@@ -24,9 +24,9 @@ class Model:
         self.categorical_bitmap = parser.cat_args_bitmap(
             self._general_info["feature_infos"]
         )
-        self.objective_transf = get_objective_transform_func(
-            self._general_info["objective"]
-        )
+        # objective function is implemented as an np.ufunc.
+        # TODO move into LLVM instead
+        self.objective_transf = get_objective_func(self._general_info["objective"])
 
     def num_feature(self):
         """number of features"""
