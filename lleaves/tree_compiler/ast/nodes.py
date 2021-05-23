@@ -1,6 +1,6 @@
 from llvmlite import ir
 
-from lleaves.tree_compiler.utils import DecisionType, bitset_to_py_list
+from lleaves.tree_compiler.utils import DecisionType, MissingType, bitset_to_py_list
 
 BOOL = ir.IntType(bits=1)
 DOUBLE = ir.DoubleType()
@@ -197,9 +197,40 @@ class Node:
         # numerical float compare
         else:
             thresh = ir.Constant(DOUBLE, self.threshold)
-            comp = builder.fcmp_unordered(
-                str(self.decision_type), args[self.split_feature], thresh
-            )
+            missing_t = self.decision_type.missing_type
+
+            # MissingType.MZero: Treat 0s (like NaNs) as missing values
+            # default left: If missing value, go left
+            if self.decision_type.is_default_left:
+                if missing_t != MissingType.MZero or (
+                    missing_t == MissingType.MZero and self.threshold >= 0.0
+                ):
+                    # unordered cmp: we'll get True (and go left) if any arg is qNaN
+                    comp = builder.fcmp_unordered(
+                        "<=", args[self.split_feature], thresh
+                    )
+                else:
+                    is_missing = builder.fcmp_unordered(
+                        "==", args[self.split_feature], ir.Constant(FLOAT, 0)
+                    )
+                    less_eq = builder.fcmp_unordered(
+                        "<=", args[self.split_feature], thresh
+                    )
+                    comp = builder.or_(is_missing, less_eq)
+            else:
+                if missing_t != MissingType.MZero or (
+                    missing_t == MissingType.MZero and self.threshold < 0.0
+                ):
+                    # ordered cmp: we'll get False (and go right) if any arg is qNaN
+                    comp = builder.fcmp_ordered("<=", args[self.split_feature], thresh)
+                else:
+                    is_missing = builder.fcmp_unordered(
+                        "==", args[self.split_feature], ir.Constant(FLOAT, 0)
+                    )
+                    greater = builder.fcmp_unordered(
+                        ">", args[self.split_feature], thresh
+                    )
+                    comp = builder.not_(builder.or_(is_missing, greater))
 
         if self.all_children_leaves:
             ret = builder.select(comp, self.left.return_const, self.right.return_const)

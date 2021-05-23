@@ -1,6 +1,12 @@
-import logging
+from enum import Enum
 
 ISSUE_ERROR_MSG = "Please file an issue at https://github.com/siboehm/lleaves."
+
+
+class MissingType(Enum):
+    MNone = 0
+    MZero = 1
+    MNaN = 2
 
 
 class DecisionType:
@@ -8,8 +14,9 @@ class DecisionType:
     DEFAULT_LEFT_MASK = 2
 
     def __init__(self, idx):
-        if idx not in [1, 2, 9]:
-            logging.warning(
+        # decision type 0 doesn't seem to exist
+        if idx not in [1, 2, 4, 6, 8, 9, 10]:
+            raise ValueError(
                 f"Decision type {idx} not yet tested for. {ISSUE_ERROR_MSG}"
             )
         self.idx = idx
@@ -23,11 +30,16 @@ class DecisionType:
         assert not self.is_categorical
         return bool(self.idx & DecisionType.DEFAULT_LEFT_MASK)
 
+    @property
+    def missing_type(self):
+        missing_type = (self.idx >> 2) & 3
+        return MissingType(missing_type)
+
     def __str__(self):
         if self.is_categorical:
             return "=="
         else:
-            return "<=" if self.is_default_left else ">="
+            return "<="
 
 
 def bitset_to_py_list(threshold):

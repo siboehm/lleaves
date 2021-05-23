@@ -1,4 +1,3 @@
-import math
 from pathlib import Path
 
 import lightgbm as lgb
