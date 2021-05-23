@@ -139,7 +139,7 @@ def test_forest_llvm_mode_cat(data, model_dir, cat_bitvec):
     )
     input_floats = data.draw(
         st.lists(
-            st.floats(allow_nan=False, allow_infinity=False),
+            st.floats(allow_nan=True, allow_infinity=True),
             max_size=lgbm_model.num_feature() - sum(cat_bitvec),
             min_size=lgbm_model.num_feature() - sum(cat_bitvec),
         )

@@ -177,7 +177,7 @@ class Node:
             # find in bitset
             # check > max
             i1 = builder.sdiv(args[self.split_feature], ir.Constant(INT, 32))
-            comp1 = builder.icmp_signed(
+            comp1 = builder.icmp_unsigned(
                 "<", i1, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
             )
 
@@ -192,7 +192,7 @@ class Node:
             # check bitvector contains
             bit_entry = builder.lshr(bit_vec, shift)
             bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
-            comp2 = builder.icmp_signed("==", bit_val, ir.Constant(INT, 1))
+            comp2 = builder.icmp_unsigned("==", bit_val, ir.Constant(INT, 1))
             comp = builder.and_(comp1, comp2)
         # numerical float compare
         else:

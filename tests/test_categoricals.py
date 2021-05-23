@@ -1,3 +1,4 @@
+import math
 from pathlib import Path
 
 import lightgbm as lgb
@@ -67,11 +68,13 @@ def categorical_model_txt(tmpdir_factory, request):
 
     label = np.apply_along_axis(tree, axis=1, arr=train_data)
     train_data = lgb.Dataset(
-        train_data, label=label, categorical_feature=(i for i in range(n_categorical))
+        train_data, label=label, categorical_feature=list(range(n_categorical))
     )
 
     param = {}
-    lightgbm_model = lgb.train(param, train_data, 1)
+    lightgbm_model = lgb.train(
+        param, train_data, 1, categorical_feature=list(range(n_categorical))
+    )
 
     tmpdir = tmpdir_factory.mktemp("model")
     model_path = tmpdir / "model.txt"
@@ -88,7 +91,7 @@ def test_large_categorical(tmpdir_factory):
     )
     label = np.apply_along_axis(f, axis=1, arr=train_data_cat)
     train_data = lgb.Dataset(train_data_cat, label=label, categorical_feature=[0])
-    lightgbm_model = lgb.train({}, train_data, 1)
+    lightgbm_model = lgb.train({}, train_data, 1, categorical_feature=[0])
 
     tmpdir = tmpdir_factory.mktemp("model")
     model_path = str(tmpdir / "model.txt")
@@ -164,6 +167,7 @@ def test_pure_categorical_prediction():
     for data, res_idx in zip(
         [
             [0, 9, 0],
+            [0, -1, 0],
             [1, 9, 0],
             [0, 6, 5],
             [1, 5, 1],
@@ -172,9 +176,27 @@ def test_pure_categorical_prediction():
             [5, 5, 9],
             [6, 5, 3],
             [9, 5, 2],
+            [-1, 5, 2],
         ],
-        [0, 0, 0, 1, 1, 1, 2, 2, 2],
+        [0, 2, 0, 0, 1, 1, 1, 2, 2, 2, 2],
     ):
         assert llvm_forest._run_pymode([data]) == [results[res_idx]]
         assert llvm_model.predict([data]) == [results[res_idx]]
         assert lgbm_model.predict([data]) == [results[res_idx]]
+
+    na = float("NaN")
+    inf = float("Inf")
+    for data, res_idx in zip(
+        [
+            [na, 9.0, 0.0],
+            [na, 0.0, 0.0],
+            [inf, 0.0, 0.0],
+            [0.0, na, 0.0],
+            [4.0, inf, 0.0],
+            [na, na, 0.0],
+        ],
+        [0, 2, 2, 2, 1, 2],
+    ):
+        assert lgbm_model.predict([data]) == [results[res_idx]]
+        assert llvm_forest._run_pymode([data]) == [results[res_idx]]
+        assert llvm_model.predict([data]) == [results[res_idx]]

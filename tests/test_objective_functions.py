@@ -51,7 +51,7 @@ def test_basic(tmp_path, objective):
     params = {"objective": objective}
     if objective == "multiclass":
         params["num_class"] = 2
-    bst = lgb.train(params, train_data, 1)
+    bst = lgb.train(params, train_data, 1, categorical_feature=[0])
 
     reg_model_f = str(tmp_path / f"{objective}.txt")
     bst.save_model(reg_model_f)
