@@ -13,16 +13,33 @@ from lleaves.tree_compiler.utils import MissingType
 # 6: MissingType 0, default left
 # 8: MissingType NaN, default left
 # 10: MissingType NaN, default right
-@pytest.mark.parametrize("decision_type", [2, 4, 6, 8, 10])
-def test_zero_as_missing_numerical(tmp_path, decision_type):
+@pytest.mark.parametrize(
+    "decision_type, threshold_le_zero",
+    [
+        (0, True),
+        (2, True),
+        (4, True),
+        (6, True),
+        (8, True),
+        (10, True),
+        (0, False),
+        (2, False),
+        (4, False),
+        (6, False),
+        (8, False),
+        (10, False),
+    ],
+)
+def test_zero_as_missing_numerical(tmp_path, decision_type, threshold_le_zero):
     model_txt = tmp_path / "model.txt"
     with open("tests/models/tiniest_single_tree/model.txt") as infile, open(
         model_txt, "w"
     ) as outfile:
         for line in infile.readlines():
-            if line.startswith("decision_type"):
-                # change missing type from None to Zero
+            if line.startswith("decision_type="):
                 outfile.write(line.replace("2", str(decision_type)))
+            elif threshold_le_zero and line.startswith("threshold="):
+                outfile.write(line.replace("0.", "-0."))
             else:
                 outfile.write(line)
 
@@ -32,12 +49,54 @@ def test_zero_as_missing_numerical(tmp_path, decision_type):
     nan = float("NaN")
     data = [
         [0.0, 1.0, 1.0],
+        [0.0, -1.0, -1.0],
         [0.0, 1.0, 0.5],
+        [0.0, -1.0, -0.5],
         [0.0, 0.5, 1.0],
+        [0.0, -0.5, -1.0],
         [0.0, 0.5, 0.0],
+        [0.0, -0.5, 0.0],
         [-0.01, -0.01, -0.01],
         [0.0, 0.0, 0.0],
         [0.01, 0.01, 0.01],
+        [nan, nan, nan],
+        [None, None, None],
+    ]
+    npt.assert_equal(llvm_model.predict(data), lgbm_model.predict(data))
+
+
+@pytest.mark.parametrize("decision_type", [1, 3, 5, 7, 9])
+def test_zero_as_missing_categorical(tmp_path, decision_type):
+    model_txt = tmp_path / "model.txt"
+    with open("tests/models/pure_categorical/model.txt") as infile, open(
+        model_txt, "w"
+    ) as outfile:
+        for line in infile.readlines():
+            if line.startswith("decision_type"):
+                outfile.write(line.replace("1", str(decision_type)))
+            else:
+                outfile.write(line)
+
+    lgbm_model = lgb.Booster(model_file=str(model_txt))
+    llvm_model = lleaves.Model(model_file=str(model_txt))
+
+    nan = float("NaN")
+    data = [
+        [1.0, 6.0, 0.0],
+        [nan, 6.0, 0.0],
+        [nan, 1.0, 0.0],
+        [None, 1.0, 0.0],
+        [1.0, nan, 0.0],
+        [3.0, nan, 0.0],
+        [3.0, None, 0.0],
+        [0.0, 6.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, -0.001, 0.0],
+        [1.0, 0.001, 0.0],
+        [3.0, 0.0, 0.0],
+        [3.0, -0.001, 0.0],
+        [3.0, 0.001, 0.0],
         [nan, nan, nan],
         [None, None, None],
     ]

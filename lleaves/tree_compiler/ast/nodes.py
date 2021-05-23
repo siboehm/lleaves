@@ -170,13 +170,13 @@ class Node:
     def gen_block(self, func):
         block = func.append_basic_block(name=str(self))
         builder = ir.IRBuilder(block)
-        args = func.args
+        val = func.args[self.split_feature]
 
         # categorical int compare
         if self.decision_type.is_categorical:
             # find in bitset
             # check > max
-            i1 = builder.sdiv(args[self.split_feature], ir.Constant(INT, 32))
+            i1 = builder.sdiv(val, ir.Constant(INT, 32))
             comp1 = builder.icmp_unsigned(
                 "<", i1, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
             )
@@ -186,7 +186,7 @@ class Node:
                 ir.VectorType(INT, len(bit_entries)),
                 [ir.Constant(INT, i) for i in bit_entries],
             )
-            shift = builder.srem(args[self.split_feature], ir.Constant(INT, 32))
+            shift = builder.srem(val, ir.Constant(INT, 32))
             # pick relevant bitvector
             bit_vec = builder.extract_element(bit_vecs, i1)
             # check bitvector contains
@@ -199,37 +199,39 @@ class Node:
             thresh = ir.Constant(DOUBLE, self.threshold)
             missing_t = self.decision_type.missing_type
 
+            # If missingType != MNaN, NaNs values get mapped to 0.0 in LightGBM
+            # for MissingType.MNone we handle this by adjusting default_left
+            # for MissingType.MZero we handle it in the IR
+            if self.decision_type.missing_type == MissingType.MNone:
+                default_left = 0.0 <= self.threshold
+            else:
+                default_left = self.decision_type.is_default_left
+
             # MissingType.MZero: Treat 0s (like NaNs) as missing values
-            # default left: If missing value, go left
-            if self.decision_type.is_default_left:
+            # default_left: If val is a missing value, go to the left node
+            if default_left:
                 if missing_t != MissingType.MZero or (
-                    missing_t == MissingType.MZero and self.threshold >= 0.0
+                    missing_t == MissingType.MZero and 0.0 <= self.threshold
                 ):
                     # unordered cmp: we'll get True (and go left) if any arg is qNaN
-                    comp = builder.fcmp_unordered(
-                        "<=", args[self.split_feature], thresh
-                    )
+                    comp = builder.fcmp_unordered("<=", val, thresh)
                 else:
                     is_missing = builder.fcmp_unordered(
-                        "==", args[self.split_feature], ir.Constant(FLOAT, 0)
+                        "==", val, ir.Constant(FLOAT, 0.0)
                     )
-                    less_eq = builder.fcmp_unordered(
-                        "<=", args[self.split_feature], thresh
-                    )
+                    less_eq = builder.fcmp_unordered("<=", val, thresh)
                     comp = builder.or_(is_missing, less_eq)
             else:
                 if missing_t != MissingType.MZero or (
                     missing_t == MissingType.MZero and self.threshold < 0.0
                 ):
                     # ordered cmp: we'll get False (and go right) if any arg is qNaN
-                    comp = builder.fcmp_ordered("<=", args[self.split_feature], thresh)
+                    comp = builder.fcmp_ordered("<=", val, thresh)
                 else:
                     is_missing = builder.fcmp_unordered(
-                        "==", args[self.split_feature], ir.Constant(FLOAT, 0)
+                        "==", val, ir.Constant(FLOAT, 0.0)
                     )
-                    greater = builder.fcmp_unordered(
-                        ">", args[self.split_feature], thresh
-                    )
+                    greater = builder.fcmp_ordered(">", val, thresh)
                     comp = builder.not_(builder.or_(is_missing, greater))
 
         if self.all_children_leaves:
