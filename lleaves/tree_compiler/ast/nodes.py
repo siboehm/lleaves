@@ -197,7 +197,7 @@ class Node:
         # numerical float compare
         else:
             thresh = ir.Constant(DOUBLE, self.threshold)
-            comp = builder.fcmp_ordered(
+            comp = builder.fcmp_unordered(
                 str(self.decision_type), args[self.split_feature], thresh
             )
 
