@@ -1,6 +1,7 @@
 import pathlib
 
 import lightgbm as lgb
+import numpy as np
 import numpy.testing as npt
 import pytest
 
@@ -65,8 +66,24 @@ def test_zero_as_missing_numerical(tmp_path, decision_type, threshold_le_zero):
     npt.assert_equal(llvm_model.predict(data), lgbm_model.predict(data))
 
 
-@pytest.mark.parametrize("decision_type", [1, 3, 5, 7, 9])
-def test_zero_as_missing_categorical(tmp_path, decision_type):
+@pytest.mark.parametrize(
+    "decision_type, zero_in_bitvec",
+    [
+        (1, True),
+        (3, True),
+        (5, True),
+        (7, True),
+        (9, True),
+        (11, True),
+        (1, False),
+        (3, False),
+        (5, False),
+        (7, False),
+        (9, False),
+        (11, False),
+    ],
+)
+def test_zero_as_missing_categorical(tmp_path, decision_type, zero_in_bitvec):
     model_txt = tmp_path / "model.txt"
     with open("tests/models/pure_categorical/model.txt") as infile, open(
         model_txt, "w"
@@ -74,6 +91,8 @@ def test_zero_as_missing_categorical(tmp_path, decision_type):
         for line in infile.readlines():
             if line.startswith("decision_type"):
                 outfile.write(line.replace("1", str(decision_type)))
+            elif line.startswith("cat_threshold") and not zero_in_bitvec:
+                outfile.write(line.replace("23", "22"))
             else:
                 outfile.write(line)
 
@@ -101,6 +120,23 @@ def test_zero_as_missing_categorical(tmp_path, decision_type):
         [None, None, None],
     ]
     npt.assert_equal(llvm_model.predict(data), lgbm_model.predict(data))
+
+
+def test_lightgbm_nan_pred_inconsistency(tmp_path):
+    # see https://github.com/dmlc/treelite/issues/277
+    model_file = str(tmp_path / "model.txt")
+    X = np.array(30 * [[1]] + 30 * [[2]] + 30 * [[0]])
+    y = np.array(60 * [5] + 30 * [10])
+    train_data = lgb.Dataset(X, label=y, categorical_feature=[0])
+    bst = lgb.train({}, train_data, 1)
+    bst.save_model(model_file)
+
+    # just to make sure it's not due to LightGBM model export
+    lgbm_model = lgb.Booster(model_file=model_file)
+    llvm_model = lleaves.Model(model_file=model_file)
+
+    data = np.array([[np.NaN], [0.0], [-0.1], [0.1], [10.0], [np.Inf], [-np.NaN]])
+    npt.assert_equal(lgbm_model.predict(data), llvm_model.predict(data))
 
 
 def test_nan_prediction_numerical():

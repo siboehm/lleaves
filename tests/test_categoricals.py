@@ -158,7 +158,6 @@ def test_categorical_prediction_llvm_real(data, categorical_model_txt):
 
 
 def test_pure_categorical_prediction():
-    llvm_forest = parse_to_ast("tests/models/pure_categorical/model.txt")
     llvm_model = Model("tests/models/pure_categorical/model.txt")
     lgbm_model = lgb.Booster(model_file="tests/models/pure_categorical/model.txt")
 
@@ -177,11 +176,10 @@ def test_pure_categorical_prediction():
             [9, 5, 2],
             [-1, 5, 2],
         ],
-        [0, 2, 0, 0, 1, 1, 1, 2, 2, 2, 2],
+        [0, 1, 0, 0, 1, 1, 1, 2, 2, 2, 2],
     ):
-        assert llvm_forest._run_pymode([data]) == [results[res_idx]]
-        assert llvm_model.predict([data]) == [results[res_idx]]
         assert lgbm_model.predict([data]) == [results[res_idx]]
+        assert llvm_model.predict([data]) == [results[res_idx]]
 
     na = float("NaN")
     inf = float("Inf")
@@ -194,8 +192,7 @@ def test_pure_categorical_prediction():
             [4.0, inf, 0.0],
             [na, na, 0.0],
         ],
-        [0, 2, 2, 2, 1, 2],
+        [0, 2, 2, 1, 1, 2],
     ):
         assert lgbm_model.predict([data]) == [results[res_idx]]
-        assert llvm_forest._run_pymode([data]) == [results[res_idx]]
         assert llvm_model.predict([data]) == [results[res_idx]]

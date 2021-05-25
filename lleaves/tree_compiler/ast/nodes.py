@@ -78,7 +78,7 @@ class Forest:
         for is_cat, ptr in zip(self.categorical_bitmap, raw_ptrs):
             el = builder.load(ptr)
             if is_cat:
-                args.append(builder.fptoui(el, INT_CAT))
+                args.append(builder.fptosi(el, INT_CAT))
             else:
                 args.append(el)
         # iterate over each tree, sum up results
@@ -172,10 +172,20 @@ class Node:
         builder = ir.IRBuilder(block)
         val = func.args[self.split_feature]
 
+        # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
+        # So for MZero, NaNs get treated like missing values.
+        # But for MNone, NaNs get treated as the literal value 0.0.
+
+        # default_left decides where to go when a missing value is encountered
+
         # categorical int compare
         if self.decision_type.is_categorical:
-            # find in bitset
-            # check > max
+            # For categoricals, processing NaNs happens through casting them via fptosi in the Forest root
+            # NaNs become negative max_val, which never exists in the Bitset, so they always go right
+            # This seems to be the default LightGBM behaviour, but it's hard to tell from their code.
+
+            # Find in bitset
+            # First, check > max
             idx = builder.sdiv(val, ir.Constant(INT, 32))
             comp1 = builder.icmp_unsigned(
                 "<", idx, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
@@ -199,18 +209,14 @@ class Node:
             thresh = ir.Constant(DOUBLE, self.threshold)
             missing_t = self.decision_type.missing_type
 
-            # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
-            # So for MZero, NaNs get treated like missing values.
-            # For MNone, NaNs get treated as the regular value 0.0.
-            # for MNone we handle this by adjusting default_left to make sure NaNs go where 0.0 would have gone.
-            # for MZero we handle it in the IR
+            # for MNone handle NaNs by adjusting default_left to make sure NaNs go where 0.0 would have gone.
+            # for MZero we handle NaNs in the IR
             if self.decision_type.missing_type == MissingType.MNone:
                 default_left = 0.0 <= self.threshold
             else:
                 default_left = self.decision_type.is_default_left
 
             # MissingType.MZero: Treat 0s (and NaNs) as missing values
-            # default_left: If val is a missing value, go to the left node
             if default_left:
                 if missing_t != MissingType.MZero or (
                     missing_t == MissingType.MZero and 0.0 <= self.threshold
