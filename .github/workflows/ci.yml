@@ -35,7 +35,7 @@ jobs:
         shell: bash -x -l {0}
         run: |
           pip install --no-deps .
-          pytest -n auto
+          pytest
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
