@@ -176,9 +176,9 @@ class Node:
         if self.decision_type.is_categorical:
             # find in bitset
             # check > max
-            i1 = builder.sdiv(val, ir.Constant(INT, 32))
+            idx = builder.sdiv(val, ir.Constant(INT, 32))
             comp1 = builder.icmp_unsigned(
-                "<", i1, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
+                "<", idx, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
             )
 
             bit_entries = self.cat_threshold[self.cat_boundary :]
@@ -188,7 +188,7 @@ class Node:
             )
             shift = builder.srem(val, ir.Constant(INT, 32))
             # pick relevant bitvector
-            bit_vec = builder.extract_element(bit_vecs, i1)
+            bit_vec = builder.extract_element(bit_vecs, idx)
             # check bitvector contains
             bit_entry = builder.lshr(bit_vec, shift)
             bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
@@ -199,15 +199,17 @@ class Node:
             thresh = ir.Constant(DOUBLE, self.threshold)
             missing_t = self.decision_type.missing_type
 
-            # If missingType != MNaN, NaNs values get mapped to 0.0 in LightGBM
-            # for MissingType.MNone we handle this by adjusting default_left
-            # for MissingType.MZero we handle it in the IR
+            # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
+            # So for MZero, NaNs get treated like missing values.
+            # For MNone, NaNs get treated as the regular value 0.0.
+            # for MNone we handle this by adjusting default_left to make sure NaNs go where 0.0 would have gone.
+            # for MZero we handle it in the IR
             if self.decision_type.missing_type == MissingType.MNone:
                 default_left = 0.0 <= self.threshold
             else:
                 default_left = self.decision_type.is_default_left
 
-            # MissingType.MZero: Treat 0s (like NaNs) as missing values
+            # MissingType.MZero: Treat 0s (and NaNs) as missing values
             # default_left: If val is a missing value, go to the left node
             if default_left:
                 if missing_t != MissingType.MZero or (
