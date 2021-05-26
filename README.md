@@ -1,4 +1,4 @@
-# LLeaVes
+# LLeaVes 🐉
 A LLVM-based compiler for LightGBM decision trees.
 
 `lleaves` will ingests the `model.txt`-files from your trained LightGBM Models and
