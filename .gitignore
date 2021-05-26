@@ -1,6 +1,9 @@
 # idea
 .idea/
 
+# data
+benchmarks/data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

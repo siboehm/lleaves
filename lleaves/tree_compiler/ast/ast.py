@@ -11,7 +11,6 @@ def parse_to_ast(model_path):
 
     trees = []
     for tree_struct in parsed_model["trees"]:
-        n_cat = tree_struct["num_cat"]
         n_nodes = len(tree_struct["decision_type"])
         leaves = [
             Leaf(idx, value) for idx, value in enumerate(tree_struct["leaf_value"])
