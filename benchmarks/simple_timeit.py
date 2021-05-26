@@ -1,11 +1,13 @@
-import statistics
 import time
+from statistics import mean, pstdev
 
 import lightgbm
+import matplotlib.pyplot as plt
 import numpy as np
 import onnxmltools
 import onnxruntime as rt
 import pandas as pd
+import seaborn
 import treelite
 import treelite_runtime
 from onnxconverter_common import FloatTensorType
@@ -14,7 +16,7 @@ from train_NYC_model import feature_enginering
 
 from lleaves import Model
 
-boston_X, boston_y = load_boston(return_X_y=True)
+boston_X, _ = load_boston(return_X_y=True)
 boston_X = boston_X.astype(np.float32)
 
 used_columns = [
@@ -27,11 +29,14 @@ used_columns = [
     "passenger_count",
 ]
 df = pd.read_parquet("data/yellow_tripdata_2016-01.parquet", columns=used_columns)
-NYC_y = df.pop("fare_amount")
 NYC_X = feature_enginering().fit_transform(df).astype(np.float32)
+
+df = pd.read_csv("data/airline_data_factorized.csv")
+airline_X = df.astype(np.float32)
 
 model_file_boston = "../tests/models/boston_housing/model.txt"
 model_file_NYC = "../tests/models/NYC_taxi/model.txt"
+model_file_airline = "../tests/models/airline/model.txt"
 
 
 class BenchmarkModel:
@@ -41,10 +46,10 @@ class BenchmarkModel:
     def __init__(self, lgbm_model_file):
         self.model_file = lgbm_model_file
 
-    def setup(self, data):
+    def setup(self, data, n_threads):
         raise NotImplementedError()
 
-    def predict(self, data, index, batchsize):
+    def predict(self, data, index, batchsize, n_threads):
         self.model.predict(data[index : index + batchsize])
 
     def __str__(self):
@@ -54,14 +59,17 @@ class BenchmarkModel:
 class LGBMModel(BenchmarkModel):
     name = "LightGBM Booster"
 
-    def setup(self, data):
+    def setup(self, data, n_threads):
         self.model = lightgbm.Booster(model_file=self.model_file)
+
+    def predict(self, data, index, batchsize, n_threads):
+        self.model.predict(data[index : index + batchsize], n_jobs=n_threads)
 
 
 class LLVMModel(BenchmarkModel):
     name = "LLeaVes"
 
-    def setup(self, data):
+    def setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)
         self.model.compile()
 
@@ -69,19 +77,22 @@ class LLVMModel(BenchmarkModel):
 class TreeliteModel(BenchmarkModel):
     name = "Treelite"
 
-    def setup(self, data):
+    def setup(self, data, n_threads):
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
         treelite_model.export_lib(toolchain="gcc", libpath="/tmp/treelite_model.so")
-        self.model = treelite_runtime.Predictor("/tmp/treelite_model.so")
+        self.model = treelite_runtime.Predictor(
+            "/tmp/treelite_model.so",
+            nthread=n_threads if n_threads != 0 else None,
+        )
 
-    def predict(self, data, index, batchsize):
+    def predict(self, data, index, batchsize, n_threads):
         return self.model.predict(treelite_runtime.DMatrix(data[i : i + batchsize]))
 
 
 class TreeliteModelAnnotatedBranches(TreeliteModel):
     name = "Treelite (Annotated Branches)"
 
-    def setup(self, data):
+    def setup(self, data, n_threads):
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
         annotator = treelite.Annotator()
         annotator.annotate_branch(
@@ -93,13 +104,16 @@ class TreeliteModelAnnotatedBranches(TreeliteModel):
             libpath="/tmp/treelite_model_with_branches.so",
             params={"annotate_in": "/tmp/model-annotation.json"},
         )
-        self.model = treelite_runtime.Predictor("/tmp/treelite_model_with_branches.so")
+        self.model = treelite_runtime.Predictor(
+            "/tmp/treelite_model_with_branches.so",
+            nthread=n_threads if n_threads != 0 else None,
+        )
 
 
 class ONNXModel(BenchmarkModel):
     name = "ONNX"
 
-    def setup(self, data):
+    def setup(self, data, n_threads):
         lgbm_model = lightgbm.Booster(model_file=self.model_file)
         onnx_model = onnxmltools.convert_lightgbm(
             lgbm_model,
@@ -112,45 +126,67 @@ class ONNXModel(BenchmarkModel):
             target_opset=8,
         )
         onnxmltools.utils.save_model(onnx_model, "/tmp/model.onnx")
-        self.model = rt.InferenceSession("/tmp/model.onnx")
+        options = rt.SessionOptions()
+        options.inter_op_num_threads = n_threads
+        options.intra_op_num_threads = n_threads
+        self.model = rt.InferenceSession("/tmp/model.onnx", sess_options=options)
         self.input_name = self.model.get_inputs()[0].name
         self.label_name = self.model.get_outputs()[0].name
 
-    def predict(self, data, index, batchsize):
+    def predict(self, data, index, batchsize, n_threads):
         return self.model.run(
             [self.label_name], {self.input_name: data[index : index + batchsize]}
         )
 
 
 if __name__ == "__main__":
-    for model_file in [model_file_NYC, model_file_boston]:
-        data = NYC_X if model_file == model_file_NYC else boston_X
+    seaborn.set(rc={"figure.figsize": (11.7, 8.27)})
+    batchsizes = [1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300]
+    for model_file, data in zip(
+        [model_file_NYC],
+        [NYC_X],
+    ):
+        fig, ax = plt.subplots()
         print(model_file, "\n")
-        for model_class in [
-            # TreeliteModel,
-            # for some reason, treelight with branch annotation is slower than without
-            # TreeliteModelAnnotatedBranches
-            # LGBMModel,
-            LLVMModel,
-            ONNXModel,
-        ]:
-            model = model_class(model_file)
-            print(model)
-            model.setup(data)
-            for batchsize in [1, 5, 10, 30, 50, 100, 300]:
-                times = []
-                print("Batchsize:", batchsize)
-                for _ in range(100):
-                    start = time.perf_counter_ns()
-                    for _ in range(30):
-                        for i in range(50):
-                            model.predict(data, i, batchsize)
-                    # calc per-batch times, in μs
-                    times.append((time.perf_counter_ns() - start) / (30 * 50) / 1000)
-                print(
-                    round(statistics.mean(times), 2),
-                    "μs",
-                    "±",
-                    round(statistics.pstdev(times), 2),
-                    "μs",
+        for n_threads in [1, 0]:
+            for model_class in [
+                TreeliteModel,
+                LGBMModel,
+                ONNXModel,
+                LLVMModel,
+            ]:
+                model = model_class(model_file)
+                results = {"time (μs)": [], "batchsize": []}
+                model.setup(data, n_threads)
+                for batchsize in batchsizes:
+                    times = []
+                    for _ in range(100):
+                        start = time.perf_counter_ns()
+                        for _ in range(30):
+                            for i in range(50):
+                                model.predict(data, i, batchsize, n_threads)
+                        # calc per-batch times, in μs
+                        times.append(
+                            (time.perf_counter_ns() - start) / (30 * 50) / 1000
+                        )
+                    results["time (μs)"] += times
+                    results["batchsize"] += len(times) * [batchsize]
+                    print(
+                        f"{model} (Batchsize {batchsize}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
+                    )
+                plot = seaborn.lineplot(
+                    x="batchsize",
+                    y="time (μs)",
+                    ci="sd",
+                    data=results,
+                    label=str(model),
                 )
+            ax.set(
+                xscale="log",
+                yscale="log",
+                title=f"Per-batch prediction time, n_threads={n_threads}",
+                xticks=batchsizes,
+                xticklabels=batchsizes,
+            )
+            plot.figure.savefig(f"{model_file.split('/')[-2]}_{n_threads}.png")
+            plt.clf()

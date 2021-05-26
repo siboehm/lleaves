@@ -1,0 +1,100 @@
+../tests/models/NYC_taxi/model.txt 
+
+[20:03:13] ../src/compiler/ast/split.cc:26: Parallel compilation disabled; all member trees will be dumped to a single source file. This may increase compilation time and memory usage.
+[20:03:13] /home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/treelite/contrib/__init__.py:263: [1;31mWARNING: some of the source files are long. Expect long compilation time.[0m You may want to adjust the parameter [33mparallel_comp[0m.
+
+Treelite (Batchsize 1): 39.35μs ± 7.0μs
+Treelite (Batchsize 2): 43.01μs ± 5.7μs
+Treelite (Batchsize 3): 43.16μs ± 1.89μs
+Treelite (Batchsize 5): 45.71μs ± 2.02μs
+Treelite (Batchsize 7): 47.8μs ± 1.89μs
+Treelite (Batchsize 10): 50.59μs ± 1.97μs
+Treelite (Batchsize 30): 63.12μs ± 2.31μs
+Treelite (Batchsize 70): 85.82μs ± 2.61μs
+Treelite (Batchsize 100): 101.44μs ± 2.97μs
+Treelite (Batchsize 200): 190.16μs ± 3.49μs
+Treelite (Batchsize 300): 267.72μs ± 4.15μs
+/home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/lightgbm/basic.py:448: UserWarning: Usage of np.ndarray subset (sliced data) is not recommended due to it will double the peak memory cost in LightGBM.
+  _log_warning("Usage of np.ndarray subset (sliced data) is not recommended "
+LightGBM Booster (Batchsize 1): 67.42μs ± 6.99μs
+LightGBM Booster (Batchsize 2): 66.41μs ± 2.13μs
+LightGBM Booster (Batchsize 3): 70.95μs ± 3.45μs
+LightGBM Booster (Batchsize 5): 79.31μs ± 2.46μs
+LightGBM Booster (Batchsize 7): 88.14μs ± 2.38μs
+LightGBM Booster (Batchsize 10): 102.3μs ± 2.64μs
+LightGBM Booster (Batchsize 30): 193.82μs ± 3.69μs
+LightGBM Booster (Batchsize 70): 376.39μs ± 3.93μs
+LightGBM Booster (Batchsize 100): 506.95μs ± 3.01μs
+LightGBM Booster (Batchsize 200): 1031.28μs ± 3.82μs
+LightGBM Booster (Batchsize 300): 1551.32μs ± 21.16μs
+ONNX (Batchsize 1): 14.18μs ± 0.86μs
+ONNX (Batchsize 2): 16.62μs ± 0.9μs
+ONNX (Batchsize 3): 20.04μs ± 1.02μs
+ONNX (Batchsize 5): 26.37μs ± 1.15μs
+ONNX (Batchsize 7): 32.81μs ± 1.34μs
+ONNX (Batchsize 10): 42.5μs ± 1.53μs
+ONNX (Batchsize 30): 107.76μs ± 2.62μs
+ONNX (Batchsize 70): 171.55μs ± 3.53μs
+ONNX (Batchsize 100): 229.55μs ± 3.28μs
+ONNX (Batchsize 200): 454.78μs ± 3.48μs
+ONNX (Batchsize 300): 660.28μs ± 2.74μs
+LLeaVes (Batchsize 1): 14.45μs ± 3.16μs
+LLeaVes (Batchsize 2): 15.85μs ± 0.65μs
+LLeaVes (Batchsize 3): 16.62μs ± 0.79μs
+LLeaVes (Batchsize 5): 17.94μs ± 0.72μs
+LLeaVes (Batchsize 7): 18.98μs ± 0.64μs
+LLeaVes (Batchsize 10): 20.82μs ± 0.81μs
+LLeaVes (Batchsize 30): 31.17μs ± 1.08μs
+LLeaVes (Batchsize 70): 49.21μs ± 1.34μs
+LLeaVes (Batchsize 100): 62.84μs ± 1.77μs
+LLeaVes (Batchsize 200): 130.22μs ± 2.34μs
+LLeaVes (Batchsize 300): 213.07μs ± 2.67μs
+[20:22:00] ../src/compiler/ast/split.cc:26: Parallel compilation disabled; all member trees will be dumped to a single source file. This may increase compilation time and memory usage.
+[20:22:00] /home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/treelite/contrib/__init__.py:263: [1;31mWARNING: some of the source files are long. Expect long compilation time.[0m You may want to adjust the parameter [33mparallel_comp[0m.
+
+Treelite (Batchsize 1): 38.54μs ± 6.11μs
+Treelite (Batchsize 2): 42.19μs ± 0.85μs
+Treelite (Batchsize 3): 43.37μs ± 1.01μs
+Treelite (Batchsize 5): 95.38μs ± 0.5μs
+Treelite (Batchsize 7): 96.45μs ± 1.79μs
+Treelite (Batchsize 10): 99.5μs ± 5.72μs
+Treelite (Batchsize 30): 109.77μs ± 6.47μs
+Treelite (Batchsize 70): 120.85μs ± 6.97μs
+Treelite (Batchsize 100): 130.25μs ± 21.67μs
+Treelite (Batchsize 200): 154.42μs ± 7.07μs
+Treelite (Batchsize 300): 177.37μs ± 6.8μs
+/home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/lightgbm/basic.py:448: UserWarning: Usage of np.ndarray subset (sliced data) is not recommended due to it will double the peak memory cost in LightGBM.
+  _log_warning("Usage of np.ndarray subset (sliced data) is not recommended "
+LightGBM Booster (Batchsize 1): 67.79μs ± 1.48μs
+LightGBM Booster (Batchsize 2): 67.93μs ± 1.55μs
+LightGBM Booster (Batchsize 3): 72.56μs ± 1.45μs
+LightGBM Booster (Batchsize 5): 82.22μs ± 1.55μs
+LightGBM Booster (Batchsize 7): 92.09μs ± 1.76μs
+LightGBM Booster (Batchsize 10): 107.64μs ± 1.89μs
+LightGBM Booster (Batchsize 30): 208.41μs ± 2.33μs
+LightGBM Booster (Batchsize 70): 409.66μs ± 5.6μs
+LightGBM Booster (Batchsize 100): 553.9μs ± 2.66μs
+LightGBM Booster (Batchsize 200): 1137.05μs ± 3.56μs
+LightGBM Booster (Batchsize 300): 1708.84μs ± 5.9μs
+ONNX (Batchsize 1): 24.72μs ± 4.97μs
+ONNX (Batchsize 2): 16.63μs ± 1.51μs
+ONNX (Batchsize 3): 19.9μs ± 0.63μs
+ONNX (Batchsize 5): 26.11μs ± 0.94μs
+ONNX (Batchsize 7): 32.49μs ± 0.91μs
+ONNX (Batchsize 10): 41.93μs ± 1.07μs
+ONNX (Batchsize 30): 106.31μs ± 1.57μs
+ONNX (Batchsize 70): 166.7μs ± 5.98μs
+ONNX (Batchsize 100): 218.04μs ± 6.92μs
+ONNX (Batchsize 200): 403.49μs ± 5.3μs
+ONNX (Batchsize 300): 577.59μs ± 5.84μs
+LLeaVes (Batchsize 1): 14.62μs ± 3.37μs
+LLeaVes (Batchsize 2): 15.85μs ± 0.66μs
+LLeaVes (Batchsize 3): 16.62μs ± 0.77μs
+LLeaVes (Batchsize 5): 17.95μs ± 0.52μs
+LLeaVes (Batchsize 7): 19.23μs ± 0.77μs
+LLeaVes (Batchsize 10): 20.88μs ± 0.74μs
+LLeaVes (Batchsize 30): 31.57μs ± 0.98μs
+LLeaVes (Batchsize 70): 49.82μs ± 1.25μs
+LLeaVes (Batchsize 100): 63.95μs ± 1.55μs
+LLeaVes (Batchsize 200): 132.09μs ± 2.22μs
+LLeaVes (Batchsize 300): 214.78μs ± 2.53μs

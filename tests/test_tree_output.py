@@ -9,6 +9,7 @@ from lleaves.tree_compiler.ast import parse_to_ast
 
 MODEL_DIRS_NUMERICAL = [
     "tests/models/boston_housing/",
+    "tests/models/NYC_taxi/",
     "tests/models/single_tree/",
     "tests/models/tiniest_single_tree/",
 ]
@@ -17,8 +18,13 @@ MODEL_DIRS_NUMERICAL = [
 MODEL_DIRS_CATEGORICAL = [
     "tests/models/mixed_categorical/",
     "tests/models/pure_categorical/",
+    # "tests/models/airline/",
 ]
-CAT_BITVEC_CATEGORICAL = [(True, True, True, False, False), (True, True, True)]
+CAT_BITVEC_CATEGORICAL = [
+    (True, True, True, False, False),
+    (True, True, True),
+    # (True, True, True, True, False, False),
+]
 
 
 @pytest.fixture(scope="session", params=MODEL_DIRS_NUMERICAL)
