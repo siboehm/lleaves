@@ -9,3 +9,8 @@ dependencies:
   - lightgbm
   - numpy
   - pre-commit
+  - treelite
+  - onnxmltools
+  - onnxruntime
+  - pandas
+  - seaborn

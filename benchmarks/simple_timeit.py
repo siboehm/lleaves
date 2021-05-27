@@ -63,7 +63,9 @@ class LGBMModel(BenchmarkModel):
         self.model = lightgbm.Booster(model_file=self.model_file)
 
     def predict(self, data, index, batchsize, n_threads):
-        self.model.predict(data[index : index + batchsize], n_jobs=n_threads)
+        self.model.predict(
+            data[index : index + batchsize], n_jobs=n_threads if n_threads else None
+        )
 
 
 class LLVMModel(BenchmarkModel):
@@ -146,12 +148,12 @@ if __name__ == "__main__":
         [model_file_NYC],
         [NYC_X],
     ):
-        fig, ax = plt.subplots()
         print(model_file, "\n")
-        for n_threads in [1, 0]:
+        for n_threads in [0, 1]:
+            fig, ax = plt.subplots()
             for model_class in [
-                TreeliteModel,
                 LGBMModel,
+                TreeliteModel,
                 ONNXModel,
                 LLVMModel,
             ]:

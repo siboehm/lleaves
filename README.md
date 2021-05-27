@@ -23,6 +23,7 @@ Some painpoints I'm still ironing out:
 #### Single-threaded prediction on NYC-taxi
 ![img](benchmarks/NYC_taxi_1.png)
 #### Multi-threaded prediction on NYC-taxi 
+Running on Laptop with 4 Cores & Hyperthreading. 
 (Note: LLeaVes has no support for MT so far and is running single-threaded mode)
 ![img](benchmarks/NYC_taxi_0.png)
 
