@@ -18,12 +18,12 @@ MODEL_DIRS_NUMERICAL = [
 MODEL_DIRS_CATEGORICAL = [
     "tests/models/mixed_categorical/",
     "tests/models/pure_categorical/",
-    # "tests/models/airline/",
+    "tests/models/airline/",
 ]
 CAT_BITVEC_CATEGORICAL = [
     (True, True, True, False, False),
     (True, True, True),
-    # (True, True, True, True, False, False),
+    (True, True, True, True, False, False),
 ]
 
 
@@ -33,6 +33,18 @@ def llvm_lgbm_model(request):
     return (
         lleaves.Model(model_file=path + "model.txt"),
         lightgbm.Booster(model_file=path + "model.txt"),
+    )
+
+
+@pytest.fixture(
+    scope="session", params=zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
+)
+def llvm_lgbm_model_cat(request):
+    path, bitvec = request.param
+    return (
+        lleaves.Model(model_file=path + "model.txt"),
+        lightgbm.Booster(model_file=path + "model.txt"),
+        bitvec,
     )
 
 
@@ -127,14 +139,10 @@ def test_batchmode(data, llvm_lgbm_model):
     )
 
 
-@pytest.mark.parametrize(
-    "model_dir, cat_bitvec", zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
-)
 @given(data=st.data())
-def test_forest_llvm_mode_cat(data, model_dir, cat_bitvec):
-    t_path = model_dir + "model.txt"
-    lgbm_model = lightgbm.Booster(model_file=t_path)
-    llvm_model = lleaves.Model(t_path)
+@settings(deadline=None)  # the airline model takes a few seconds to compile
+def test_forest_llvm_mode_cat(data, llvm_lgbm_model_cat):
+    llvm_model, lgbm_model, cat_bitvec = llvm_lgbm_model_cat
 
     input_cats = data.draw(
         st.lists(
@@ -153,4 +161,6 @@ def test_forest_llvm_mode_cat(data, model_dir, cat_bitvec):
     input_data = [
         input_cats.pop() if is_cat else input_floats.pop() for is_cat in cat_bitvec
     ]
-    assert llvm_model.predict([input_data]) == lgbm_model.predict([input_data])
+    np.testing.assert_array_almost_equal(
+        llvm_model.predict([input_data]), lgbm_model.predict([input_data]), decimal=15
+    )
