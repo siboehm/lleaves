@@ -1,4 +1,5 @@
 import time
+import timeit
 from statistics import mean, pstdev
 
 import lightgbm
@@ -24,6 +25,11 @@ class BenchmarkModel:
         self.model_file = lgbm_model_file
 
     def setup(self, data, n_threads):
+        start = time.perf_counter()
+        self._setup(data, n_threads)
+        print(f"{self.name} setup: {round(time.perf_counter() - start, 2)}")
+
+    def _setup(self, data, n_threads):
         raise NotImplementedError()
 
     def predict(self, data, index, batchsize, n_threads):
@@ -36,7 +42,7 @@ class BenchmarkModel:
 class LGBMModel(BenchmarkModel):
     name = "LightGBM Booster"
 
-    def setup(self, data, n_threads):
+    def _setup(self, data, n_threads):
         self.model = lightgbm.Booster(model_file=self.model_file)
 
     def predict(self, data, index, batchsize, n_threads):
@@ -48,7 +54,7 @@ class LGBMModel(BenchmarkModel):
 class LLVMModel(BenchmarkModel):
     name = "LLeaVes"
 
-    def setup(self, data, n_threads):
+    def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)
         self.model.compile()
 
@@ -56,7 +62,7 @@ class LLVMModel(BenchmarkModel):
 class TreeliteModel(BenchmarkModel):
     name = "Treelite"
 
-    def setup(self, data, n_threads):
+    def _setup(self, data, n_threads):
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
         treelite_model.export_lib(toolchain="gcc", libpath="/tmp/treelite_model.so")
         self.model = treelite_runtime.Predictor(
@@ -71,7 +77,7 @@ class TreeliteModel(BenchmarkModel):
 class TreeliteModelAnnotatedBranches(TreeliteModel):
     name = "Treelite (Annotated Branches)"
 
-    def setup(self, data, n_threads):
+    def _setup(self, data, n_threads):
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
         annotator = treelite.Annotator()
         annotator.annotate_branch(
@@ -92,7 +98,7 @@ class TreeliteModelAnnotatedBranches(TreeliteModel):
 class ONNXModel(BenchmarkModel):
     name = "ONNX"
 
-    def setup(self, data, n_threads):
+    def _setup(self, data, n_threads):
         lgbm_model = lightgbm.Booster(model_file=self.model_file)
         onnx_model = onnxmltools.convert_lightgbm(
             lgbm_model,
@@ -172,10 +178,7 @@ if __name__ == "__main__":
         LLVMModel,
     ]
     n_threads = [0, 1]
-    for model_file, data in zip(
-        [model_file_airline, model_file_NYC],
-        [airline_X, NYC_X],
-    ):
+    for model_file, data in [(model_file_airline, airline_X), (model_file_NYC, NYC_X)]:
         print(model_file, "\n")
         results_full = {}
         for n_thread in n_threads:
@@ -202,6 +205,6 @@ if __name__ == "__main__":
                     results["time (μs)"] += times
                     results["batchsize"] += len(times) * [batchsize]
                     print(
-                        f"{model} (Batchsize {batchsize}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
+                        f"{model} (Batchsize {batchsize}, nthread {n_thread}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
                     )
         save_plots(results_full, model_file.split("/")[-2], n_threads, batchsizes)

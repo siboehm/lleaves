@@ -88,7 +88,7 @@ class Model:
 
         :param filepath: file to save to
         """
-        Path(filepath).write_text(str(self._IR_module))
+        Path(filepath).write_text(str(self._get_optimized_module()))
 
     def load_model_ir(self, filepath):
         """
@@ -100,7 +100,6 @@ class Model:
         """
         ir = Path(filepath).read_text()
         module = llvm.parse_assembly(ir)
-        module.verify()
         self._IR_module = module
 
     def compile(self):
