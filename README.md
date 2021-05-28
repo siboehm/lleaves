@@ -15,17 +15,13 @@ Some LightGBM features are not yet implemented in LLeaVes:
 - Multithreading
 - Linear Models
 
-Some painpoints I'm still ironing out:
-- Compilation time for very large categorical models is too long, but should be fixable
-
 ## Benchmarks
 [benchmark script](benchmarks/simple_timeit.py).
-#### Single-threaded prediction on NYC-taxi
-![img](benchmarks/NYC_taxi_1.png)
-#### Multi-threaded prediction on NYC-taxi 
-Running on Laptop with 4 Cores & Hyperthreading. 
-(Note: LLeaVes has no support for MT so far and is running single-threaded mode)
-![img](benchmarks/NYC_taxi_0.png)
+LLeaVes has no support for MT so far and is running single-threaded mode only.
+#### Prediction on NYC-taxi (purely numerical features)
+![img](benchmarks/NYC_taxi.png)
+#### Prediction on Airlines dataset (purely categorical features)
+![img](benchmarks/airline.png)
 
 ## Development
 ```bash

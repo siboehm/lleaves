@@ -1,0 +1,174 @@
+../tests/models/airline/model.txt
+
+LightGBM Booster (Batchsize 1): 94.73μs ± 7.01μs
+LightGBM Booster (Batchsize 2): 88.58μs ± 5.77μs
+LightGBM Booster (Batchsize 3): 89.81μs ± 5.97μs
+LightGBM Booster (Batchsize 5): 90.53μs ± 6.36μs
+LightGBM Booster (Batchsize 7): 92.32μs ± 6.23μs
+LightGBM Booster (Batchsize 10): 99.23μs ± 8.86μs
+LightGBM Booster (Batchsize 30): 120.03μs ± 7.69μs
+LightGBM Booster (Batchsize 70): 176.56μs ± 11.61μs
+LightGBM Booster (Batchsize 100): 219.79μs ± 12.4μs
+LightGBM Booster (Batchsize 200): 355.37μs ± 33.29μs
+LightGBM Booster (Batchsize 300): 490.7μs ± 30.74μs
+[11:33:54] ../src/compiler/ast/split.cc:26: Parallel compilation disabled; all member trees will be dumped to a single source file. This may increase compilation time and memory usage.
+[11:33:54] /home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/treelite/contrib/__init__.py:263: WARNING: some of the source files are long. Expect long compilation time. You may want to adjust the parameter parallel_comp.
+
+Treelite (Batchsize 1): 50.85μs ± 6.56μs
+Treelite (Batchsize 2): 54.36μs ± 0.78μs
+Treelite (Batchsize 3): 55.9μs ± 0.76μs
+Treelite (Batchsize 5): 109.32μs ± 0.59μs
+Treelite (Batchsize 7): 110.67μs ± 1.34μs
+Treelite (Batchsize 10): 121.38μs ± 7.11μs
+Treelite (Batchsize 30): 148.64μs ± 18.0μs
+Treelite (Batchsize 70): 194.0μs ± 13.31μs
+Treelite (Batchsize 100): 234.25μs ± 12.32μs
+Treelite (Batchsize 200): 350.29μs ± 10.91μs
+Treelite (Batchsize 300): 493.51μs ± 84.03μs
+LLeaVes (Batchsize 1): 43.5μs ± 4.85μs
+LLeaVes (Batchsize 2): 58.02μs ± 0.79μs
+LLeaVes (Batchsize 3): 71.65μs ± 0.99μs
+LLeaVes (Batchsize 5): 98.01μs ± 1.22μs
+LLeaVes (Batchsize 7): 126.48μs ± 14.88μs
+LLeaVes (Batchsize 10): 163.31μs ± 3.15μs
+LLeaVes (Batchsize 30): 422.46μs ± 2.77μs
+LLeaVes (Batchsize 70): 979.86μs ± 4.82μs
+LLeaVes (Batchsize 100): 1402.45μs ± 6.95μs
+LLeaVes (Batchsize 200): 2790.0μs ± 12.62μs
+LLeaVes (Batchsize 300): 4145.1μs ± 41.74μs
+LightGBM Booster (Batchsize 1): 73.13μs ± 1.07μs
+LightGBM Booster (Batchsize 2): 74.43μs ± 0.93μs
+LightGBM Booster (Batchsize 3): 81.0μs ± 0.9μs
+LightGBM Booster (Batchsize 5): 93.83μs ± 1.15μs
+LightGBM Booster (Batchsize 7): 107.47μs ± 1.38μs
+LightGBM Booster (Batchsize 10): 130.21μs ± 1.32μs
+LightGBM Booster (Batchsize 30): 288.48μs ± 3.07μs
+LightGBM Booster (Batchsize 70): 605.09μs ± 3.93μs
+LightGBM Booster (Batchsize 100): 841.9μs ± 3.28μs
+LightGBM Booster (Batchsize 200): 1618.92μs ± 8.0μs
+LightGBM Booster (Batchsize 300): 2388.95μs ± 6.98μs
+[12:20:48] ../src/compiler/ast/split.cc:26: Parallel compilation disabled; all member trees will be dumped to a single source file. This may increase compilation time and memory usage.
+[12:20:48] /home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/treelite/contrib/__init__.py:263: WARNING: some of the source files are long. Expect long compilation time. You may want to adjust the parameter parallel_comp.
+
+Treelite (Batchsize 1): 51.49μs ± 0.96μs
+Treelite (Batchsize 2): 58.96μs ± 0.89μs
+Treelite (Batchsize 3): 63.8μs ± 0.9μs
+Treelite (Batchsize 5): 72.18μs ± 1.54μs
+Treelite (Batchsize 7): 79.21μs ± 1.13μs
+Treelite (Batchsize 10): 89.57μs ± 1.12μs
+Treelite (Batchsize 30): 166.12μs ± 1.43μs
+Treelite (Batchsize 70): 351.66μs ± 2.58μs
+Treelite (Batchsize 100): 497.59μs ± 4.19μs
+Treelite (Batchsize 200): 939.13μs ± 4.26μs
+Treelite (Batchsize 300): 1383.17μs ± 6.57μs
+LLeaVes (Batchsize 1): 41.18μs ± 1.02μs
+LLeaVes (Batchsize 2): 56.01μs ± 0.89μs
+LLeaVes (Batchsize 3): 69.71μs ± 0.99μs
+LLeaVes (Batchsize 5): 95.97μs ± 1.01μs
+LLeaVes (Batchsize 7): 121.26μs ± 1.09μs
+LLeaVes (Batchsize 10): 159.54μs ± 1.86μs
+LLeaVes (Batchsize 30): 417.84μs ± 2.8μs
+LLeaVes (Batchsize 70): 977.48μs ± 5.24μs
+LLeaVes (Batchsize 100): 1401.31μs ± 10.76μs
+LLeaVes (Batchsize 200): 2792.01μs ± 6.67μs
+LLeaVes (Batchsize 300): 4147.67μs ± 12.57μs
+../tests/models/NYC_taxi/model.txt
+
+/home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/lightgbm/basic.py:448: UserWarning: Usage of np.ndarray subset (sliced data) is not recommended due to it will double the peak memory cost in LightGBM.
+  _log_warning("Usage of np.ndarray subset (sliced data) is not recommended "
+LightGBM Booster (Batchsize 1): 70.43μs ± 0.88μs
+LightGBM Booster (Batchsize 2): 70.56μs ± 1.0μs
+LightGBM Booster (Batchsize 3): 75.76μs ± 1.05μs
+LightGBM Booster (Batchsize 5): 87.29μs ± 18.35μs
+LightGBM Booster (Batchsize 7): 95.89μs ± 1.13μs
+LightGBM Booster (Batchsize 10): 111.93μs ± 1.31μs
+LightGBM Booster (Batchsize 30): 219.98μs ± 1.96μs
+LightGBM Booster (Batchsize 70): 434.11μs ± 2.01μs
+LightGBM Booster (Batchsize 100): 591.52μs ± 2.45μs
+LightGBM Booster (Batchsize 200): 1216.07μs ± 3.55μs
+LightGBM Booster (Batchsize 300): 1828.41μs ± 5.77μs
+[13:08:26] ../src/compiler/ast/split.cc:26: Parallel compilation disabled; all member trees will be dumped to a single source file. This may increase compilation time and memory usage.
+[13:08:26] /home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/treelite/contrib/__init__.py:263: WARNING: some of the source files are long. Expect long compilation time. You may want to adjust the parameter parallel_comp.
+
+Treelite (Batchsize 1): 41.31μs ± 5.74μs
+Treelite (Batchsize 2): 44.8μs ± 0.94μs
+Treelite (Batchsize 3): 45.66μs ± 0.79μs
+Treelite (Batchsize 5): 96.53μs ± 0.33μs
+Treelite (Batchsize 7): 97.46μs ± 1.0μs
+Treelite (Batchsize 10): 104.16μs ± 12.08μs
+Treelite (Batchsize 30): 114.15μs ± 7.04μs
+Treelite (Batchsize 70): 126.61μs ± 7.42μs
+Treelite (Batchsize 100): 133.22μs ± 7.72μs
+Treelite (Batchsize 200): 163.04μs ± 7.95μs
+Treelite (Batchsize 300): 187.51μs ± 9.07μs
+ONNX (Batchsize 1): 25.32μs ± 5.11μs
+ONNX (Batchsize 2): 17.63μs ± 2.46μs
+ONNX (Batchsize 3): 20.81μs ± 0.48μs
+ONNX (Batchsize 5): 27.48μs ± 0.55μs
+ONNX (Batchsize 7): 33.9μs ± 0.64μs
+ONNX (Batchsize 10): 43.97μs ± 0.69μs
+ONNX (Batchsize 30): 111.47μs ± 1.15μs
+ONNX (Batchsize 70): 168.02μs ± 5.56μs
+ONNX (Batchsize 100): 220.18μs ± 5.85μs
+ONNX (Batchsize 200): 409.48μs ± 6.41μs
+ONNX (Batchsize 300): 584.54μs ± 6.24μs
+LLeaVes (Batchsize 1): 15.37μs ± 3.98μs
+LLeaVes (Batchsize 2): 16.71μs ± 0.48μs
+LLeaVes (Batchsize 3): 17.53μs ± 0.54μs
+LLeaVes (Batchsize 5): 18.95μs ± 0.89μs
+LLeaVes (Batchsize 7): 20.13μs ± 0.56μs
+LLeaVes (Batchsize 10): 21.75μs ± 0.59μs
+LLeaVes (Batchsize 30): 32.9μs ± 0.75μs
+LLeaVes (Batchsize 70): 51.98μs ± 1.17μs
+LLeaVes (Batchsize 100): 66.15μs ± 0.99μs
+LLeaVes (Batchsize 200): 136.32μs ± 1.46μs
+LLeaVes (Batchsize 300): 221.41μs ± 1.61μs
+LightGBM Booster (Batchsize 1): 73.03μs ± 0.91μs
+LightGBM Booster (Batchsize 2): 72.98μs ± 0.89μs
+LightGBM Booster (Batchsize 3): 77.9μs ± 1.02μs
+LightGBM Booster (Batchsize 5): 88.7μs ± 1.09μs
+LightGBM Booster (Batchsize 7): 99.12μs ± 1.6μs
+LightGBM Booster (Batchsize 10): 115.96μs ± 1.49μs
+LightGBM Booster (Batchsize 30): 224.15μs ± 2.07μs
+LightGBM Booster (Batchsize 70): 439.15μs ± 3.12μs
+LightGBM Booster (Batchsize 100): 600.72μs ± 2.4μs
+LightGBM Booster (Batchsize 200): 1221.11μs ± 4.66μs
+LightGBM Booster (Batchsize 300): 1830.03μs ± 4.85μs
+[13:29:13] ../src/compiler/ast/split.cc:26: Parallel compilation disabled; all member trees will be dumped to a single source file. This may increase compilation time and memory usage.
+[13:29:13] /home/simon/miniconda3/envs/lleaves/lib/python3.9/site-packages/treelite/contrib/__init__.py:263: WARNING: some of the source files are long. Expect long compilation time. You may want to adjust the parameter parallel_comp.
+
+Treelite (Batchsize 1): 40.65μs ± 0.93μs
+Treelite (Batchsize 2): 44.73μs ± 0.85μs
+Treelite (Batchsize 3): 46.17μs ± 0.8μs
+Treelite (Batchsize 5): 48.88μs ± 0.82μs
+Treelite (Batchsize 7): 51.03μs ± 0.86μs
+Treelite (Batchsize 10): 53.83μs ± 0.77μs
+Treelite (Batchsize 30): 66.92μs ± 1.01μs
+Treelite (Batchsize 70): 89.8μs ± 1.58μs
+Treelite (Batchsize 100): 106.28μs ± 1.14μs
+Treelite (Batchsize 200): 198.56μs ± 1.58μs
+Treelite (Batchsize 300): 277.98μs ± 1.97μs
+ONNX (Batchsize 1): 14.63μs ± 0.35μs
+ONNX (Batchsize 2): 17.22μs ± 0.45μs
+ONNX (Batchsize 3): 20.79μs ± 0.46μs
+ONNX (Batchsize 5): 27.51μs ± 0.54μs
+ONNX (Batchsize 7): 34.18μs ± 0.6μs
+ONNX (Batchsize 10): 44.36μs ± 0.69μs
+ONNX (Batchsize 30): 112.24μs ± 1.21μs
+ONNX (Batchsize 70): 178.29μs ± 1.34μs
+ONNX (Batchsize 100): 238.43μs ± 2.14μs
+ONNX (Batchsize 200): 472.56μs ± 2.65μs
+ONNX (Batchsize 300): 688.19μs ± 2.62μs
+LLeaVes (Batchsize 1): 15.41μs ± 4.55μs
+LLeaVes (Batchsize 2): 16.64μs ± 0.46μs
+LLeaVes (Batchsize 3): 17.4μs ± 0.5μs
+LLeaVes (Batchsize 5): 18.84μs ± 0.42μs
+LLeaVes (Batchsize 7): 20.14μs ± 0.51μs
+LLeaVes (Batchsize 10): 21.85μs ± 0.48μs
+LLeaVes (Batchsize 30): 32.86μs ± 0.64μs
+LLeaVes (Batchsize 70): 51.37μs ± 0.86μs
+LLeaVes (Batchsize 100): 66.18μs ± 1.32μs
+LLeaVes (Batchsize 200): 136.02μs ± 1.47μs
+LLeaVes (Batchsize 300): 221.68μs ± 2.28μs
+
+Process finished with exit code 0

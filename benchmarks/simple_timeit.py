@@ -11,32 +11,9 @@ import seaborn
 import treelite
 import treelite_runtime
 from onnxconverter_common import FloatTensorType
-from sklearn.datasets import load_boston
 from train_NYC_model import feature_enginering
 
 from lleaves import Model
-
-boston_X, _ = load_boston(return_X_y=True)
-boston_X = boston_X.astype(np.float32)
-
-used_columns = [
-    "fare_amount",
-    "pickup_latitude",
-    "pickup_longitude",
-    "dropoff_latitude",
-    "dropoff_longitude",
-    "tpep_pickup_datetime",
-    "passenger_count",
-]
-df = pd.read_parquet("data/yellow_tripdata_2016-01.parquet", columns=used_columns)
-NYC_X = feature_enginering().fit_transform(df).astype(np.float32)
-
-df = pd.read_csv("data/airline_data_factorized.csv")
-airline_X = df.astype(np.float32)
-
-model_file_boston = "../tests/models/boston_housing/model.txt"
-model_file_NYC = "../tests/models/NYC_taxi/model.txt"
-model_file_airline = "../tests/models/airline/model.txt"
 
 
 class BenchmarkModel:
@@ -141,32 +118,83 @@ class ONNXModel(BenchmarkModel):
         )
 
 
+def save_plots(results_full, title, n_threads, batchsizes):
+    fig, axs = plt.subplots(ncols=2, nrows=1, sharey="row")
+    fig.suptitle(title, fontsize=16)
+    fig.set_size_inches(18.5, 10.5)
+    keys = sorted(results_full.keys())
+    for count, n_thread in enumerate(n_threads):
+        for key in keys:
+            if key.startswith(str(n_thread)):
+                seaborn.lineplot(
+                    x="batchsize",
+                    y="time (μs)",
+                    ci="sd",
+                    data=results_full[key],
+                    ax=axs[count],
+                    label=key.split("_")[1] if count == 1 else None,
+                )
+        axs[count].set(
+            xscale="log",
+            title=f"n_threads={str(n_thread).replace('0', 'not limited')}",
+            xticks=batchsizes,
+            xticklabels=batchsizes,
+            xlim=(1, None),
+        )
+    plt.yscale("log")
+    plt.savefig(f"{title}.png")
+
+
 if __name__ == "__main__":
-    seaborn.set(rc={"figure.figsize": (11.7, 8.27)})
+    used_columns = [
+        "fare_amount",
+        "pickup_latitude",
+        "pickup_longitude",
+        "dropoff_latitude",
+        "dropoff_longitude",
+        "tpep_pickup_datetime",
+        "passenger_count",
+    ]
+    df = pd.read_parquet("data/yellow_tripdata_2016-01.parquet", columns=used_columns)
+    NYC_X = feature_enginering().fit_transform(df).astype(np.float32)
+
+    df = pd.read_csv("data/airline_data_factorized.csv")
+    airline_X = df.to_numpy(np.float32)
+
+    model_file_NYC = "../tests/models/NYC_taxi/model.txt"
+    model_file_airline = "../tests/models/airline/model.txt"
+
     batchsizes = [1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300]
+    model_classes = [
+        LGBMModel,
+        TreeliteModel,
+        ONNXModel,
+        LLVMModel,
+    ]
+    n_threads = [0, 1]
     for model_file, data in zip(
-        [model_file_NYC],
-        [NYC_X],
+        [model_file_airline, model_file_NYC],
+        [airline_X, NYC_X],
     ):
         print(model_file, "\n")
-        for n_threads in [0, 1]:
-            fig, ax = plt.subplots()
-            for model_class in [
-                LGBMModel,
-                TreeliteModel,
-                ONNXModel,
-                LLVMModel,
-            ]:
+        results_full = {}
+        for n_thread in n_threads:
+            for model_class in model_classes:
+                if model_file == model_file_airline and model_class == ONNXModel:
+                    # ONNX doesn't like the categorical model, don't know why
+                    continue
+
                 model = model_class(model_file)
                 results = {"time (μs)": [], "batchsize": []}
-                model.setup(data, n_threads)
+                results_full[f"{n_thread}_{model}"] = results
+                model.setup(data, n_thread)
                 for batchsize in batchsizes:
                     times = []
                     for _ in range(100):
                         start = time.perf_counter_ns()
                         for _ in range(30):
                             for i in range(50):
-                                model.predict(data, i, batchsize, n_threads)
+                                model.predict(data, i, batchsize, n_thread)
                         # calc per-batch times, in μs
                         times.append(
                             (time.perf_counter_ns() - start) / (30 * 50) / 1000
@@ -176,19 +204,4 @@ if __name__ == "__main__":
                     print(
                         f"{model} (Batchsize {batchsize}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
                     )
-                plot = seaborn.lineplot(
-                    x="batchsize",
-                    y="time (μs)",
-                    ci="sd",
-                    data=results,
-                    label=str(model),
-                )
-            ax.set(
-                xscale="log",
-                yscale="log",
-                title=f"Per-batch prediction time, n_threads={n_threads}",
-                xticks=batchsizes,
-                xticklabels=batchsizes,
-            )
-            plot.figure.savefig(f"{model_file.split('/')[-2]}_{n_threads}.png")
-            plt.clf()
+        save_plots(results_full, model_file.split("/")[-2], n_threads, batchsizes)
