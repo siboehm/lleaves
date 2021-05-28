@@ -30,3 +30,8 @@ conda activate lleaves
 pre-commit install
 pytest
 ```
+
+### Current tasks
+- Enable compiler optimization passes
+- Figure out why ONNX won't convert the airlines categorical model
+- Figure out why categorical prediction is so slow with LLeaVes
