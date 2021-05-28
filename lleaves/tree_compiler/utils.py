@@ -39,20 +39,3 @@ class DecisionType:
             return "=="
         else:
             return "<="
-
-
-def bitset_to_py_list(threshold):
-    """
-    :param threshold: An integer representing a bitvector
-    :return: list of ints, each item corresponding to entry in the bitvector
-    """
-    thresh = threshold
-    cat_thresholds = []
-    i = 0
-    while thresh > 0:
-        tmp = thresh % 2
-        thresh = thresh // 2
-        if tmp:
-            cat_thresholds.append(i)
-        i += 1
-    return cat_thresholds

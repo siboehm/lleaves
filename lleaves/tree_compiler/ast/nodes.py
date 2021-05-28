@@ -1,6 +1,6 @@
 from llvmlite import ir
 
-from lleaves.tree_compiler.utils import DecisionType, MissingType, bitset_to_py_list
+from lleaves.tree_compiler.utils import DecisionType, MissingType
 
 BOOL = ir.IntType(bits=1)
 DOUBLE = ir.DoubleType()
@@ -100,9 +100,6 @@ class Forest:
 
         return module
 
-    def _run_pymode(self, inputs):
-        return [sum(tree._run_pymode(input) for tree in self.trees) for input in inputs]
-
 
 class Tree:
     def __init__(self, idx, root_node, categorical_bitmap):
@@ -120,9 +117,6 @@ class Tree:
         self.root_node.gen_block(func)
         return func
 
-    def _run_pymode(self, input):
-        return self.root_node._run_pymode(input)
-
 
 class Node:
     # the threshold in bit-representation if this node is categorical
@@ -130,6 +124,10 @@ class Node:
     # The boundary conditions if this node is categorical
     cat_boundary = None
     cat_boundary_pp = None
+
+    # child nodes or leaves
+    left = None
+    right = None
 
     def __init__(
         self,
@@ -253,19 +251,6 @@ class Node:
     def __str__(self):
         return f"node_{self.idx}"
 
-    def _run_pymode(self, data):
-        if self.decision_type.is_categorical:
-            go_left = data[self.split_feature] in bitset_to_py_list(
-                self.cat_threshold[self.cat_boundary]
-            )
-        else:
-            go_left = data[self.split_feature] <= self.threshold
-
-        if go_left:
-            return self.left._run_pymode(data)
-        else:
-            return self.right._run_pymode(data)
-
 
 class Leaf:
     def __init__(self, idx, value):
@@ -278,9 +263,6 @@ class Leaf:
         builder = ir.IRBuilder(block)
         builder.ret(self.return_const)
         return block
-
-    def _run_pymode(self, data):
-        return self.value
 
     def __str__(self):
         return f"leaf_{self.idx}"

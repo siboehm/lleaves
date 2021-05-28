@@ -8,8 +8,6 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from lleaves import Model
-from lleaves.tree_compiler.ast import parse_to_ast
-from lleaves.tree_compiler.utils import bitset_to_py_list
 
 numpy.random.seed(1337)
 
@@ -103,43 +101,6 @@ def test_large_categorical(tmpdir_factory):
     numpy.testing.assert_equal(
         llvm_model.predict(tests_data), lgbm_model.predict(tests_data)
     )
-
-
-@pytest.mark.parametrize(
-    "threshold, result",
-    zip(
-        [4, 2, 576, 22, 100000],
-        [
-            [
-                2,
-            ],
-            [
-                1,
-            ],
-            [6, 9],
-            [1, 2, 4],
-            [5, 7, 9, 10, 15, 16],
-        ],
-    ),
-)
-def test_pymode_cat_threshold(threshold, result):
-    assert bitset_to_py_list(threshold) == result
-
-
-@given(data=st.data())
-@settings(max_examples=50)
-def test_mixed_categorical_prediction_pymode_real(data, categorical_model_txt):
-    llvm_model = parse_to_ast(str(categorical_model_txt))
-    lgbm_model = lgb.Booster(model_file=str(categorical_model_txt))
-    input = data.draw(
-        st.lists(
-            st.integers(min_value=0, max_value=2 ** 31 - 2),
-            max_size=lgbm_model.num_feature(),
-            min_size=lgbm_model.num_feature(),
-        )
-    )
-
-    assert llvm_model._run_pymode([input]) == lgbm_model.predict([input])
 
 
 @given(data=st.data())
