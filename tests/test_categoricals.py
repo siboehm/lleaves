@@ -88,7 +88,7 @@ def test_large_categorical(tmpdir_factory):
     train_data_cat = np.repeat(
         np.expand_dims(np.arange(1, 100), axis=1), repeats=40, axis=0
     )
-    label = np.apply_along_axis(f, axis=1, arr=train_data_cat)
+    label = np.apply_along_axis(f, axis=1, arr=train_data_cat).flatten()
     train_data = lgb.Dataset(train_data_cat, label=label, categorical_feature=[0])
     lightgbm_model = lgb.train({}, train_data, 1, categorical_feature=[0])
 

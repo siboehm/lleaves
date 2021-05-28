@@ -9,5 +9,5 @@ setup(
     author="Simon Boehm",
     author_email="simon@siboehm.com",
     description="LLVM-based compiler for LightGBM models",
-    install_requires=["llvmlite"],
+    install_requires=["llvmlite", "numpy"],
 )

@@ -35,7 +35,7 @@ jobs:
         shell: bash -x -l {0}
         run: |
           pip install --no-use-pep517 --no-deps --disable-pip-version-check -e .
-          pytest tests
+          pytest -v tests
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
