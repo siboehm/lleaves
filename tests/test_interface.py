@@ -5,7 +5,7 @@ import pytest
 import lleaves
 
 
-def test_interface():
+def test_interface(tmp_path):
     lgbm = lgb.Booster(model_file="tests/models/tiniest_single_tree/model.txt")
     llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
 
@@ -38,3 +38,16 @@ def test_input_dtypes(model_file, n_args):
     assert llvm.predict(arr) == lgbm.predict(arr)
     arr = [[0, 0, 0]]
     assert llvm.predict(arr) == lgbm.predict(arr)
+
+
+def test_store_load_model(tmp_path):
+    llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
+    llvm.compile()
+    res = llvm.predict([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
+    llvm.save_model_ir(tmp_path / "model.ll")
+
+    llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
+    llvm.load_model_ir(tmp_path / "model.ll")
+    np.testing.assert_equal(
+        res, llvm.predict([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
+    )

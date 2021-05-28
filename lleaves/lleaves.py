@@ -1,4 +1,5 @@
 from ctypes import CFUNCTYPE, POINTER, c_double, c_int
+from pathlib import Path
 
 import llvmlite.binding as llvm
 import numpy as np
@@ -23,9 +24,6 @@ class Model:
     def __init__(self, model_file=None):
         self.model_file = model_file
         self._general_info = parser.parse_model_file(model_file)["general_info"]
-        self.categorical_bitmap = parser.cat_args_bitmap(
-            self._general_info["feature_infos"]
-        )
         # objective function is implemented as an np.ufunc.
         # TODO move into LLVM instead
         self.objective_transf = get_objective_func(self._general_info["objective"])
@@ -68,8 +66,42 @@ class Model:
         module = llvm.parse_assembly(str(self._get_ir_from_frontend()))
         module.verify()
 
+        # Create optimizer
+        pmb = llvm.PassManagerBuilder()
+        pmb.opt_level = 3
+        pmb.inlining_threshold = 30
+        pm_module = llvm.ModulePassManager()
+        # Add optimization passes to module-level optimizer
+        pmb.populate(pm_module)
+
+        pm_module.run(module)
         self._IR_module = module
         return self._IR_module
+
+    def save_model_ir(self, filepath):
+        """
+        Save the optimized LLVM IR to filepath.
+
+        This will be optimized specifically to the target machine.
+        You should store this together with the model.txt, as certain model features (like the output function)
+        are not stored inside the IR.
+
+        :param filepath: file to save to
+        """
+        Path(filepath).write_text(str(self._IR_module))
+
+    def load_model_ir(self, filepath):
+        """
+        Restore saved LLVM IR.
+        Instead of compiling & optimizing the model.txt, the loaded model ir will be used, which saves
+        compilation time.
+
+        :param filepath: file to load from
+        """
+        ir = Path(filepath).read_text()
+        module = llvm.parse_assembly(ir)
+        module.verify()
+        self._IR_module = module
 
     def compile(self):
         """
