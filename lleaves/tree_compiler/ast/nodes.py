@@ -196,11 +196,11 @@ class Node:
             )
             shift = builder.srem(val, ir.Constant(INT, 32))
             # pick relevant bitvector
+            # Might lead to a segfault?
             bit_vec = builder.extract_element(bit_vecs, idx)
             # check bitvector contains
             bit_entry = builder.lshr(bit_vec, shift)
-            bit_val = builder.and_(bit_entry, ir.Constant(INT, 1))
-            comp2 = builder.icmp_unsigned("==", bit_val, ir.Constant(INT, 1))
+            comp2 = builder.trunc(bit_entry, BOOL)
             comp = builder.and_(comp1, comp2)
         # numerical float compare
         else:
