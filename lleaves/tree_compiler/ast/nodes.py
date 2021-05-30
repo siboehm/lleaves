@@ -195,12 +195,12 @@ class InnerNode(Node):
             builder.cbranch(comp, bitset_comp_block, self.right.gen_block(func))
             builder = ir.IRBuilder(bitset_comp_block)
 
-            idx = builder.sdiv(val, ir.Constant(INT, 32))
+            idx = builder.udiv(val, ir.Constant(INT, 32))
             bit_vecs = ir.Constant(
                 ir.VectorType(INT, len(self.cat_threshold)),
                 [ir.Constant(INT, i) for i in self.cat_threshold],
             )
-            shift = builder.srem(val, ir.Constant(INT, 32))
+            shift = builder.urem(val, ir.Constant(INT, 32))
             # pick relevant bitvector
             bit_vec = builder.extract_element(bit_vecs, idx)
             # check bitvector contains
