@@ -149,7 +149,7 @@ def save_plots(results_full, title, n_threads, batchsizes):
             xlim=(1, None),
         )
     plt.yscale("log")
-    plt.savefig(f"{title}.png")
+    plt.savefig(f"{title}.png", bbox_inches="tight")
 
 
 NYC_used_columns = [

@@ -6,8 +6,8 @@ converts them into optimized machine code.
 
 ## Why LLeaVes?
 - Easy of use: The interface of `lleaves.Model` is a subset of `LightGBM.Booster`.
-- Speed: 10x performance increase compared to LightGBM.
-- Few dependencies: `llvmlite` and `numpy`. No C/C++ compiler necessary.
+- Speed: Up to 10x performance increase compared to LightGBM.
+- Few dependencies: `llvmlite` and `numpy`. No C/C++ compiler necessary, LLVM comes statically linked.
   
 ## Why not LLeaVes?
 Some LightGBM features are not yet implemented in LLeaVes:
