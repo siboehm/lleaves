@@ -33,7 +33,8 @@ pre-commit install
 pytest
 ```
 
-### Current tasks
+### Tasks
 - Implement final output transformation function in IR instead of numpy ufunc
 - Figure out why ONNX won't convert the airlines categorical model
 - Experiment with more efficient bitvector storage for categoricals
+- Refactor `nodes.py` to split AST-traversal from IR Codegen
