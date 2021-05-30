@@ -18,3 +18,6 @@ dependencies:
   - onnxmltools
   - onnxruntime
   - seaborn
+  # development
+  - sphinx
+  - sphinx_rtd_theme

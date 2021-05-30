@@ -36,4 +36,4 @@ pytest
 ### Current tasks
 - Implement final output transformation function in IR instead of numpy ufunc
 - Figure out why ONNX won't convert the airlines categorical model
-- Finetune compiler optimization passes?
+- Experiment with more efficient bitvector storage for categoricals
