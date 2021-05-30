@@ -119,15 +119,20 @@ class Tree:
 
 
 class Node:
+    def is_leaf(self):
+        return isinstance(self, Leaf)
+
+
+class InnerNode(Node):
     # the threshold in bit-representation if this node is categorical
     cat_threshold = None
-    # The boundary conditions if this node is categorical
-    cat_boundary = None
-    cat_boundary_pp = None
 
     # child nodes or leaves
     left = None
     right = None
+
+    # the IR block to jump to to access this node
+    _node_block = None
 
     def __init__(
         self,
@@ -149,14 +154,8 @@ class Node:
         self.left = left
         self.right = right
 
-        self.all_children_leaves = isinstance(self.left, Leaf) and isinstance(
-            self.right, Leaf
-        )
-
-    def finalize_categorical(self, cat_threshold, cat_boundary, cat_boundary_pp):
+    def finalize_categorical(self, cat_threshold):
         self.cat_threshold = cat_threshold
-        self.cat_boundary = cat_boundary
-        self.cat_boundary_pp = cat_boundary_pp
         self.threshold = int(self.threshold)
 
     def validate(self):
@@ -166,8 +165,11 @@ class Node:
             assert self.threshold
 
     def gen_block(self, func):
-        block = func.append_basic_block(name=str(self))
-        builder = ir.IRBuilder(block)
+        if self._node_block:
+            return self._node_block
+
+        node_block = func.append_basic_block(name=str(self))
+        builder = ir.IRBuilder(node_block)
         val = func.args[self.split_feature]
 
         # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
@@ -183,25 +185,27 @@ class Node:
             # This seems to be the default LightGBM behaviour, but it's hard to tell from their code.
 
             # Find in bitset
-            # First, check > max
-            idx = builder.sdiv(val, ir.Constant(INT, 32))
-            comp1 = builder.icmp_unsigned(
-                "<", idx, ir.Constant(INT, self.cat_boundary_pp - self.cat_boundary)
+            # First, check value > max categorical
+            comp = builder.icmp_unsigned(
+                "<",
+                val,
+                ir.Constant(INT, 32 * len(self.cat_threshold)),
             )
+            bitset_comp_block = builder.append_basic_block("cat_bitset_comp")
+            builder.cbranch(comp, bitset_comp_block, self.right.gen_block(func))
+            builder = ir.IRBuilder(bitset_comp_block)
 
-            bit_entries = self.cat_threshold[self.cat_boundary :]
+            idx = builder.sdiv(val, ir.Constant(INT, 32))
             bit_vecs = ir.Constant(
-                ir.VectorType(INT, len(bit_entries)),
-                [ir.Constant(INT, i) for i in bit_entries],
+                ir.VectorType(INT, len(self.cat_threshold)),
+                [ir.Constant(INT, i) for i in self.cat_threshold],
             )
             shift = builder.srem(val, ir.Constant(INT, 32))
             # pick relevant bitvector
-            # Might lead to a segfault?
             bit_vec = builder.extract_element(bit_vecs, idx)
             # check bitvector contains
             bit_entry = builder.lshr(bit_vec, shift)
-            comp2 = builder.trunc(bit_entry, BOOL)
-            comp = builder.and_(comp1, comp2)
+            comp = builder.trunc(bit_entry, BOOL)
         # numerical float compare
         else:
             thresh = ir.Constant(DOUBLE, self.threshold)
@@ -240,29 +244,34 @@ class Node:
                     greater = builder.fcmp_ordered(">", val, thresh)
                     comp = builder.not_(builder.or_(is_missing, greater))
 
-        if self.all_children_leaves:
+        if self.right.is_leaf() and self.left.is_leaf():
             ret = builder.select(comp, self.left.return_const, self.right.return_const)
             builder.ret(ret)
         else:
             builder.cbranch(comp, self.left.gen_block(func), self.right.gen_block(func))
 
-        return block
+        self._node_block = node_block
+        return self._node_block
 
     def __str__(self):
         return f"node_{self.idx}"
 
 
-class Leaf:
+class Leaf(Node):
+    _leaf_block = None
+
     def __init__(self, idx, value):
         self.idx = idx
         self.value = value
         self.return_const = ir.Constant(DOUBLE, value)
 
     def gen_block(self, func):
-        block = func.append_basic_block(name=str(self))
-        builder = ir.IRBuilder(block)
-        builder.ret(self.return_const)
-        return block
+        if not self._leaf_block:
+            block = func.append_basic_block(name=str(self))
+            builder = ir.IRBuilder(block)
+            builder.ret(self.return_const)
+            self._leaf_block = block
+        return self._leaf_block
 
     def __str__(self):
         return f"leaf_{self.idx}"

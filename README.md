@@ -32,6 +32,6 @@ pytest
 ```
 
 ### Current tasks
+- Implement final output transformation function in IR instead of numpy ufunc
 - Figure out why ONNX won't convert the airlines categorical model
-- Figure out why categorical prediction is so slow with LLeaVes
 - Finetune compiler optimization passes?

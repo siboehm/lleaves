@@ -1,4 +1,4 @@
-from lleaves.tree_compiler.ast.nodes import Forest, Leaf, Node, Tree
+from lleaves.tree_compiler.ast.nodes import Forest, InnerNode, Leaf, Tree
 from lleaves.tree_compiler.ast.parser import cat_args_bitmap, parse_model_file
 from lleaves.tree_compiler.utils import DecisionType
 
@@ -19,7 +19,9 @@ def parse_to_ast(model_path):
         # Create the nodes using all non-specific data
         # categorical nodes are finalized later
         nodes = [
-            Node(idx, split_feature, threshold, decision_type_id, left_idx, right_idx)
+            InnerNode(
+                idx, split_feature, threshold, decision_type_id, left_idx, right_idx
+            )
             for idx, (
                 split_feature,
                 threshold,
@@ -47,10 +49,11 @@ def parse_to_ast(model_path):
         for idx in categorical_nodes:
             node = nodes[idx]
             thresh = int(node.threshold)
+            # pass just the relevant vector entries
+            start = tree_struct["cat_boundaries"][thresh]
+            end = tree_struct["cat_boundaries"][thresh + 1]
             node.finalize_categorical(
-                cat_threshold=tree_struct["cat_threshold"],
-                cat_boundary=tree_struct["cat_boundaries"][thresh],
-                cat_boundary_pp=tree_struct["cat_boundaries"][thresh + 1],
+                cat_threshold=tree_struct["cat_threshold"][start:end],
             )
 
         for node in nodes:
