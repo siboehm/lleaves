@@ -3,14 +3,18 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  # runtime deps
   - llvmlite
+  - numpy
+  # testing
   - pytest
   - hypothesis
   - lightgbm
-  - numpy
   - pre-commit
+  - pyarrow
+  - pandas
+  # benchmarking
   - treelite
   - onnxmltools
   - onnxruntime
-  - pandas
   - seaborn
