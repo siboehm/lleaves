@@ -18,9 +18,11 @@ Some LightGBM features are not yet implemented in LLeaVes:
 ## Benchmarks
 [benchmark script](benchmarks/simple_timeit.py).
 LLeaVes has no support for MT so far and is running single-threaded mode only.
-#### Prediction on NYC-taxi (purely numerical features)
+#### NYC-taxi
+purely numerical features
 ![img](benchmarks/NYC_taxi.png)
-#### Prediction on Airlines dataset (purely categorical features)
+#### Airlines dataset
+Large categorical features
 ![img](benchmarks/airline.png)
 
 ## Development

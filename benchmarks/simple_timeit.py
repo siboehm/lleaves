@@ -70,7 +70,9 @@ class TreeliteModel(BenchmarkModel):
         )
 
     def predict(self, data, index, batchsize, n_threads):
-        return self.model.predict(treelite_runtime.DMatrix(data[i : i + batchsize]))
+        return self.model.predict(
+            treelite_runtime.DMatrix(data[index : index + batchsize])
+        )
 
 
 class TreeliteModelAnnotatedBranches(TreeliteModel):
@@ -137,7 +139,7 @@ def save_plots(results_full, title, n_threads, batchsizes):
                     ci="sd",
                     data=results_full[key],
                     ax=axs[count],
-                    label=key.split("_")[1] if count == 1 else None,
+                    label=key.split("_")[1] if count == 0 else None,
                 )
         axs[count].set(
             xscale="log",
@@ -160,6 +162,40 @@ NYC_used_columns = [
     "passenger_count",
 ]
 
+
+def run_benchmark(model_files, np_data, model_classes, threadcount, batchsizes):
+    for model_file, data in zip(model_files, np_data):
+        print(model_file, "\n")
+        results_full = {}
+        for n_threads in threadcount:
+            for model_class in model_classes:
+                if model_file == model_file_airline and model_class == ONNXModel:
+                    # ONNX doesn't like the categorical model, don't know why
+                    continue
+
+                model = model_class(model_file)
+                results = {"time (μs)": [], "batchsize": []}
+                results_full[f"{n_threads}_{model}"] = results
+                model.setup(data, n_threads)
+                for batchsize in batchsizes:
+                    times = []
+                    for _ in range(100):
+                        start = time.perf_counter_ns()
+                        for _ in range(30):
+                            for i in range(50):
+                                model.predict(data, i, batchsize, n_threads)
+                        # calc per-batch times, in μs
+                        times.append(
+                            (time.perf_counter_ns() - start) / (30 * 50) / 1000
+                        )
+                    results["time (μs)"] += times
+                    results["batchsize"] += len(times) * [batchsize]
+                    print(
+                        f"{model} (Batchsize {batchsize}, nthread {n_threads}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
+                    )
+        save_plots(results_full, model_file.split("/")[-2], threadcount, batchsizes)
+
+
 if __name__ == "__main__":
     df = pd.read_parquet(
         "data/yellow_tripdata_2016-01.parquet", columns=NYC_used_columns
@@ -172,41 +208,10 @@ if __name__ == "__main__":
     model_file_NYC = "../tests/models/NYC_taxi/model.txt"
     model_file_airline = "../tests/models/airline/model.txt"
 
-    batchsizes = [1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300]
-    model_classes = [
-        LGBMModel,
-        TreeliteModel,
-        ONNXModel,
-        LLVMModel,
-    ]
-    n_threads = [0, 1]
-    for model_file, data in [(model_file_airline, airline_X), (model_file_NYC, NYC_X)]:
-        print(model_file, "\n")
-        results_full = {}
-        for n_thread in n_threads:
-            for model_class in model_classes:
-                if model_file == model_file_airline and model_class == ONNXModel:
-                    # ONNX doesn't like the categorical model, don't know why
-                    continue
-
-                model = model_class(model_file)
-                results = {"time (μs)": [], "batchsize": []}
-                results_full[f"{n_thread}_{model}"] = results
-                model.setup(data, n_thread)
-                for batchsize in batchsizes:
-                    times = []
-                    for _ in range(100):
-                        start = time.perf_counter_ns()
-                        for _ in range(30):
-                            for i in range(50):
-                                model.predict(data, i, batchsize, n_thread)
-                        # calc per-batch times, in μs
-                        times.append(
-                            (time.perf_counter_ns() - start) / (30 * 50) / 1000
-                        )
-                    results["time (μs)"] += times
-                    results["batchsize"] += len(times) * [batchsize]
-                    print(
-                        f"{model} (Batchsize {batchsize}, nthread {n_thread}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
-                    )
-        save_plots(results_full, model_file.split("/")[-2], n_threads, batchsizes)
+    run_benchmark(
+        model_files=[model_file_airline, model_file_NYC],
+        np_data=[airline_X, NYC_X],
+        model_classes=[LGBMModel, TreeliteModel, LLVMModel, ONNXModel],
+        threadcount=[1, 0],
+        batchsizes=[1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300],
+    )
