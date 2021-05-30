@@ -1,5 +1,4 @@
 import time
-import timeit
 from statistics import mean, pstdev
 
 import lightgbm
@@ -12,8 +11,8 @@ import seaborn
 import treelite
 import treelite_runtime
 from onnxconverter_common import FloatTensorType
-from train_NYC_model import feature_enginering
 
+from benchmarks.train_NYC_model import feature_enginering
 from lleaves import Model
 
 
@@ -33,7 +32,7 @@ class BenchmarkModel:
         raise NotImplementedError()
 
     def predict(self, data, index, batchsize, n_threads):
-        self.model.predict(data[index : index + batchsize])
+        return self.model.predict(data[index : index + batchsize])
 
     def __str__(self):
         return self.name
@@ -46,7 +45,7 @@ class LGBMModel(BenchmarkModel):
         self.model = lightgbm.Booster(model_file=self.model_file)
 
     def predict(self, data, index, batchsize, n_threads):
-        self.model.predict(
+        return self.model.predict(
             data[index : index + batchsize], n_jobs=n_threads if n_threads else None
         )
 
@@ -151,17 +150,20 @@ def save_plots(results_full, title, n_threads, batchsizes):
     plt.savefig(f"{title}.png")
 
 
+NYC_used_columns = [
+    "fare_amount",
+    "pickup_latitude",
+    "pickup_longitude",
+    "dropoff_latitude",
+    "dropoff_longitude",
+    "tpep_pickup_datetime",
+    "passenger_count",
+]
+
 if __name__ == "__main__":
-    used_columns = [
-        "fare_amount",
-        "pickup_latitude",
-        "pickup_longitude",
-        "dropoff_latitude",
-        "dropoff_longitude",
-        "tpep_pickup_datetime",
-        "passenger_count",
-    ]
-    df = pd.read_parquet("data/yellow_tripdata_2016-01.parquet", columns=used_columns)
+    df = pd.read_parquet(
+        "data/yellow_tripdata_2016-01.parquet", columns=NYC_used_columns
+    )
     NYC_X = feature_enginering().fit_transform(df).astype(np.float32)
 
     df = pd.read_csv("data/airline_data_factorized.csv")
