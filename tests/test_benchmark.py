@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 import lleaves
-from benchmarks.simple_timeit import NYC_used_columns
+from benchmarks.benchmark_small_batches import NYC_used_columns
 from benchmarks.train_NYC_model import feature_enginering
 
 
