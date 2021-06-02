@@ -47,9 +47,7 @@ class LGBMModel(BenchmarkModel):
         self.model = lightgbm.Booster(model_file=self.model_file)
 
     def predict(self, data, index, batchsize, n_threads):
-        return self.model.predict(
-            data[index : index + batchsize], n_jobs=n_threads if n_threads > 0 else None
-        )
+        return self.model.predict(data[index : index + batchsize], n_jobs=n_threads)
 
 
 class LLVMModel(BenchmarkModel):
@@ -68,7 +66,7 @@ class TreeliteModel(BenchmarkModel):
         treelite_model.export_lib(toolchain="gcc", libpath="/tmp/treelite_model.so")
         self.model = treelite_runtime.Predictor(
             "/tmp/treelite_model.so",
-            nthread=n_threads if n_threads != 0 else None,
+            nthread=n_threads,
         )
 
     def predict(self, data, index, batchsize, n_threads):
@@ -94,7 +92,7 @@ class TreeliteModelAnnotatedBranches(TreeliteModel):
         )
         self.model = treelite_runtime.Predictor(
             "/tmp/treelite_model_with_branches.so",
-            nthread=n_threads if n_threads != 0 else None,
+            nthread=n_threads,
         )
 
 
@@ -195,12 +193,12 @@ def run_benchmark(model_files, np_data, model_classes, threadcount, batchsizes):
                     times = []
                     for _ in range(100):
                         start = time.perf_counter_ns()
-                        for _ in range(10):
-                            for i in range(0, 50, 2):
+                        for _ in range(30):
+                            for i in range(50):
                                 model.predict(data, i, batchsize, n_threads)
                         # calc per-batch times, in μs
                         times.append(
-                            (time.perf_counter_ns() - start) / (10 * 25) / 1000
+                            (time.perf_counter_ns() - start) / (30 * 50) / 1000
                         )
                     results["time (μs)"] += times
                     results["batchsize"] += len(times) * [batchsize]
@@ -226,7 +224,13 @@ if __name__ == "__main__":
     run_benchmark(
         model_files=[model_file_airline, model_file_NYC],
         np_data=[airline_X, NYC_X],
-        model_classes=[LGBMModel, TreeliteModel, LLVMModel, ONNXModel],
+        model_classes=[
+            LGBMModel,
+            TreeliteModel,
+            TreeliteModelAnnotatedBranches,
+            LLVMModel,
+            ONNXModel,
+        ],
         threadcount=[1, 4],
         batchsizes=[1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300],
     )

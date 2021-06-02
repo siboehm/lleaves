@@ -35,6 +35,7 @@ pytest
 
 ### Tasks
 - Implement final output transformation function in IR instead of numpy ufunc
-- Figure out why ONNX won't convert the airlines categorical model
 - Experiment with more efficient bitvector storage for categoricals
 - Refactor `nodes.py` to split AST-traversal from IR Codegen
+- Switch to single-precision floats instead of float64.
+- Parse node weights from model.txt, use them for compiler branch prediction hints
