@@ -127,7 +127,6 @@ class ONNXModel(BenchmarkModel):
 
 def save_plots(results_full, title, n_threads, batchsizes):
     fig, axs = plt.subplots(ncols=2, nrows=1, sharey="row")
-    fig.suptitle(title, fontsize=16)
     fig.set_size_inches(18.5, 10.5)
     keys = sorted(results_full.keys())
     for count, n_thread in enumerate(n_threads):
@@ -227,7 +226,6 @@ if __name__ == "__main__":
         model_classes=[
             LGBMModel,
             TreeliteModel,
-            TreeliteModelAnnotatedBranches,
             LLVMModel,
             ONNXModel,
         ],
