@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "LLeaVes"
+project = "lleaves"
 copyright = "2021, Simon Boehm"
 author = "Simon Boehm"
 

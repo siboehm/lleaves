@@ -1,10 +1,13 @@
 Development documentation
-============================
+==============================
 
 The only correct behaviour is for ``lleaves`` to behave exactly like LightGBM.
 
+LightGBM's model serialization
+------------------------------
+
 Decision Types
----------------------
+*********************
 
 The encoding of the decision types is fairly straightforward and determined by masks.
 Three things are encoded:
@@ -14,7 +17,7 @@ Three things are encoded:
 3. Missing type: ``NaN``, ``None`` or ``Zero``.
 
 Missing Values
----------------
+***************
 
 For dealing with missing values it's best to look at the LightGBM code.
 Example: If the missing type is *None* and a ``NaN`` is encountered, the ``NaN`` gets mapped to ``0.0``.
@@ -22,7 +25,7 @@ This means for this node ``NaN`` will behave like ``0.0``, irrespective of the v
 In LLeaVes all combinations of decision type, default left and missing type are tested against LightGBM.
 
 Categorical features
----------------------
+*********************
 
 In LightGBM, categoricals are represented as non-negative integers smaller than `2^31-1`.
 A tree with categoricals looks like this in the *model.txt*::
