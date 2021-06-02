@@ -75,29 +75,8 @@ class TreeliteModel(BenchmarkModel):
         )
 
 
-class TreeliteModelAnnotatedBranches(TreeliteModel):
-    name = "Treelite (Annotated Branches)"
-
-    def _setup(self, data, n_threads):
-        treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
-        annotator = treelite.Annotator()
-        annotator.annotate_branch(
-            model=treelite_model, dmat=treelite_runtime.DMatrix(data)
-        )
-        annotator.save(path="/tmp/model-annotation.json")
-        treelite_model.export_lib(
-            toolchain="gcc",
-            libpath="/tmp/treelite_model_with_branches.so",
-            params={"annotate_in": "/tmp/model-annotation.json"},
-        )
-        self.model = treelite_runtime.Predictor(
-            "/tmp/treelite_model_with_branches.so",
-            nthread=n_threads,
-        )
-
-
 class ONNXModel(BenchmarkModel):
-    name = "ONNX"
+    name = "ONNX Runtime"
 
     def _setup(self, data, n_threads):
         lgbm_model = lightgbm.Booster(model_file=self.model_file)

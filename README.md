@@ -16,7 +16,7 @@ Some LightGBM features are not yet implemented in LLeaVes:
 - Linear Models
 
 ## Benchmarks
-[benchmark script](benchmarks/simple_timeit.py).
+[benchmark script](benchmarks/benchmark_small_batches.py).
 LLeaVes has no support for MT so far and is running single-threaded mode only.
 #### NYC-taxi
 Numerical features only
@@ -35,6 +35,7 @@ pytest
 ```
 
 ### Tasks
+- Come up with a better name (has to be available on PyPI and conda)
 - Switch to single-precision floats instead of float64.
 - Release GIL and implement multithreading
 - Refactor `nodes.py` to split AST-traversal from IR Codegen.
