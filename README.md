@@ -1,10 +1,10 @@
-# LLeaVes 🐉
+# LLeaves 🐉
 A LLVM-based compiler for LightGBM decision trees.
 
 Ingests `model.txt` files from trained LightGBM Models and
 converts them into optimized machine code.
 
-## Why LLeaVes?
+## Why LLeaves?
 - Easy of use: The interface of `lleaves.Model` is a subset of `LightGBM.Booster`.
 - Speed: Up to 10x performance increase compared to LightGBM.
 - Few dependencies: `llvmlite` and `numpy`. No C/C++ compiler necessary, LLVM comes statically linked.
@@ -19,10 +19,10 @@ Some LightGBM features are not yet implemented in LLeaVes:
 [benchmark script](benchmarks/simple_timeit.py).
 LLeaVes has no support for MT so far and is running single-threaded mode only.
 #### NYC-taxi
-purely numerical features
+Numerical features only
 ![img](benchmarks/NYC_taxi.png)
 #### Airlines dataset
-Large categorical features
+Predominantly categorical features with high cardinality
 ![img](benchmarks/airline.png)
 
 ## Development

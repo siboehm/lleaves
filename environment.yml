@@ -15,9 +15,12 @@ dependencies:
   - pandas
   # benchmarking
   - treelite
-  - onnxmltools
+  # - onnxmltools
   - onnxruntime
   - seaborn
   # development
   - sphinx
   - sphinx_rtd_theme
+  - pip
+  - pip:
+      - "git+git://github.com/janjagusch/onnxmltools@fix-nodes-values"

@@ -1,4 +1,6 @@
+import pickle
 import time
+from pathlib import Path
 from statistics import mean, pstdev
 
 import lightgbm
@@ -46,7 +48,7 @@ class LGBMModel(BenchmarkModel):
 
     def predict(self, data, index, batchsize, n_threads):
         return self.model.predict(
-            data[index : index + batchsize], n_jobs=n_threads if n_threads else None
+            data[index : index + batchsize], n_jobs=n_threads if n_threads > 0 else None
         )
 
 
@@ -163,16 +165,28 @@ NYC_used_columns = [
 ]
 
 
+def load_results(model_name):
+    datafile = Path("data") / (model_name + ".pkl")
+    res = {}
+    if datafile.exists():
+        with open(datafile, "rb") as file:
+            res = pickle.load(file)
+    return res
+
+
+def save_results(results, model_name):
+    datafile = Path("data") / (model_name + ".pkl")
+    with open(datafile, "wb") as file:
+        pickle.dump(results, file)
+
+
 def run_benchmark(model_files, np_data, model_classes, threadcount, batchsizes):
     for model_file, data in zip(model_files, np_data):
-        print(model_file, "\n")
-        results_full = {}
+        model_name = model_file.split("/")[-2]
+        print(model_file, f"\n---- {str.upper(model_name)} --- \n")
+        results_full = load_results(model_name)
         for n_threads in threadcount:
             for model_class in model_classes:
-                if model_file == model_file_airline and model_class == ONNXModel:
-                    # ONNX doesn't like the categorical model, don't know why
-                    continue
-
                 model = model_class(model_file)
                 results = {"time (μs)": [], "batchsize": []}
                 results_full[f"{n_threads}_{model}"] = results
@@ -181,19 +195,20 @@ def run_benchmark(model_files, np_data, model_classes, threadcount, batchsizes):
                     times = []
                     for _ in range(100):
                         start = time.perf_counter_ns()
-                        for _ in range(30):
-                            for i in range(50):
+                        for _ in range(10):
+                            for i in range(0, 50, 2):
                                 model.predict(data, i, batchsize, n_threads)
                         # calc per-batch times, in μs
                         times.append(
-                            (time.perf_counter_ns() - start) / (30 * 50) / 1000
+                            (time.perf_counter_ns() - start) / (10 * 25) / 1000
                         )
                     results["time (μs)"] += times
                     results["batchsize"] += len(times) * [batchsize]
                     print(
                         f"{model} (Batchsize {batchsize}, nthread {n_threads}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
                     )
-        save_plots(results_full, model_file.split("/")[-2], threadcount, batchsizes)
+        save_results(results_full, model_name)
+        save_plots(results_full, model_name, threadcount, batchsizes)
 
 
 if __name__ == "__main__":
@@ -212,6 +227,6 @@ if __name__ == "__main__":
         model_files=[model_file_airline, model_file_NYC],
         np_data=[airline_X, NYC_X],
         model_classes=[LGBMModel, TreeliteModel, LLVMModel, ONNXModel],
-        threadcount=[1, 0],
+        threadcount=[1, 4],
         batchsizes=[1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300],
     )
