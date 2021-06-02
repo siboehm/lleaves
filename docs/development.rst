@@ -16,6 +16,14 @@ Three things are encoded:
 2. Default left: This determines which direction (left or right) is taken when the missing type is encountered.
 3. Missing type: ``NaN``, ``None`` or ``Zero``.
 
+Branch prediction
+*****************
+The ``internal_count`` variable stores for each node of the tree, how many datapoints of the dataset pass through it.
+For the root node this is equal to ``len(dataset)``.
+The respective information for tree leaves is saved in ``leaf_count``.
+
+This could be used to add branch prediction hints to the LLVM compiler.
+
 Missing Values
 ***************
 
