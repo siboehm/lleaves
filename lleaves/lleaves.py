@@ -8,6 +8,15 @@ from lleaves.tree_compiler import ir_from_model_file
 from lleaves.tree_compiler.ast import parser
 from lleaves.tree_compiler.objective_funcs import get_objective_func
 
+try:
+    from pandas import DataFrame as pd_DataFrame
+except ImportError:
+
+    class pd_DataFrame:
+        """Dummy class for pandas.DataFrame."""
+
+        pass
+
 
 class Model:
     # machine-targeted compiler & exec engine
@@ -23,9 +32,12 @@ class Model:
 
     def __init__(self, model_file=None):
         self.model_file = model_file
-        self._general_info = parser.parse_model_file(model_file)["general_info"]
+
+        parsed_model = parser.parse_model_file(model_file, general_info_only=True)
+        self._general_info = parsed_model["general_info"]
+        self._pandas_categorical = parser.parse_pandas_categorical(model_file)
+
         # objective function is implemented as an np.ufunc.
-        # TODO move into LLVM instead
         self.objective_transf = get_objective_func(self._general_info["objective"])
 
     def num_feature(self):
@@ -125,8 +137,18 @@ class Model:
         )(addr)
 
     def predict(self, data):
+        """
+        Return predictions for the given data
+
+        For fastest speed, pass the data as a 2D numpy array with dtype float64
+
+        :param data: Pandas df, numpy 2D array or Python list
+        :return: 1D numpy array, dtype float64
+        """
         self.compile()
 
+        if isinstance(data, pd_DataFrame):
+            data = self._data_from_pandas(data)
         data, n_preds = self._to_1d_ndarray(data)
         ptr_data = data.ctypes.data_as(POINTER(c_double))
 
@@ -135,10 +157,34 @@ class Model:
         self._c_entry_func(ptr_data, n_preds, ptr_preds)
         return self.objective_transf(preds)
 
+    def _data_from_pandas(self, data):
+        if len(data.shape) != 2 or data.shape[0] < 1:
+            raise ValueError("Input data must be 2D and non-empty.")
+        cat_cols = list(data.select_dtypes(include=["category"]).columns)
+        if len(cat_cols) != len(self._pandas_categorical):
+            print(cat_cols, self._pandas_categorical)
+            raise ValueError(
+                "The categorical features passed don't match the train dataset."
+            )
+        for col, category in zip(cat_cols, self._pandas_categorical):
+            # we use set_categories to get the same (category -> code) mapping that we used during train
+            if list(data[col].cat.categories) != list(category):
+                data[col] = data[col].cat.set_categories(category)
+        if len(cat_cols):  # cat_cols is list
+            data = data.copy()
+            # apply (category -> code) mapping. Categories become floats
+            data[cat_cols] = (
+                data[cat_cols].apply(lambda x: x.cat.codes).replace({-1: np.nan})
+            )
+        data = data.values
+        if data.dtype != np.float32 and data.dtype != np.float64:
+            data = data.astype(np.float64)
+        return data
+
     def _to_1d_ndarray(self, data):
         if isinstance(data, list):
             try:
-                data = np.array(data)
+                data = np.array(data, dtype=np.float64)
             except BaseException:
                 raise ValueError("Cannot convert data list to appropriate np array")
 

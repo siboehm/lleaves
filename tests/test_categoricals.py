@@ -3,6 +3,7 @@ from pathlib import Path
 import lightgbm as lgb
 import numpy as np
 import numpy.random
+import pandas as pd
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -81,10 +82,9 @@ def categorical_model_txt(tmpdir_factory, request):
 
 def test_large_categorical(tmpdir_factory):
     # test categorical var with >32 different entries
-    # will result in decision_type == 9
     f = lambda x: x % 3
     train_data_cat = np.repeat(
-        np.expand_dims(np.arange(1, 100), axis=1), repeats=40, axis=0
+        np.expand_dims(np.arange(1, 150), axis=1), repeats=40, axis=0
     )
     label = np.apply_along_axis(f, axis=1, arr=train_data_cat).flatten()
     train_data = lgb.Dataset(train_data_cat, label=label, categorical_feature=[0])
@@ -101,6 +101,82 @@ def test_large_categorical(tmpdir_factory):
     numpy.testing.assert_equal(
         llvm_model.predict(tests_data), lgbm_model.predict(tests_data)
     )
+
+
+def test_predict_pandas_categorical(tmpdir_factory):
+    f = lambda x: ord(x["C1"]) - ord(x["C2"]) ** 2 + ord(x["C3"]) ** 3 + x["A"] / 100000
+    train_df = pd.DataFrame(
+        {
+            "C1": 500 * ["a"] + 500 * ["b"] + 500 * ["c"],
+            "C2": 500 * ["b"] + 500 * ["c"] + 500 * ["d"],
+            "C3": 10 * (50 * ["x"] + 50 * ["y"] + 25 * ["z"] + 25 * ["w"]),
+            "A": 5 * (100 * [10] + 100 * [-10] + 100 * [-30]),
+        }
+    )
+    result = train_df.apply(f, axis=1)
+    train_df["C1"] = train_df["C1"].astype("category")
+    train_df["C2"] = train_df["C2"].astype("category")
+    train_df["C3"] = train_df["C3"].astype("category")
+    train_data = lgb.Dataset(train_df, label=result, categorical_feature="auto")
+    lightgbm_model = lgb.train({}, train_data, 3, categorical_feature="auto")
+    assert len(lightgbm_model.pandas_categorical) == 3
+
+    tmpdir = tmpdir_factory.mktemp("model")
+    model_path = str(tmpdir / "model.txt")
+    lightgbm_model.save_model(model_path)
+
+    llvm_model = Model(model_file=model_path)
+    lgbm_model = lgb.Booster(model_file=model_path)
+
+    df = pd.DataFrame(
+        {
+            "C1": 2 * ["a", "b", "c", "c"],
+            "C2": 2 * ["b", "c", "d", "b"],
+            "C3": 2 * ["x", "y", "z", "w"],
+            "A": [10, -10, 100, -30, -30, 10, 1, 100],
+        },
+    ).astype({"C1": "category", "C2": "category", "C3": "category"})
+    df2 = df.copy()
+    # reorder the categories to make sure the same letter will get mapped to a different code by pandas
+    df2["C1"] = df2["C1"].cat.set_categories(["c", "b", "a"])
+    df2["C2"] = df2["C2"].cat.set_categories(["a", "z", "w"])
+    assert not (list(df["C1"].cat.codes) == list(df2["C1"].cat.codes))
+    assert not (list(df["C2"].cat.codes) == list(df2["C2"].cat.codes))
+
+    df3 = pd.DataFrame(
+        {
+            "C1": 2 * ["a", "b", "c", "s"],
+            "C2": 2 * ["b", "c", "v", "b"],
+            "C3": 2 * ["x", "u", "z", "w"],
+            "A": [10, -10, 100, -30, -30, 10, 1, 100],
+        },
+    ).astype({"C1": "category", "C2": "category", "C3": "category"})
+
+    # prediction from lightgbm should still be equal
+    numpy.testing.assert_equal(lightgbm_model.predict(df), lightgbm_model.predict(df2))
+    test_data = [
+        df,
+        df2,
+        df3,
+        train_df,
+        np.array([[1, 1, 1, 10], [2, -2, 2, 10], [0, 1, 2, 10], [2, 1, 0, -10]]),
+    ]
+    for data in test_data:
+        numpy.testing.assert_equal(llvm_model.predict(data), lgbm_model.predict(data))
+
+    data = (
+        pd.DataFrame(
+            {
+                "C1": 2 * ["b", "a", "a", "a"],
+                "C2": 2 * ["d", "c", "a", "b"],
+                "C3": 2 * ["z", "w", "z", "y"],
+                "A": [10, -10, 100, -30, -30, 10, 1, 100],
+            }
+        ),
+    )
+    with pytest.raises(ValueError):
+        # no categories
+        llvm_model.predict(data)
 
 
 @given(data=st.data())

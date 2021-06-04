@@ -1,4 +1,31 @@
-def parse_model_file(file_path):
+import json
+import os
+
+
+def parse_pandas_categorical(file_path):
+    pandas_key = "pandas_categorical:"
+    offset = -len(pandas_key)
+    max_offset = -os.path.getsize(file_path)
+    # seek backwards from end of file until we have to lines
+    # the (pen)ultimate line should be pandas_categorical:XXX
+    with open(file_path, "rb") as f:
+        while True:
+            if offset < max_offset:
+                offset = max_offset
+            f.seek(offset, os.SEEK_END)
+            lines = f.readlines()
+            if len(lines) >= 2:
+                break
+            offset *= 2
+    last_line = lines[-1].decode().strip()
+    if not last_line.startswith(pandas_key):
+        last_line = lines[-2].decode().strip()
+    if last_line.startswith(pandas_key):
+        return json.loads(last_line[len(pandas_key) :])
+    raise ValueError("Ill formatted model file!")
+
+
+def parse_model_file(file_path, general_info_only=False):
     res = {"trees": []}
 
     with open(file_path, "r") as f:
@@ -15,6 +42,8 @@ def parse_model_file(file_path):
             "version="
         ), f"{file_path} is not a LightGBM model file"
         res["general_info"] = _struct_from_block(lines, INPUT_PARSED_KEYS)
+        if general_info_only:
+            return res
 
         lines = _get_next_block_of_lines(f)
         while lines:
@@ -22,9 +51,10 @@ def parse_model_file(file_path):
                 res["trees"].append(_parse_tree(lines))
             else:
                 assert lines[0] == "end of trees"
-                return res
+                break
             lines = _get_next_block_of_lines(f)
-    raise ValueError(f"Ill formatted file {file_path}")
+    res["pandas_categorical"] = parse_pandas_categorical(file_path)
+    return res
 
 
 def _parse_tree(lines):
