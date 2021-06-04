@@ -5,11 +5,11 @@ Ingests `model.txt` files from trained LightGBM Models and
 converts them into optimized machine code.
 
 ## Why LLeaves?
-- Easy of use: The interface of `lleaves.Model` is a subset of `LightGBM.Booster`.
+- Drop-in replacement for LightGBM: The interface is a subset of `LightGBM.Booster`.
 - Speed: Up to 10x performance increase compared to LightGBM.
-- Few dependencies: `llvmlite` and `numpy`. No C/C++ compiler necessary, LLVM comes statically linked.
-  
-## Why not LLeaVes?
+- Just two dependencies: `llvmlite` and `numpy`. LLVM comes statically linked.
+ 
+## Why not LLeaves?
 Some LightGBM features are not yet implemented in LLeaVes:
 - Multiclass prediction
 - Multithreading
@@ -36,9 +36,9 @@ pytest
 
 ### Tasks
 - Come up with a better name (has to be available on PyPI and conda)
-- Switch to single-precision floats instead of float64.
 - Release GIL and implement multithreading
 - Refactor `nodes.py` to split AST-traversal from IR Codegen.
 - Experiment with more efficient bitvector storage for categoricals (Int64 instead of Int32).
 - Implement final output transformation function in IR instead of numpy ufunc.
-- Parse `internal_count` from model.txt, use it for compiler branch prediction hints. (Caveat: Treelite has this and it doesn't help at all)
+- Parse `internal_count` from model.txt, use it for compiler branch prediction hints. 
+  (Caveat: Treelite has branch prediction hints and it doesn't with speed at all)
