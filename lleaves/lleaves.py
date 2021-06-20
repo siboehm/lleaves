@@ -87,6 +87,7 @@ class Model:
         # Add optimization passes to module-level optimizer
         pmb.populate(pm_module)
 
+        # single pass only, compiler optims don't help very much
         pm_module.run(module)
         self._IR_module = module
         return self._IR_module

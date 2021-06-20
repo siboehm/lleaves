@@ -56,7 +56,7 @@ class LLVMModel(BenchmarkModel):
 
 
 class LLVMModelSingle(BenchmarkModel):
-    name = "LLeaVes (ST)"
+    name = "LLeaVes (single-threaded)"
 
     def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)

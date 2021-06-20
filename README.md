@@ -12,11 +12,13 @@ converts them into optimized machine code.
 ## Why not LLeaves?
 Some LightGBM features are not yet implemented in LLeaVes:
 - Multiclass prediction
-- Multithreading
 - Linear Models
 
 ## Benchmarks
 [benchmark script](benchmarks/benchmark.py).
+Intel Xeon Haswell, 8vCPUs.
+Some of the variance is due to performance interference.
+
 Datasets used:
 - NYC-taxi: Focus on numerical features
 - Airlines: Focus on categorical features, some with high cardinality (>100)
