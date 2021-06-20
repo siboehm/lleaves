@@ -55,6 +55,17 @@ class LLVMModel(BenchmarkModel):
         self.model.compile()
 
 
+class LLVMModelSingle(BenchmarkModel):
+    name = "LLeaVes (ST)"
+
+    def _setup(self, data, n_threads):
+        self.model = Model(model_file=self.model_file)
+        self.model.compile()
+
+    def predict(self, data, index, batchsize, n_threads):
+        return self.model.predict(data[index : index + batchsize], n_jobs=1)
+
+
 class TreeliteModel(BenchmarkModel):
     name = "Treelite"
 
@@ -106,30 +117,32 @@ class ONNXModel(BenchmarkModel):
         )
 
 
-def save_plots(results_full, title, n_threads, batchsizes):
-    fig, axs = plt.subplots(ncols=2, nrows=1, sharey="row")
-    fig.set_size_inches(18.5, 10.5)
-    keys = sorted(results_full.keys())
-    for count, n_thread in enumerate(n_threads):
-        for key in keys:
-            if key.startswith(str(n_thread)):
-                seaborn.lineplot(
-                    x="batchsize",
-                    y="time (μs)",
-                    ci="sd",
-                    data=results_full[key],
-                    ax=axs[count],
-                    label=key.split("_")[1] if count == 0 else None,
-                )
-        axs[count].set(
-            xscale="log",
-            title=f"n_threads={str(n_thread).replace('0', 'not limited')}",
-            xticks=batchsizes,
-            xticklabels=batchsizes,
-            xlim=(1, None),
-        )
-    plt.yscale("log")
-    plt.savefig(f"{title}.png", bbox_inches="tight")
+def save_plots(results_full, n_threads, model_files, batchsizes):
+    for n_thread in n_threads:
+        fig, axs = plt.subplots(ncols=2, nrows=1)
+        fig.set_size_inches(18.5, 10.5)
+        keys = sorted(results_full.keys())
+        for count, model_file in enumerate(model_files):
+            model_name = model_file.split("/")[-2]
+            for key in keys:
+                if key.startswith(f"{model_name}_{n_thread}"):
+                    seaborn.lineplot(
+                        x="batchsize",
+                        y="time (μs)",
+                        ci="sd",
+                        data=results_full[key],
+                        ax=axs[count],
+                        label=key.split("_")[2] if count == 0 else None,
+                    )
+            axs[count].set(
+                xscale="log",
+                yscale="log",
+                title=model_name,
+                xticks=batchsizes,
+                xticklabels=batchsizes,
+                xlim=(1, None) if n_thread == 1 else None,
+            )
+        plt.savefig(f"{n_thread}.png", bbox_inches="tight")
 
 
 NYC_used_columns = [
@@ -143,8 +156,8 @@ NYC_used_columns = [
 ]
 
 
-def load_results(model_name):
-    datafile = Path("data") / (model_name + ".pkl")
+def load_results():
+    datafile = Path("data/results.pkl")
     res = {}
     if datafile.exists():
         with open(datafile, "rb") as file:
@@ -152,41 +165,39 @@ def load_results(model_name):
     return res
 
 
-def save_results(results, model_name):
-    datafile = Path("data") / (model_name + ".pkl")
+def save_results(results):
+    datafile = Path("data/results.pkl")
     with open(datafile, "wb") as file:
         pickle.dump(results, file)
 
 
-def run_benchmark(model_files, np_data, model_classes, threadcount, batchsizes):
+def run_benchmark(
+    model_files, np_data, model_classes, threadcount, batchsizes, n_samples=1000
+):
+    results_full = load_results()
     for model_file, data in zip(model_files, np_data):
         model_name = model_file.split("/")[-2]
         print(model_file, f"\n---- {str.upper(model_name)} --- \n")
-        results_full = load_results(model_name)
         for n_threads in threadcount:
             for model_class in model_classes:
                 model = model_class(model_file)
                 results = {"time (μs)": [], "batchsize": []}
-                results_full[f"{n_threads}_{model}"] = results
+                results_full[f"{model_name}_{n_threads}_{model}"] = results
                 model.setup(data, n_threads)
                 for batchsize in batchsizes:
                     times = []
-                    for _ in range(100):
+                    for _ in range(n_samples):
                         start = time.perf_counter_ns()
-                        for _ in range(30):
-                            for i in range(50):
-                                model.predict(data, i, batchsize, n_threads)
+                        model.predict(data, 0, batchsize, n_threads)
                         # calc per-batch times, in μs
-                        times.append(
-                            (time.perf_counter_ns() - start) / (30 * 50) / 1000
-                        )
+                        times.append((time.perf_counter_ns() - start) / 1000)
                     results["time (μs)"] += times
                     results["batchsize"] += len(times) * [batchsize]
                     print(
                         f"{model} (Batchsize {batchsize}, nthread {n_threads}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
                     )
-        save_results(results_full, model_name)
-        save_plots(results_full, model_name, threadcount, batchsizes)
+    save_results(results_full)
+    save_plots(results_full, threadcount, model_files, batchsizes)
 
 
 if __name__ == "__main__":
@@ -205,11 +216,35 @@ if __name__ == "__main__":
         model_files=[model_file_airline, model_file_NYC],
         np_data=[airline_X, NYC_X],
         model_classes=[
+            LLVMModel,
+            LLVMModelSingle,
             LGBMModel,
             TreeliteModel,
-            LLVMModel,
             ONNXModel,
         ],
-        threadcount=[1, 4],
-        batchsizes=[1, 2, 3, 5, 7, 10, 30, 70, 100, 200, 300],
+        threadcount=[4],
+        batchsizes=[
+            1000,
+            3000,
+            5000,
+            10000,
+            100000,
+            300000,
+            1000000,
+        ],
+        n_samples=100,
+    )
+
+    run_benchmark(
+        model_files=[model_file_airline, model_file_NYC],
+        np_data=[airline_X, NYC_X],
+        model_classes=[
+            LLVMModel,
+            LGBMModel,
+            TreeliteModel,
+            ONNXModel,
+        ],
+        threadcount=[1],
+        batchsizes=[1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 200, 300],
+        n_samples=20000,
     )

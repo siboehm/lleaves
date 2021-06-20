@@ -16,14 +16,15 @@ Some LightGBM features are not yet implemented in LLeaVes:
 - Linear Models
 
 ## Benchmarks
-[benchmark script](benchmarks/benchmark_small_batches.py).
-LLeaVes has no support for MT so far and is running single-threaded mode only.
-#### NYC-taxi
-Numerical features only
-![img](benchmarks/NYC_taxi.png)
-#### Airlines dataset
-Predominantly categorical features with high cardinality
-![img](benchmarks/airline.png)
+[benchmark script](benchmarks/benchmark.py).
+Datasets used:
+- NYC-taxi: Focus on numerical features
+- Airlines: Focus on categorical features, some with high cardinality (>100)
+
+#### Small batches (single-threaded)
+![img](benchmarks/1.png)
+#### Large batches (multi-threaded)
+![img](benchmarks/4.png)
 
 ## Development
 ```bash
@@ -36,10 +37,10 @@ pytest
 
 ### Tasks
 - Come up with a better name (has to be available on PyPI and conda): Waldmeister, treezero, lltc (low level tree compiler)
-- Release GIL and implement multithreading
 - Refactor `nodes.py` to split AST-traversal from IR Codegen.
 - Experiment with more efficient bitvector storage for categoricals (Int64 instead of Int32).
 - Implement final output transformation function in IR instead of numpy ufunc.
 - Add optional single-precision mode
 - Parse `internal_count` from model.txt, use it for compiler branch prediction hints. 
   (Caveat: Treelite has branch prediction hints and it doesn't help with speed at all)
+- Introduce Cython runtime module? Faster output functions, lower latency multithreading. More effort for packaging.

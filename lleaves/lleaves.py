@@ -133,6 +133,7 @@ class Model:
         # construct entry func
         addr = exec_engine.get_function_address("forest_root")
         # CFUNCTYPE params: void return, pointer to data, pointer to results arr, start_idx, end_idx
+        # Drops GIL during call, re-aquires it after
         self._c_entry_func = CFUNCTYPE(
             None, POINTER(c_double), POINTER(c_double), c_int, c_int
         )(addr)
