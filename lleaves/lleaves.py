@@ -1,3 +1,4 @@
+import concurrent.futures
 from ctypes import CFUNCTYPE, POINTER, c_double, c_int
 from pathlib import Path
 
@@ -131,12 +132,12 @@ class Model:
 
         # construct entry func
         addr = exec_engine.get_function_address("forest_root")
-        # CFUNCTYPE params: void return, pointer to data, n_preds, pointer to results arr
+        # CFUNCTYPE params: void return, pointer to data, pointer to results arr, start_idx, end_idx
         self._c_entry_func = CFUNCTYPE(
-            None, POINTER(c_double), c_int, POINTER(c_double)
+            None, POINTER(c_double), POINTER(c_double), c_int, c_int
         )(addr)
 
-    def predict(self, data):
+    def predict(self, data, n_jobs=4):
         """
         Return predictions for the given data
 
@@ -154,7 +155,19 @@ class Model:
 
         preds = np.zeros(n_preds, dtype=np.float64)
         ptr_preds = preds.ctypes.data_as(POINTER(c_double))
-        self._c_entry_func(ptr_data, n_preds, ptr_preds)
+        if n_jobs > 1:
+            batchsize = n_preds // n_jobs + (n_preds % n_jobs > 0)
+
+            def f(start_idx):
+                self._c_entry_func(
+                    ptr_data, ptr_preds, start_idx, min(start_idx + batchsize, n_preds)
+                )
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=n_jobs) as executor:
+                for i in range(0, n_preds, batchsize):
+                    executor.submit(f, i)
+        else:
+            self._c_entry_func(ptr_data, ptr_preds, 0, n_preds)
         return self.objective_transf(preds)
 
     def _data_from_pandas(self, data):

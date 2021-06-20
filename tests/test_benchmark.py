@@ -30,5 +30,5 @@ def test_benchmark_datsets_correct_output():
         lgb = lightgbm.Booster(model_file=model_file)
         llvm = lleaves.Model(model_file=model_file)
         np.testing.assert_almost_equal(
-            lgb.predict(data), llvm.predict(data), decimal=15
+            lgb.predict(data, n_jobs=4), llvm.predict(data, n_jobs=4), decimal=15
         )

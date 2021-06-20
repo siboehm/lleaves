@@ -34,7 +34,7 @@ class BenchmarkModel:
         raise NotImplementedError()
 
     def predict(self, data, index, batchsize, n_threads):
-        return self.model.predict(data[index : index + batchsize])
+        return self.model.predict(data[index : index + batchsize], n_jobs=n_threads)
 
     def __str__(self):
         return self.name
@@ -45,9 +45,6 @@ class LGBMModel(BenchmarkModel):
 
     def _setup(self, data, n_threads):
         self.model = lightgbm.Booster(model_file=self.model_file)
-
-    def predict(self, data, index, batchsize, n_threads):
-        return self.model.predict(data[index : index + batchsize], n_jobs=n_threads)
 
 
 class LLVMModel(BenchmarkModel):
@@ -63,7 +60,12 @@ class TreeliteModel(BenchmarkModel):
 
     def _setup(self, data, n_threads):
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
-        treelite_model.export_lib(toolchain="gcc", libpath="/tmp/treelite_model.so")
+        treelite_model.export_lib(
+            toolchain="gcc",
+            libpath="/tmp/treelite_model.so",
+            params={"parallel_comp": 4},
+            verbose=False,
+        )
         self.model = treelite_runtime.Predictor(
             "/tmp/treelite_model.so",
             nthread=n_threads,

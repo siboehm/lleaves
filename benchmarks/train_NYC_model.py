@@ -7,9 +7,7 @@
 import lightgbm
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
 from sklearn.compose import make_column_transformer
-from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import FunctionTransformer
 
 

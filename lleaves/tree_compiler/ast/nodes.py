@@ -40,24 +40,24 @@ class Forest:
         # entry function called from Python via CFUNC
         root_func = ir.Function(
             module,
-            ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, INT, DOUBLE_PTR)),
+            ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, DOUBLE_PTR, INT, INT)),
             name="forest_root",
         )
 
-        data_arr, n_pred, out_arr = root_func.args
+        data_arr, out_arr, start_index, end_index = root_func.args
 
         # -- SETUP BLOCK
         setup_block = root_func.append_basic_block("setup")
         builder = ir.IRBuilder(setup_block)
         loop_iter = builder.alloca(INT, 1, "loop-idx")
-        builder.store(ir.Constant(INT, 0), loop_iter)
+        builder.store(start_index, loop_iter)
         condition_block = root_func.append_basic_block("loop-condition")
         builder.branch(condition_block)
         # -- END SETUP BLOCK
 
         # -- CONDITION BLOCK
         builder = ir.IRBuilder(condition_block)
-        comp = builder.icmp_signed("<", builder.load(loop_iter), n_pred)
+        comp = builder.icmp_signed("<", builder.load(loop_iter), end_index)
         core_block = root_func.append_basic_block("loop-core")
         term_block = root_func.append_basic_block("term")
         builder.cbranch(comp, core_block, term_block)
