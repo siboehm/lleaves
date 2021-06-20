@@ -1,12 +1,9 @@
-import pathlib
-
 import lightgbm as lgb
 import numpy as np
 import numpy.testing as npt
 import pytest
 
 import lleaves
-from lleaves.tree_compiler.utils import MissingType
 
 
 # 2: MissingType None, default left

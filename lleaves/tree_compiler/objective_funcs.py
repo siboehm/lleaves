@@ -22,16 +22,28 @@ def get_objective_func(obj):
     elif obj[0] in ("xentropy", "cross_entropy"):
         f = _get_sigmoid(1.0)
     elif obj[0] in ("xentlambda", "cross_entropy_lambda"):
-        f = lambda x: np.log1p(np.exp(x))
+
+        def f(x):
+            return np.log1p(np.exp(x))
+
     elif obj[0] in ("poisson", "gamma", "tweedie"):
         f = np.exp
     elif obj[0] in ("regression", "regression_l1", "huber", "fair", "quantile", "mape"):
         if "sqrt" in obj[1:]:
-            f = lambda x: np.copysign(np.square(x), x)
+
+            def f(x):
+                return np.copysign(np.square(x), x)
+
         else:
-            f = lambda x: x
+
+            def f(x):
+                return x
+
     elif obj[0] in ("lambdarank", "rank_xendcg", "custom"):
-        f = lambda x: x
+
+        def f(x):
+            return x
+
     else:
         raise ValueError(f"Objective '{obj[0]}' not yet implemented. {ISSUE_ERROR_MSG}")
     return f

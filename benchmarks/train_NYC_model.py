@@ -1,5 +1,5 @@
-# this code is stolen from https://github.com/xhochy/nyc-taxi-fare-prediction-deployment-example
-# first, download the data from https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+# code stolen from https://github.com/xhochy/nyc-taxi-fare-prediction-deployment-example
+# download the data from https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page
 # use the pandas code snippet from here
 # https://github.com/xhochy/nyc-taxi-fare-prediction-deployment-example/blob/main/training/Train.ipynb
 # to convert the CSV to parquet

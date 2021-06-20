@@ -5,7 +5,7 @@ import numpy as np
 import numpy.random
 import pandas as pd
 import pytest
-from hypothesis import given, settings
+from hypothesis import given
 from hypothesis import strategies as st
 
 from lleaves import Model
@@ -82,7 +82,9 @@ def categorical_model_txt(tmpdir_factory, request):
 
 def test_large_categorical(tmpdir_factory):
     # test categorical var with >32 different entries
-    f = lambda x: x % 3
+    def f(x):
+        return x % 3
+
     train_data_cat = np.repeat(
         np.expand_dims(np.arange(1, 150), axis=1), repeats=40, axis=0
     )
@@ -104,7 +106,10 @@ def test_large_categorical(tmpdir_factory):
 
 
 def test_predict_pandas_categorical(tmpdir_factory):
-    f = lambda x: ord(x["C1"]) - ord(x["C2"]) ** 2 + ord(x["C3"]) ** 3 + x["A"] / 100000
+    def f(x):
+        t = ord(x["C1"]) - ord(x["C2"]) ** 2 + ord(x["C3"]) ** 3 + x["A"]
+        return t / 100000
+
     train_df = pd.DataFrame(
         {
             "C1": 500 * ["a"] + 500 * ["b"] + 500 * ["c"],
@@ -137,7 +142,7 @@ def test_predict_pandas_categorical(tmpdir_factory):
         },
     ).astype({"C1": "category", "C2": "category", "C3": "category"})
     df2 = df.copy()
-    # reorder the categories to make sure the same letter will get mapped to a different code by pandas
+    # reorder categories to ensure that same letter now maps to a different pandas code
     df2["C1"] = df2["C1"].cat.set_categories(["c", "b", "a"])
     df2["C2"] = df2["C2"].cat.set_categories(["a", "z", "w"])
     assert not (list(df["C1"].cat.codes) == list(df2["C1"].cat.codes))
