@@ -2,7 +2,7 @@ import json
 import os
 
 
-def parse_pandas_categorical(file_path):
+def scan_pandas_categorical(file_path):
     pandas_key = "pandas_categorical:"
     offset = -len(pandas_key)
     max_offset = -os.path.getsize(file_path)
@@ -25,7 +25,7 @@ def parse_pandas_categorical(file_path):
     raise ValueError("Ill formatted model file!")
 
 
-def parse_model_file(file_path, general_info_only=False):
+def scan_model_file(file_path, general_info_only=False):
     res = {"trees": []}
 
     with open(file_path, "r") as f:
@@ -41,24 +41,24 @@ def parse_model_file(file_path, general_info_only=False):
         assert lines[0] == "tree" and lines[1].startswith(
             "version="
         ), f"{file_path} is not a LightGBM model file"
-        res["general_info"] = _struct_from_block(lines, INPUT_PARSED_KEYS)
+        res["general_info"] = _struct_from_block(lines, INPUT_SCAN_KEYS)
         if general_info_only:
             return res
 
         lines = _get_next_block_of_lines(f)
         while lines:
             if lines[0].startswith("Tree="):
-                res["trees"].append(_parse_tree(lines))
+                res["trees"].append(_scan_tree(lines))
             else:
                 assert lines[0] == "end of trees"
                 break
             lines = _get_next_block_of_lines(f)
-    res["pandas_categorical"] = parse_pandas_categorical(file_path)
+    res["pandas_categorical"] = scan_pandas_categorical(file_path)
     return res
 
 
-def _parse_tree(lines):
-    struct = _struct_from_block(lines, TREE_PARSED_KEYS)
+def _scan_tree(lines):
+    struct = _struct_from_block(lines, TREE_SCAN_KEYS)
     return struct
 
 
@@ -80,39 +80,39 @@ def cat_args_bitmap(arr):
     return [not val.startswith("[") for val in arr]
 
 
-class ParsedValue:
+class ScannedValue:
     def __init__(self, type: type, is_list=False, null_ok=False):
         self.type = type
         self.is_list = is_list
         self.null_ok = null_ok
 
 
-INPUT_PARSED_KEYS = {
-    "max_feature_idx": ParsedValue(int),
-    "version": ParsedValue(str),
-    "feature_infos": ParsedValue(str, True),
-    "objective": ParsedValue(str, True),
+INPUT_SCAN_KEYS = {
+    "max_feature_idx": ScannedValue(int),
+    "version": ScannedValue(str),
+    "feature_infos": ScannedValue(str, True),
+    "objective": ScannedValue(str, True),
 }
-TREE_PARSED_KEYS = {
-    "Tree": ParsedValue(int),
-    "num_leaves": ParsedValue(int),
-    "num_cat": ParsedValue(int),
-    "split_feature": ParsedValue(int, True),
-    "threshold": ParsedValue(float, True),
-    "decision_type": ParsedValue(int, True),
-    "left_child": ParsedValue(int, True),
-    "right_child": ParsedValue(int, True),
-    "leaf_value": ParsedValue(float, True),
-    "cat_threshold": ParsedValue(int, True, True),
-    "cat_boundaries": ParsedValue(int, True, True),
+TREE_SCAN_KEYS = {
+    "Tree": ScannedValue(int),
+    "num_leaves": ScannedValue(int),
+    "num_cat": ScannedValue(int),
+    "split_feature": ScannedValue(int, True),
+    "threshold": ScannedValue(float, True),
+    "decision_type": ScannedValue(int, True),
+    "left_child": ScannedValue(int, True),
+    "right_child": ScannedValue(int, True),
+    "leaf_value": ScannedValue(float, True),
+    "cat_threshold": ScannedValue(int, True, True),
+    "cat_boundaries": ScannedValue(int, True, True),
 }
 
 
-def _struct_from_block(lines: list, keys_to_parse: dict):
+def _struct_from_block(lines: list, keys_to_scan: dict):
     """
-    Parses a block (= list of lines) into a key: value struct
+    Scans a block (= list of lines), produces a key: value struct
     @param lines: list of lines in the block
-    @param keys_to_parse: dict with 'key': 'type of value' of keys to parse
+    @param keys_to_scan: dict with 'key': 'type of value' of keys to scan for
     """
     struct = {}
     for line in lines:
@@ -121,8 +121,8 @@ def _struct_from_block(lines: list, keys_to_parse: dict):
             continue
 
         key, value = line.split("=")
-        if key in keys_to_parse.keys():
-            value_type = keys_to_parse[key]
+        if key in keys_to_scan.keys():
+            value_type = keys_to_scan[key]
             if value_type.is_list:
                 if value:
                     parsed_value = [value_type.type(x) for x in value.split(" ")]
@@ -132,9 +132,9 @@ def _struct_from_block(lines: list, keys_to_parse: dict):
                 parsed_value = value_type.type(value)
             struct[key] = parsed_value
 
-    missing_keys = keys_to_parse.keys() - struct.keys()
+    missing_keys = keys_to_scan.keys() - struct.keys()
     for key in missing_keys:
-        value = keys_to_parse[key]
+        value = keys_to_scan[key]
         assert value.null_ok, f"Non-nullable key {key} wasn't found"
         struct[key] = None
     return struct

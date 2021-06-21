@@ -1,7 +1,7 @@
 name: lleaves
 channels:
   - conda-forge
-  - defaults
+  - nodefaults
 dependencies:
   # runtime deps
   - llvmlite
@@ -15,6 +15,7 @@ dependencies:
   - pandas
   # benchmarking
   - treelite
+  # onnxmltools currently broken for categorical models, install from master
   # - onnxmltools
   - onnxruntime
   - seaborn

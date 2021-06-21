@@ -39,7 +39,6 @@ pytest
 
 ### Tasks
 - Come up with a better name (has to be available on PyPI and conda): Waldmeister, treezero, lltc (low level tree compiler)
-- Refactor `nodes.py` to split AST-traversal from IR Codegen.
 - Experiment with more efficient bitvector storage for categoricals (Int64 instead of Int32).
 - Implement final output transformation function in IR instead of numpy ufunc.
 - Add optional single-precision mode

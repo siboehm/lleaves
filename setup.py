@@ -6,7 +6,7 @@ with open("README.md") as f:
 setup(
     name="lleaves",
     version="0.0.1",
-    packages=["lleaves", "lleaves.tree_compiler"],
+    packages=["lleaves", "lleaves.compiler"],
     url="https://github.com/siboehm/LLeaVes",
     license="MIT",
     classifiers=[

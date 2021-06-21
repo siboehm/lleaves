@@ -76,3 +76,15 @@ An example from the *model.txt* of the airlines model::
     cat_boundaries=0 1 2 10 19 27 36 45 54 63 70 79 84 93 94 102 110 118 126 135 136 142 151 160 165
 
 The bitvectors of the first three categorical nodes are <1 x i32>, <1 x i32> and <8 x i32> long.
+
+Software Architecture Overview
+------------------------------
+
+1. ``lleaves.py``: Provides the main class (`Model`) with the predict interface. Also handles
+   the `engine` (LLVM execution environment) in a centralized way. The final compile step (LLVM IR
+   ⇒ ASM) is performed here.
+2. ``compiler``: this model ingests a `model.txt` and returns the optimized LLVM IR module
+
+   1. ``ast``: Scans the `model.txt`, parses the content to an abstract-syntax tree.
+   2. ``codegen``: Takes the AST, optimizes it and emits LLVM IR.
+   3. ``tree_compiler.py``: Calls the other modules, runs compiler optimization passes.

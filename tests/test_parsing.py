@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from lleaves.tree_compiler.ast.parser import parse_model_file, parse_pandas_categorical
+from lleaves.compiler.ast.scanner import scan_model_file, scan_pandas_categorical
 
 
 def test_parser():
     model_file = "tests/models/boston_housing/model.txt"
-    result = parse_model_file(model_file)
+    result = scan_model_file(model_file)
     assert result["general_info"]["max_feature_idx"] == 12
     assert result["pandas_categorical"] is None
     assert len(result["trees"]) == 100
@@ -37,7 +37,7 @@ def test_parser():
     assert tree_95["num_leaves"] == 21
 
     model_file = "tests/models/tiniest_single_tree/model.txt"
-    result = parse_model_file(model_file)
+    result = scan_model_file(model_file)
     assert len(result["trees"]) == 1
     tree_0 = result["trees"][0]
     assert tree_0["num_leaves"] == 4
@@ -57,9 +57,9 @@ def test_parsing_pandas(tmp_path):
     with open(mod_model_file, "x") as file:
         file.writelines(lines)
 
-    pandas_categorical = parse_pandas_categorical(model_file)
+    pandas_categorical = scan_pandas_categorical(model_file)
     assert pandas_categorical is None
-    pandas_categorical = parse_pandas_categorical(mod_model_file)
+    pandas_categorical = scan_pandas_categorical(mod_model_file)
     assert pandas_categorical == [
         ["a", "b", "c"],
         ["b", "c", "d"],

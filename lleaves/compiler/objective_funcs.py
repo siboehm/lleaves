@@ -1,6 +1,6 @@
 import numpy as np
 
-from lleaves.tree_compiler.utils import ISSUE_ERROR_MSG
+from lleaves.compiler.utils import ISSUE_ERROR_MSG
 
 
 def _get_sigmoid(alpha):

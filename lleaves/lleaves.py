@@ -5,9 +5,9 @@ from pathlib import Path
 import llvmlite.binding as llvm
 import numpy as np
 
-from lleaves.tree_compiler import ir_from_model_file
-from lleaves.tree_compiler.ast import parser
-from lleaves.tree_compiler.objective_funcs import get_objective_func
+from lleaves import compiler
+from lleaves.compiler.ast import scanner
+from lleaves.compiler.objective_funcs import get_objective_func
 
 try:
     from pandas import DataFrame as pd_DataFrame
@@ -23,20 +23,18 @@ class Model:
     # machine-targeted compiler & exec engine
     _execution_engine = None
 
-    # IR representation of model, as it comes unoptimized from the frontend
-    _IR_module_frontend: llvm.ir.Module = None
-    # IR Module, optimized by llvmlite
+    # LLVM IR Module
     _IR_module: llvm.ModuleRef = None
 
-    # prediction function
+    # prediction function, drops GIL on entry
     _c_entry_func = None
 
     def __init__(self, model_file=None):
         self.model_file = model_file
 
-        parsed_model = parser.parse_model_file(model_file, general_info_only=True)
-        self._general_info = parsed_model["general_info"]
-        self._pandas_categorical = parser.parse_pandas_categorical(model_file)
+        scanned_model = scanner.scan_model_file(model_file, general_info_only=True)
+        self._general_info = scanned_model["general_info"]
+        self._pandas_categorical = scanner.scan_pandas_categorical(model_file)
 
         # objective function is implemented as an np.ufunc.
         self.objective_transf = get_objective_func(self._general_info["objective"])
@@ -45,14 +43,9 @@ class Model:
         """number of features"""
         return self._general_info["max_feature_idx"] + 1
 
-    def _get_ir_from_frontend(self):
-        if not self._IR_module_frontend:
-            self._IR_module_frontend = ir_from_model_file(self.model_file)
-        return self._IR_module_frontend
-
     def _get_execution_engine(self):
         """
-        Create an ExecutionEngine suitable for JIT code generation on
+        Create an empty ExecutionEngine suitable for JIT code generation on
         the host CPU. The engine is reusable for an arbitrary number of
         modules.
         """
@@ -71,25 +64,10 @@ class Model:
         self._execution_engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
         return self._execution_engine
 
-    def _get_optimized_module(self):
+    def _get_llvm_module(self):
         if self._IR_module:
             return self._IR_module
-
-        # Create a LLVM module object from the IR
-        module = llvm.parse_assembly(str(self._get_ir_from_frontend()))
-        module.verify()
-
-        # Create optimizer
-        pmb = llvm.PassManagerBuilder()
-        pmb.opt_level = 3
-        pmb.inlining_threshold = 30
-        pm_module = llvm.ModulePassManager()
-        # Add optimization passes to module-level optimizer
-        pmb.populate(pm_module)
-
-        # single pass only, compiler optims don't help very much
-        pm_module.run(module)
-        self._IR_module = module
+        self._IR_module = compiler.compile_to_module(self.model_file)
         return self._IR_module
 
     def save_model_ir(self, filepath):
@@ -102,7 +80,7 @@ class Model:
 
         :param filepath: file to save to
         """
-        Path(filepath).write_text(str(self._get_optimized_module()))
+        Path(filepath).write_text(str(self._get_llvm_module()))
 
     def load_model_ir(self, filepath):
         """
@@ -119,15 +97,15 @@ class Model:
     def compile(self):
         """
         Generate the LLVM IR for this model and compile it to ASM
-        This function can be called multiple time, but will only compile once.
+        This function can be called multiple times, but will only compile once.
         """
         if self._c_entry_func:
             return
 
         # add module and make sure it is ready for execution
         exec_engine = self._get_execution_engine()
-        exec_engine.add_module(self._get_optimized_module())
-        # run codegen
+        exec_engine.add_module(self._get_llvm_module())
+        # run asm codegen
         exec_engine.finalize_object()
         exec_engine.run_static_constructors()
 
