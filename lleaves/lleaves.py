@@ -20,7 +20,7 @@ except ImportError:
 
 
 class Model:
-    # machine-targeted compiler & exec engine
+    # machine-targeted compiler & exec engine.
     _execution_engine = None
 
     # LLVM IR Module
@@ -31,6 +31,7 @@ class Model:
 
     def __init__(self, model_file=None):
         self.model_file = model_file
+        self.is_compiled = False
 
         scanned_model = scanner.scan_model_file(model_file, general_info_only=True)
         self._general_info = scanned_model["general_info"]
@@ -70,52 +71,61 @@ class Model:
         self._IR_module = compiler.compile_to_module(self.model_file)
         return self._IR_module
 
-    def save_model_ir(self, filepath):
-        """
-        Save the optimized LLVM IR to filepath.
-
-        This will be optimized specifically to the target machine.
-        You should store this together with the model.txt, as certain model features (like the output function)
-        are not stored inside the IR.
-
-        :param filepath: file to save to
-        """
-        Path(filepath).write_text(str(self._get_llvm_module()))
-
-    def load_model_ir(self, filepath):
-        """
-        Restore saved LLVM IR.
-        Instead of compiling & optimizing the model.txt, the loaded model ir will be used, which saves
-        compilation time.
-
-        :param filepath: file to load from
-        """
-        ir = Path(filepath).read_text()
-        module = llvm.parse_assembly(ir)
-        self._IR_module = module
-
-    def compile(self):
+    def compile(self, cache=None):
         """
         Generate the LLVM IR for this model and compile it to ASM
         This function can be called multiple times, but will only compile once.
+
+        :param cache: Path to a cache file. If path doesn't exist, binary will be dumped at path after compilation
+                      If path exists, binary will be loaded and compilation skipped.
+                      The precise workings of the cache parameter will be subject to future changes.
         """
-        if self._c_entry_func:
+        if self.is_compiled:
             return
 
-        # add module and make sure it is ready for execution
-        exec_engine = self._get_execution_engine()
-        exec_engine.add_module(self._get_llvm_module())
-        # run asm codegen
-        exec_engine.finalize_object()
-        exec_engine.run_static_constructors()
+        llvm.initialize()
+        llvm.initialize_native_target()
+        llvm.initialize_native_asmprinter()
+
+        # Create a target machine representing the host
+        target = llvm.Target.from_default_triple()
+        target_machine = target.create_target_machine()
+
+        if cache is None or not Path(cache).exists():
+            # Compile to LLVM IR
+            module = self._get_llvm_module()
+        else:
+            # when loading binary from cache we use a dummy empty module
+            module = llvm.parse_assembly("")
+
+        # Create execution engine for our module
+        self._execution_engine = llvm.create_mcjit_compiler(module, target_machine)
+
+        def save_to_cache(module, buffer):
+            if cache and not Path(cache).exists():
+                with open(cache, "wb") as file:
+                    file.write(buffer)
+
+        def load_from_cache(buffer):
+            if cache and Path(cache).exists():
+                return Path(cache).read_bytes()
+
+        self._execution_engine.set_object_cache(
+            notify_func=save_to_cache, getbuffer_func=load_from_cache
+        )
+
+        # compile IR to ASM
+        self._execution_engine.finalize_object()
+        self._execution_engine.run_static_constructors()
 
         # construct entry func
-        addr = exec_engine.get_function_address("forest_root")
+        addr = self._execution_engine.get_function_address("forest_root")
         # CFUNCTYPE params: void return, pointer to data, pointer to results arr, start_idx, end_idx
         # Drops GIL during call, re-aquires it after
         self._c_entry_func = CFUNCTYPE(
             None, POINTER(c_double), POINTER(c_double), c_int, c_int
         )(addr)
+        self.is_compiled = True
 
     def predict(self, data, n_jobs=4):
         """
@@ -126,7 +136,10 @@ class Model:
         :param data: Pandas df, numpy 2D array or Python list
         :return: 1D numpy array, dtype float64
         """
-        self.compile()
+        if not self.is_compiled:
+            raise RuntimeError(
+                "Model needs to be compiled before prediction. Run model.compile()."
+            )
 
         if isinstance(data, pd_DataFrame):
             data = self._data_from_pandas(data)

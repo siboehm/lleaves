@@ -98,6 +98,7 @@ def test_large_categorical(tmpdir_factory):
     assert "decision_type=9 9 9" in Path(model_path).read_text()
 
     llvm_model = Model(model_file=model_path)
+    llvm_model.compile()
     lgbm_model = lgb.Booster(model_file=model_path)
     tests_data = np.expand_dims(np.arange(0, 210), axis=1)
     numpy.testing.assert_equal(
@@ -131,6 +132,7 @@ def test_predict_pandas_categorical(tmpdir_factory):
     lightgbm_model.save_model(model_path)
 
     llvm_model = Model(model_file=model_path)
+    llvm_model.compile()
     lgbm_model = lgb.Booster(model_file=model_path)
 
     df = pd.DataFrame(
@@ -188,6 +190,7 @@ def test_predict_pandas_categorical(tmpdir_factory):
 def test_categorical_prediction_llvm_real(data, categorical_model_txt):
     lgbm_model = lgb.Booster(model_file=str(categorical_model_txt))
     llvm_model = Model(model_file=categorical_model_txt)
+    llvm_model.compile()
 
     input = data.draw(
         st.lists(
@@ -201,6 +204,7 @@ def test_categorical_prediction_llvm_real(data, categorical_model_txt):
 
 def test_pure_categorical_prediction():
     llvm_model = Model("tests/models/pure_categorical/model.txt")
+    llvm_model.compile()
     lgbm_model = lgb.Booster(model_file="tests/models/pure_categorical/model.txt")
 
     results = [12.616231057968633, 10.048276920678525, 9.2489478721549396]

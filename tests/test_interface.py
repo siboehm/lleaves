@@ -8,6 +8,7 @@ import lleaves
 def test_interface(tmp_path):
     lgbm = lgb.Booster(model_file="tests/models/tiniest_single_tree/model.txt")
     llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
+    llvm.compile()
 
     for arr in [np.array([1.0, 1.0, 1.0]), [1.0, 1.0, 1.0]]:
         with pytest.raises(ValueError) as err1:
@@ -29,6 +30,7 @@ def test_interface(tmp_path):
 def test_input_dtypes(model_file, n_args):
     lgbm = lgb.Booster(model_file=model_file)
     llvm = lleaves.Model(model_file)
+    llvm.compile()
 
     arr = np.array([[1.0, 1.0, 1.0]], dtype=np.float32)
     assert llvm.predict(arr) == lgbm.predict(arr)
@@ -40,14 +42,16 @@ def test_input_dtypes(model_file, n_args):
     assert llvm.predict(arr) == lgbm.predict(arr)
 
 
-def test_store_load_model(tmp_path):
-    llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
-    llvm.compile()
+def test_cache_model(tmp_path):
+    cachefp = tmp_path / "model.bin"
+    llvm = lleaves.Model("tests/models/NYC_taxi/model.txt")
+    assert not cachefp.exists()
+    llvm.compile(cache=cachefp)
+    assert cachefp.exists()
     res = llvm.predict([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
-    llvm.save_model_ir(tmp_path / "model.ll")
 
-    llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
-    llvm.load_model_ir(tmp_path / "model.ll")
+    llvm = lleaves.Model("tests/models/NYC_taxi/model.txt")
+    llvm.compile(cache=cachefp)
     np.testing.assert_equal(
         res, llvm.predict([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
     )

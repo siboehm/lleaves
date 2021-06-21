@@ -29,8 +29,10 @@ CAT_BITVEC_CATEGORICAL = [
 @pytest.fixture(scope="session", params=MODEL_DIRS_NUMERICAL)
 def llvm_lgbm_model(request):
     path = request.param
+    llvm = lleaves.Model(model_file=path + "model.txt")
+    llvm.compile()
     return (
-        lleaves.Model(model_file=path + "model.txt"),
+        llvm,
         lightgbm.Booster(model_file=path + "model.txt"),
     )
 
@@ -40,8 +42,11 @@ def llvm_lgbm_model(request):
 )
 def llvm_lgbm_model_cat(request):
     path, bitvec = request.param
+
+    llvm = lleaves.Model(model_file=path + "model.txt")
+    llvm.compile()
     return (
-        lleaves.Model(model_file=path + "model.txt"),
+        llvm,
         lightgbm.Booster(model_file=path + "model.txt"),
         bitvec,
     )

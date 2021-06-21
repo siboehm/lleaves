@@ -43,6 +43,7 @@ def test_zero_as_missing_numerical(tmp_path, decision_type, threshold_le_zero):
 
     lgbm_model = lgb.Booster(model_file=str(model_txt))
     llvm_model = lleaves.Model(model_file=str(model_txt))
+    llvm_model.compile()
 
     nan = float("NaN")
     data = [
@@ -95,6 +96,7 @@ def test_zero_as_missing_categorical(tmp_path, decision_type, zero_in_bitvec):
 
     lgbm_model = lgb.Booster(model_file=str(model_txt))
     llvm_model = lleaves.Model(model_file=str(model_txt))
+    llvm_model.compile()
 
     nan = float("NaN")
     data = [
@@ -131,6 +133,7 @@ def test_lightgbm_nan_pred_inconsistency(tmp_path):
     # just to make sure it's not due to LightGBM model export
     lgbm_model = lgb.Booster(model_file=model_file)
     llvm_model = lleaves.Model(model_file=model_file)
+    llvm_model.compile()
 
     data = np.array([[np.NaN], [0.0], [-0.1], [0.1], [10.0], [np.Inf], [-np.NaN]])
     npt.assert_equal(lgbm_model.predict(data), llvm_model.predict(data))
@@ -139,6 +142,7 @@ def test_lightgbm_nan_pred_inconsistency(tmp_path):
 def test_nan_prediction_numerical():
     model_path = "tests/models/tiniest_single_tree/model.txt"
     llvm_model = lleaves.Model(model_file=model_path)
+    llvm_model.compile()
     lgbm_model = lgb.Booster(model_file=model_path)
 
     nan = float("NaN")
@@ -162,6 +166,7 @@ def test_nan_prediction_numerical():
 def test_nan_prediction_categorical():
     model_path = "tests/models/pure_categorical/model.txt"
     llvm_model = lleaves.Model(model_file=model_path)
+    llvm_model.compile()
     lgbm_model = lgb.Booster(model_file=model_path)
 
     nan = float("NaN")

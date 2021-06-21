@@ -37,6 +37,7 @@ def modified_model_txt(request, tmp_path):
 def test_all_obj_funcs(modified_model_txt):
     data = np.expand_dims(np.arange(-5, 5, 0.20), axis=1)
     llvm_model = Model(model_file=modified_model_txt)
+    llvm_model.compile()
     lgbm_model = lgb.Booster(model_file=modified_model_txt)
     np.testing.assert_almost_equal(lgbm_model.predict(data), llvm_model.predict(data))
 
@@ -54,4 +55,5 @@ def test_basic(tmp_path, objective):
     reg_model_f = str(tmp_path / f"{objective}.txt")
     bst.save_model(reg_model_f)
     llvm_model = Model(model_file=reg_model_f)
+    llvm_model.compile()
     np.testing.assert_almost_equal(bst.predict(X), llvm_model.predict(X))

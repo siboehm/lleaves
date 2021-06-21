@@ -29,6 +29,7 @@ def test_benchmark_datsets_correct_output():
     for model_file, data in [(model_file_NYC, NYC_X), (model_file_airline, airline_X)]:
         lgb = lightgbm.Booster(model_file=model_file)
         llvm = lleaves.Model(model_file=model_file)
+        llvm.compile()
         np.testing.assert_almost_equal(
             lgb.predict(data, n_jobs=4), llvm.predict(data, n_jobs=4), decimal=15
         )
