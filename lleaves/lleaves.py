@@ -78,6 +78,7 @@ class Model:
 
         :param cache: Path to a cache file. If path doesn't exist, binary will be dumped at path after compilation
                       If path exists, binary will be loaded and compilation skipped.
+                      No effort is made to check staleness / consistency.
                       The precise workings of the cache parameter will be subject to future changes.
         """
         if self.is_compiled:
@@ -101,12 +102,14 @@ class Model:
         # Create execution engine for our module
         self._execution_engine = llvm.create_mcjit_compiler(module, target_machine)
 
+        # when caching we dump the executable once the module finished compiling
         def save_to_cache(module, buffer):
             if cache and not Path(cache).exists():
                 with open(cache, "wb") as file:
                     file.write(buffer)
 
-        def load_from_cache(buffer):
+        # when caching load the executable if it exists
+        def load_from_cache(module):
             if cache and Path(cache).exists():
                 return Path(cache).read_bytes()
 

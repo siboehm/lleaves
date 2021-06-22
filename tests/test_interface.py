@@ -48,10 +48,12 @@ def test_cache_model(tmp_path):
     assert not cachefp.exists()
     llvm.compile(cache=cachefp)
     assert cachefp.exists()
-    res = llvm.predict([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
+    # we compiled model.txt to IR to asm
+    assert llvm._IR_module is not None
+    res = llvm.predict([5 * [0.0], 5 * [1.0], 5 * [-1.0]])
 
     llvm = lleaves.Model("tests/models/NYC_taxi/model.txt")
     llvm.compile(cache=cachefp)
-    np.testing.assert_equal(
-        res, llvm.predict([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [-1.0, -1.0, -1.0]])
-    )
+    # we never compiled model.txt to IR
+    assert llvm._IR_module is None
+    np.testing.assert_equal(res, llvm.predict([5 * [0.0], 5 * [1.0], 5 * [-1.0]]))

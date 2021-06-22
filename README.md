@@ -5,12 +5,11 @@ Ingests `model.txt` files from trained LightGBM Models and
 converts them into optimized machine code.
 
 ## Why LLeaves?
-- Drop-in replacement for LightGBM: The interface is a subset of `LightGBM.Booster`.
+- Drop-in replacement for LightGBM inference: The interface is a subset of `LightGBM.Booster`.
 - Speed: Up to 10x performance increase compared to LightGBM.
 - Just two dependencies: `llvmlite` and `numpy`. LLVM comes statically linked.
  
-## Why not LLeaves?
-Some LightGBM features are not yet implemented in LLeaVes:
+A few LightGBM features are not yet implemented:
 - Multiclass prediction
 - Linear Models
 
