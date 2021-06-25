@@ -117,22 +117,38 @@ class ONNXModel(BenchmarkModel):
         )
 
 
+def get_color(libname):
+    libkey = libname.lower()
+    d = {
+        "lleaves": "red",
+        "lightgbm": "sandybrown",
+        "treelite": "mediumseagreen",
+        "onnx": "cornflowerblue",
+    }
+    for key, value in d.items():
+        if key in libkey:
+            return value
+
+
 def save_plots(results_full, n_threads, model_files, batchsizes):
     for n_thread in n_threads:
         fig, axs = plt.subplots(ncols=2, nrows=1)
-        fig.set_size_inches(18.5, 10.5)
+        fig.set_size_inches(16, 9)
         keys = sorted(results_full.keys())
         for count, model_file in enumerate(model_files):
             model_name = model_file.split("/")[-2]
             for key in keys:
                 if key.startswith(f"{model_name}_{n_thread}"):
+                    if "(single-threaded)" in key:
+                        continue
                     seaborn.lineplot(
                         x="batchsize",
                         y="time (μs)",
                         ci="sd",
                         data=results_full[key],
                         ax=axs[count],
-                        label=key.split("_")[2] if count == 0 else None,
+                        color=get_color(key),
+                        label=key.split("_")[3] if count == 0 else None,
                     )
             axs[count].set(
                 xscale="log",
@@ -213,8 +229,8 @@ if __name__ == "__main__":
     model_file_airline = "../tests/models/airline/model.txt"
 
     run_benchmark(
-        model_files=[model_file_airline, model_file_NYC],
-        np_data=[airline_X, NYC_X],
+        model_files=[model_file_NYC, model_file_airline],
+        np_data=[None, None],
         model_classes=[
             LLVMModel,
             LLVMModelSingle,
@@ -236,8 +252,8 @@ if __name__ == "__main__":
     )
 
     run_benchmark(
-        model_files=[model_file_airline, model_file_NYC],
-        np_data=[airline_X, NYC_X],
+        model_files=[model_file_NYC, model_file_airline],
+        np_data=[NYC_X, airline_X],
         model_classes=[
             LLVMModel,
             LGBMModel,

@@ -1,26 +1,33 @@
-# LLeaves 🐉
+# lleaves 🍃
 A LLVM-based compiler for LightGBM decision trees.
 
-Ingests `model.txt` files from trained LightGBM Models and
-converts them into optimized machine code.
+`lleaves` converts trained LightGBM models to optimized machine code, speeding-up inference by up to 10x.
 
-## Why LLeaves?
-- Drop-in replacement for LightGBM inference: The interface is a subset of `LightGBM.Booster`.
-- Speed: Up to 10x performance increase compared to LightGBM.
-- Just two dependencies: `llvmlite` and `numpy`. LLVM comes statically linked.
- 
-A few LightGBM features are not yet implemented:
-- Multiclass prediction
-- Linear Models
+### Example:
+
+```python
+lgbm_model = lightgbm.Model(model_file="NYC_taxi/model.txt")
+%timeit lgbm_model.predict(df)
+# 11.6 s ± 442 ms
+
+llvm_model = lleaves.Model(model_file="NYC_taxi/model.txt")
+llvm_model.compile()
+%timeit llvm_model.predict(df)
+# 1.84 s ± 68.7 ms
+```
+
+## Why lleaves?
+- Speed: Both low-latency single-row prediction and high-throughput batch-prediction.
+- Drop-in replacement: The interface of `lleaves.Model` is a subset of `LightGBM.Booster`.
+- Dependencies: `llvmlite` and `numpy`. LLVM comes statically linked.
+
+Some LightGBM features are not yet implemented: multiclass prediction, linear models.
 
 ## Benchmarks
-[benchmark script](benchmarks/benchmark.py).
-Intel Xeon Haswell, 8vCPUs.
+Ran on Intel Xeon Haswell, 8vCPUs.
 Some of the variance is due to performance interference.
 
-Datasets used:
-- NYC-taxi: Focus on numerical features
-- Airlines: Focus on categorical features, some with high cardinality (>100)
+Datasets: NYC-taxi (mostly numerical features), Airlines (categorical features with high cardinality)
 
 #### Small batches (single-threaded)
 ![img](benchmarks/1.png)
@@ -35,12 +42,3 @@ pip install -e .
 pre-commit install
 pytest
 ```
-
-### Tasks
-- Come up with a better name (has to be available on PyPI and conda): Waldmeister, treezero, lltc (low level tree compiler)
-- Experiment with more efficient bitvector storage for categoricals (Int64 instead of Int32).
-- Implement final output transformation function in IR instead of numpy ufunc.
-- Add optional single-precision mode
-- Parse `internal_count` from model.txt, use it for compiler branch prediction hints. 
-  (Caveat: Treelite has branch prediction hints and it doesn't help with speed at all)
-- Introduce Cython runtime module? Faster output functions, lower latency multithreading. More effort for packaging.
