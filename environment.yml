@@ -22,6 +22,8 @@ dependencies:
   # development
   - sphinx
   - sphinx_rtd_theme
+  - numpydoc
+  - sphinxcontrib-apidoc
   - pip
   - pip:
       - "git+git://github.com/onnx/onnxmltools@master"
