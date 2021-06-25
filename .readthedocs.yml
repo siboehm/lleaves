@@ -1,0 +1,11 @@
+version: 2
+sphinx:
+  configuration: docs/conf.py
+formats:
+  - pdf
+conda:
+  environment: environment.yml
+python:
+  install:
+    - method: pip
+      path: .
