@@ -31,6 +31,9 @@ class Model:
     _c_entry_func = None
 
     def __init__(self, model_file=None):
+        """
+        :param model_file: Path to the model.txt.
+        """
         self.model_file = model_file
         self.is_compiled = False
 
@@ -42,7 +45,9 @@ class Model:
         self.objective_transf = get_objective_func(self._general_info["objective"])
 
     def num_feature(self):
-        """number of features"""
+        """
+        Returns the number of features used by this model.
+        """
         return self._general_info["max_feature_idx"] + 1
 
     def _get_execution_engine(self):
@@ -74,10 +79,11 @@ class Model:
 
     def compile(self, cache=None):
         """
-        Generate the LLVM IR for this model and compile it to ASM
+        Generate the LLVM IR for this model and compile it to ASM.
+
         This function can be called multiple times, but will only compile once.
 
-        :param cache: Path to a cache file. If path doesn't exist, binary will be dumped at path after compilation
+        :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
                       If path exists, binary will be loaded and compilation skipped.
                       No effort is made to check staleness / consistency.
                       The precise workings of the cache parameter will be subject to future changes.

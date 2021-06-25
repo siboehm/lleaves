@@ -48,7 +48,7 @@ class LGBMModel(BenchmarkModel):
 
 
 class LLVMModel(BenchmarkModel):
-    name = "LLeaVes"
+    name = "lleaves"
 
     def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)
@@ -56,7 +56,7 @@ class LLVMModel(BenchmarkModel):
 
 
 class LLVMModelSingle(BenchmarkModel):
-    name = "LLeaVes (single-threaded)"
+    name = "lleaves (single-threaded)"
 
     def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)

@@ -30,7 +30,7 @@ Missing Values
 For dealing with missing values it's best to look at the LightGBM code.
 Example: If the missing type is *None* and a ``NaN`` is encountered, the ``NaN`` gets mapped to ``0.0``.
 This means for this node ``NaN`` will behave like ``0.0``, irrespective of the value of *default left*.
-In LLeaVes all combinations of decision type, default left and missing type are tested against LightGBM.
+In lleaves all combinations of decision type, default left and missing type are tested against LightGBM.
 
 Categorical features
 *********************

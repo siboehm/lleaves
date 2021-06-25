@@ -7,7 +7,7 @@ setup(
     name="lleaves",
     version="0.0.1",
     packages=["lleaves", "lleaves.compiler"],
-    url="https://github.com/siboehm/LLeaVes",
+    url="https://github.com/siboehm/lleaves",
     license="MIT",
     classifiers=[
         "Licence :: OSI Approved :: MIT License",
