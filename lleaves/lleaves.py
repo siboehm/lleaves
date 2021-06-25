@@ -1,4 +1,5 @@
 import concurrent.futures
+import os
 from ctypes import CFUNCTYPE, POINTER, c_double, c_int
 from pathlib import Path
 
@@ -130,14 +131,16 @@ class Model:
         )(addr)
         self.is_compiled = True
 
-    def predict(self, data, n_jobs=4):
+    def predict(self, data, n_jobs=os.cpu_count()):
         """
-        Return predictions for the given data
+        Return predictions for the given data.
 
-        For fastest speed, pass the data as a 2D numpy array with dtype float64
+        The model needs to be compiled before prediction.
 
-        :param data: Pandas df, numpy 2D array or Python list
-        :return: 1D numpy array, dtype float64
+        :param data: Pandas df, numpy 2D array or Python list. For fastest speed pass 2D float64 numpy arrays only.
+        :param n_jobs: Number of threads to use for prediction. Defaults to number of CPUs. For single-row prediction
+            this should be set to 1.
+        :return: 1D numpy array (dtype float64)
         """
         if not self.is_compiled:
             raise RuntimeError(
