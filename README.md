@@ -3,7 +3,7 @@ A LLVM-based compiler for LightGBM decision trees.
 
 `lleaves` converts trained LightGBM models to optimized machine code, speeding-up inference by up to 10x.
 
-### Example:
+## Example
 
 ```python
 lgbm_model = lightgbm.Model(model_file="NYC_taxi/model.txt")
