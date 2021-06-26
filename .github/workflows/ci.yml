@@ -41,9 +41,9 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  MacOS-unittest:
-    name: macOS unittest - ${{ matrix.PYTHON_VERSION }}
-    runs-on: macos-latest
+  Windows-unittest:
+    name: Windows unittest - ${{ matrix.PYTHON_VERSION }}
+    runs-on: windows-latest
     env:
       CI: True
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
@@ -63,8 +63,11 @@ jobs:
           environment-file: environment.yml
           use-only-tar-bz2: true
           use-mamba: true
-      - run: python -m pip install -e . --no-build-isolation --no-use-pep517 --no-deps
-      - run: pytest -v tests
+      - name: Run the unittests
+        shell: bash -x -l {0}
+        run: |
+          pip install --no-use-pep517 --no-deps --no-build-isolation --disable-pip-version-check -e .
+          pytest -v tests
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
