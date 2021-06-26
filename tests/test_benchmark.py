@@ -6,8 +6,6 @@ import pandas as pd
 import pytest
 
 import lleaves
-from benchmarks.benchmark import NYC_used_columns
-from benchmarks.train_NYC_model import feature_enginering
 
 
 @pytest.mark.skipif(
@@ -15,6 +13,9 @@ from benchmarks.train_NYC_model import feature_enginering
     reason="We don't want to download the datasets on CI",
 )
 def test_benchmark_datsets_correct_output():
+    from benchmarks.benchmark import NYC_used_columns
+    from benchmarks.train_NYC_model import feature_enginering
+
     model_file_NYC = "tests/models/NYC_taxi/model.txt"
     model_file_airline = "tests/models/airline/model.txt"
 
