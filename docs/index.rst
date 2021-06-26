@@ -17,3 +17,5 @@ lleaves 🍃
    :members:
    :noindex:
 
+   .. automethod:: __init__
+

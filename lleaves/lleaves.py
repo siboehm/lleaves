@@ -21,6 +21,10 @@ except ImportError:
 
 
 class Model:
+    """
+    The base class of lleaves.
+    """
+
     # machine-targeted compiler & exec engine.
     _execution_engine = None
 
@@ -32,6 +36,8 @@ class Model:
 
     def __init__(self, model_file=None):
         """
+        Initialize the uncompiled model.
+
         :param model_file: Path to the model.txt.
         """
         self.model_file = model_file
