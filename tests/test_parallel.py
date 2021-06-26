@@ -11,8 +11,8 @@ def test_parallel_iteration():
     lgbm_model = Booster(model_file="tests/models/NYC_taxi/model.txt")
     llvm_model.compile()
 
-    data = np.array(4 * [5 * [1.0]], dtype=np.float32)
-    data_flat = np.array(data.reshape(data.size), dtype=np.float64, copy=False)
+    data = np.array(4 * [5 * [1.0]], dtype=np.float64)
+    data_flat = np.array(data.reshape(data.size), dtype=np.float64)
     np.testing.assert_equal(
         llvm_model.predict(data, n_jobs=4), lgbm_model.predict(data)
     )
