@@ -2,45 +2,6 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  linux-unittest:
-    name: Linux unittest - ${{ matrix.PYTHON_VERSION }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        PYTHON_VERSION: ["3.6", "3.9"]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Setup conda cache
-        uses: actions/cache@v2
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            mamba--${{ hashFiles('environment.yml') }}-${{ matrix.PYTHON_VERSION }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ matrix.PYTHON_VERSION }}
-          miniforge-variant: Mambaforge
-          miniforge-version: latest
-          activate-environment: lleaves
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          use-mamba: true
-      - name: Setup hypothesis DB cache
-        uses: actions/cache@v2
-        with:
-          path: ./.hypothesis
-          key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
-      - name: Run the unittests
-        shell: bash -x -l {0}
-        run: ./.github/ci.sh ${{ matrix.PYTHON_VERSION }}
-      - name: Publish a Python distribution to PyPI
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && matrix.PYTHON_VERSION == '3.6'
-        uses: pypa/gh-action-pypi-publish@v1.4.2
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
-
   Windows-unittest:
     name: Windows unittest - ${{ matrix.PYTHON_VERSION }}
     runs-on: windows-latest
