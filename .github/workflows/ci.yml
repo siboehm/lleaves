@@ -2,19 +2,21 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-  Windows-unittest:
-    name: Windows unittest - ${{ matrix.PYTHON_VERSION }}
-    runs-on: windows-latest
-    env:
-      CI: True
-      PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
+  linux-unittest:
+    name: Linux unittest - ${{ matrix.PYTHON_VERSION }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: ['3.6']
+        PYTHON_VERSION: ["3.6", "3.9"]
     steps:
-      - name: Checkout branch
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - name: Setup conda cache
+        uses: actions/cache@v2
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            mamba--${{ hashFiles('environment.yml') }}-${{ matrix.PYTHON_VERSION }}
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
@@ -24,11 +26,20 @@ jobs:
           environment-file: environment.yml
           use-only-tar-bz2: true
           use-mamba: true
+      - name: Setup hypothesis DB cache
+        uses: actions/cache@v2
+        with:
+          path: ./.hypothesis
+          key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
       - name: Run the unittests
         shell: bash -x -l {0}
-        run: |
-          pip install --no-use-pep517 --no-deps --no-build-isolation --disable-pip-version-check -e .
-          pytest -v tests
+        run: ./.github/ci.sh ${{ matrix.PYTHON_VERSION }}
+      - name: Publish a Python distribution to PyPI
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && matrix.PYTHON_VERSION == '3.6'
+        uses: pypa/gh-action-pypi-publish@v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
