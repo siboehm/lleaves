@@ -34,6 +34,12 @@ jobs:
       - name: Run the unittests
         shell: bash -x -l {0}
         run: ./.github/ci.sh
+      - name: Publish a Python distribution to PyPI
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags') && matrix.PYTHON_VERSION == '3.6'
+        uses: pypa/gh-action-pypi-publish@release/v1.4.2
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
