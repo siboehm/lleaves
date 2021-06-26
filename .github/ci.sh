@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euox pipefail
 
+export PYTHON_VERSION=$1
+
 python -m pip install --no-use-pep517 --no-deps --disable-pip-version-check -e .
 pytest -v tests
 
