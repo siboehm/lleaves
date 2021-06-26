@@ -41,9 +41,9 @@ jobs:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
 
-  win-unittest:
-    name: Windows unittest - ${{ matrix.PYTHON_VERSION }}
-    runs-on: windows-latest
+  MacOS-unittest:
+    name: macOS unittest - ${{ matrix.PYTHON_VERSION }}
+    runs-on: macos-latest
     env:
       CI: True
       PYTHON_VERSION: ${{ matrix.PYTHON_VERSION }}
