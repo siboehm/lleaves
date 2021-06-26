@@ -14,18 +14,9 @@ dependencies:
   - pre-commit
   - pyarrow
   - pandas
-  # benchmarking
-  - treelite
-  # onnxmltools currently broken for categorical models, install from master
-  # - onnxmltools
-  - onnxruntime
-  - seaborn
   # development
   - sphinx
   - sphinx_rtd_theme
   - numpydoc
   - sphinxcontrib-apidoc
   - setuptools-scm
-  - pip
-  - pip:
-      - "git+git://github.com/onnx/onnxmltools@master"

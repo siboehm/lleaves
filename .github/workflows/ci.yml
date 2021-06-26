@@ -3,7 +3,7 @@ on: [push, pull_request]
 
 jobs:
   linux-unittest:
-    name: Unit tests - ${{ matrix.PYTHON_VERSION }}
+    name: Linux unittest - ${{ matrix.PYTHON_VERSION }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -42,7 +42,7 @@ jobs:
           password: ${{ secrets.PYPI_API_TOKEN }}
 
   win-unittest:
-    name: "Windows Py${{ matrix.PYTHON_VERSION }}"
+    name: Windows unittest - ${{ matrix.PYTHON_VERSION }}
     runs-on: windows-latest
     env:
       CI: True
