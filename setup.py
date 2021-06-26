@@ -1,16 +1,18 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 with open("README.md") as f:
     long_description = f.read()
 
 setup(
     name="lleaves",
-    version="0.0.1",
-    packages=["lleaves", "lleaves.compiler"],
+    use_scm_version=True,
+    setup_requires=["setuptools_scm"],
+    packages=find_packages(exclude=["benchmarks"]),
     url="https://github.com/siboehm/lleaves",
+    project_urls={"Documentation": "https://lleaves.readthedocs.io/en/latest/"},
     license="MIT",
     classifiers=[
-        "Licence :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: MIT License",
         "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 3",
     ],
@@ -19,6 +21,6 @@ setup(
     description="LLVM-based compiler for LightGBM models",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    python_requires=">=3",
-    install_requires=["llvmlite", "numpy"],
+    python_requires=">=3.6",
+    install_requires=["llvmlite>=0.36", "numpy"],
 )

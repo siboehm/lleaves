@@ -4,7 +4,8 @@ channels:
   - nodefaults
 dependencies:
   # runtime deps
-  - llvmlite
+  - python>=3.6
+  - llvmlite>=0.36
   - numpy
   # testing
   - pytest
@@ -24,6 +25,7 @@ dependencies:
   - sphinx_rtd_theme
   - numpydoc
   - sphinxcontrib-apidoc
+  - setuptools-scm
   - pip
   - pip:
       - "git+git://github.com/onnx/onnxmltools@master"

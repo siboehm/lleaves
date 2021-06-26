@@ -33,9 +33,9 @@ Some of the variance is due to performance interference.
 Datasets: NYC-taxi (mostly numerical features), Airlines (categorical features with high cardinality)
 
 #### Small batches (single-threaded)
-![img](benchmarks/1.png)
+![benchmark small batches](https://raw.githubusercontent.com/siboehm/lleaves/master/benchmarks/1.png)
 #### Large batches (multi-threaded)
-![img](benchmarks/4.png)
+![benchmark large batches](https://raw.githubusercontent.com/siboehm/lleaves/master/benchmarks/4.png)
 
 ## Development
 ```bash

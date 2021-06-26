@@ -33,9 +33,7 @@ jobs:
           key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
       - name: Run the unittests
         shell: bash -x -l {0}
-        run: |
-          pip install --no-use-pep517 --no-deps --disable-pip-version-check -e .
-          pytest -v tests
+        run: ./.github/ci.sh
 
   pre-commit-checks:
     name: "Pre-commit checks - Python 3.9"
