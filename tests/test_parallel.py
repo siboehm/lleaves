@@ -1,11 +1,13 @@
 from ctypes import POINTER, c_double
 
 import numpy as np
+import pytest
 from lightgbm import Booster
 
 from lleaves import Model
 
 
+@pytest.skip("no windows")
 def test_parallel_iteration():
     llvm_model = Model(model_file="tests/models/NYC_taxi/model.txt")
     lgbm_model = Booster(model_file="tests/models/NYC_taxi/model.txt")
