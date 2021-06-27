@@ -26,6 +26,10 @@ llvm_model.compile()
 
 Some LightGBM features are not yet implemented: multiclass prediction, linear models.
 
+
+## Installation
+`conda install -c conda-forge lleaves` or `pip install lleaves` (Linux and MacOS only).
+
 ## Benchmarks
 Ran on Intel Xeon Haswell, 8vCPUs.
 Some of the variance is due to performance interference.
@@ -44,4 +48,6 @@ conda activate lleaves
 pip install -e .
 pre-commit install
 pytest
+# (optional) benchmark dependencies
+conda install treelite onnxruntime onnxmltools seaborn
 ```
