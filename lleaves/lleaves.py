@@ -34,7 +34,7 @@ class Model:
     # prediction function, drops GIL on entry
     _c_entry_func = None
 
-    def __init__(self, model_file=None):
+    def __init__(self, model_file):
         """
         Initialize the uncompiled model.
 
@@ -55,27 +55,6 @@ class Model:
         Returns the number of features used by this model.
         """
         return self._general_info["max_feature_idx"] + 1
-
-    def _get_execution_engine(self):
-        """
-        Create an empty ExecutionEngine suitable for JIT code generation on
-        the host CPU. The engine is reusable for an arbitrary number of
-        modules.
-        """
-        if self._execution_engine:
-            return self._execution_engine
-
-        llvm.initialize()
-        llvm.initialize_native_target()
-        llvm.initialize_native_asmprinter()
-
-        # Create a target machine representing the host
-        target = llvm.Target.from_default_triple()
-        target_machine = target.create_target_machine()
-        # And an execution engine with an empty backing module
-        backing_mod = llvm.parse_assembly("")
-        self._execution_engine = llvm.create_mcjit_compiler(backing_mod, target_machine)
-        return self._execution_engine
 
     def _get_llvm_module(self):
         if self._IR_module:
