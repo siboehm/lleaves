@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from lleaves.compiler.ast.scanner import scan_model_file, scan_pandas_categorical
+import pytest
+
+from lleaves.compiler.ast.scanner import scan_for_pandas_categorical, scan_model_file
 
 
 def test_parser():
@@ -57,11 +59,22 @@ def test_parsing_pandas(tmp_path):
     with open(mod_model_file, "x") as file:
         file.writelines(lines)
 
-    pandas_categorical = scan_pandas_categorical(model_file)
+    pandas_categorical = scan_for_pandas_categorical(model_file)
     assert pandas_categorical is None
-    pandas_categorical = scan_pandas_categorical(mod_model_file)
+    pandas_categorical = scan_for_pandas_categorical(mod_model_file)
     assert pandas_categorical == [
         ["a", "b", "c"],
         ["b", "c", "d"],
         ["w", "x", "y", "z"],
     ]
+
+
+def test_parsing_pandas_broken_file(tmp_path):
+    mod_model_file = tmp_path / "mod_model.txt"
+    lines = 100 * ["onelineonly"]
+    with open(mod_model_file, "x") as file:
+        file.writelines(lines)
+
+    # terminates and raises on garbage file
+    with pytest.raises(ValueError):
+        _ = scan_for_pandas_categorical(mod_model_file)
