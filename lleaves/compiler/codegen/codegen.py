@@ -62,7 +62,7 @@ def gen_tree(tree, tree_func):
 
 def gen_node(func, node_block, node):
     """generate code for node, recursing into children"""
-    if node.is_leaf():
+    if node.is_leaf:
         gen_leaf_node(node_block, node)
     else:
         gen_decision_node(func, node_block, node)
@@ -79,7 +79,7 @@ def gen_decision_node(func, node_block, node):
     builder = ir.IRBuilder(node_block)
 
     # optimization for node where both children are leaves (switch instead of cbranch)
-    is_fused_double_leaf_node = node.left.is_leaf() and node.right.is_leaf()
+    is_fused_double_leaf_node = node.left.is_leaf and node.right.is_leaf
     if is_fused_double_leaf_node:
         left_block = None
         right_block = None

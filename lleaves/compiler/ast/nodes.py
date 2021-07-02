@@ -23,6 +23,7 @@ class Tree:
 
 
 class Node:
+    @property
     def is_leaf(self):
         return isinstance(self, LeafNode)
 
