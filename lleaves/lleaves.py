@@ -48,7 +48,7 @@ class Model:
         self._pandas_categorical = scanner.scan_pandas_categorical(model_file)
 
         # objective function is implemented as an np.ufunc.
-        self.objective_transf = get_objective_func(self._general_info["objective"])
+        self.objective_transf = get_objective_func(*self._general_info["objective"])
 
     def num_feature(self):
         """

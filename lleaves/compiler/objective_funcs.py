@@ -11,39 +11,38 @@ def _get_sigmoid(alpha):
     return lambda x: 0.5 * (1 + np.tanh(0.5 * x * alpha))
 
 
-def get_objective_func(obj):
+def get_objective_func(objective: str, objective_config=None):
     """
-    Given the objective=obj entry in the model.txt, return callable
-    :return: callable implementing the correct result transformation as np.ufunc
+    Given the objective=<objective> <objective_config> entry in the model.txt, return callable.
+
+    :param objective: Name of the objective (eg "binary", "regression").
+    :param objective_config: String encoding further configuration of the objective, eg "sigmoid:<alpha>".
+    :return: callable implementing the result transformation as a numpy ufunc.
     """
-    if obj[0] == "binary":
-        func, alpha = obj[1].split(":")
-        f = _get_sigmoid(float(alpha))
-    elif obj[0] in ("xentropy", "cross_entropy"):
-        f = _get_sigmoid(1.0)
-    elif obj[0] in ("xentlambda", "cross_entropy_lambda"):
-
-        def f(x):
-            return np.log1p(np.exp(x))
-
-    elif obj[0] in ("poisson", "gamma", "tweedie"):
-        f = np.exp
-    elif obj[0] in ("regression", "regression_l1", "huber", "fair", "quantile", "mape"):
-        if "sqrt" in obj[1:]:
-
-            def f(x):
-                return np.copysign(np.square(x), x)
-
+    if objective == "binary":
+        alpha = objective_config.split(":")[1]
+        return _get_sigmoid(float(alpha))
+    elif objective in ("xentropy", "cross_entropy"):
+        return _get_sigmoid(1.0)
+    elif objective in ("xentlambda", "cross_entropy_lambda"):
+        return lambda x: np.log1p(np.exp(x))
+    elif objective in ("poisson", "gamma", "tweedie"):
+        return np.exp
+    elif objective in (
+        "regression",
+        "regression_l1",
+        "huber",
+        "fair",
+        "quantile",
+        "mape",
+    ):
+        if objective_config and "sqrt" in objective_config:
+            return lambda x: np.copysign(np.square(x), x)
         else:
-
-            def f(x):
-                return x
-
-    elif obj[0] in ("lambdarank", "rank_xendcg", "custom"):
-
-        def f(x):
-            return x
-
+            return lambda x: x
+    elif objective in ("lambdarank", "rank_xendcg", "custom"):
+        return lambda x: x
     else:
-        raise ValueError(f"Objective '{obj[0]}' not yet implemented. {ISSUE_ERROR_MSG}")
-    return f
+        raise ValueError(
+            f"Objective '{objective}' not yet implemented. {ISSUE_ERROR_MSG}"
+        )
