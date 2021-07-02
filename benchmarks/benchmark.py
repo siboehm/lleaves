@@ -1,3 +1,4 @@
+import os
 import pickle
 import time
 from pathlib import Path
@@ -70,6 +71,8 @@ class TreeliteModel(BenchmarkModel):
     name = "Treelite"
 
     def _setup(self, data, n_threads):
+        # disable thread pinning, which modifies (and never resets!) process-global pthreads state
+        os.environ["TREELITE_BIND_THREADS"] = "0"
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
         treelite_model.export_lib(
             toolchain="gcc",
