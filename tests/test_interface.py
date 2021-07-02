@@ -10,14 +10,20 @@ def test_interface(tmp_path):
     llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
     llvm.compile()
 
-    for arr in [np.array([1.0, 1.0, 1.0]), [1.0, 1.0, 1.0]]:
+    for arr in [
+        np.array([1.0, 1.0, 1.0]),
+        [1.0, 1.0, 1.0],
+    ]:
         with pytest.raises(ValueError) as err1:
             llvm.predict(arr)
         with pytest.raises(ValueError) as err2:
             lgbm.predict(arr)
+        assert "dimension" in err1.value.args[0]
+        assert "dimension" in err2.value.args[0]
 
-        assert "2 dimensional" in err1.value.args[0]
-        assert "2 dimensional" in err2.value.args[0]
+    with pytest.raises(ValueError):
+        wrong_shape_2D = (np.array(3 * [(llvm.num_feature() + 1) * [1.0]]),)
+        llvm.predict(wrong_shape_2D)
 
 
 @pytest.mark.parametrize(
