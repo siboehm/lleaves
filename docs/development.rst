@@ -2,9 +2,13 @@ Development documentation
 ==============================
 
 The only correct behaviour is for ``lleaves`` to behave exactly like LightGBM.
+The best way to figure out LightGBM's behaviour is to run and read their code.
 
 LightGBM's model serialization
 ------------------------------
+
+The serialization format isn't documented.
+The information here was compiled by reading through LightGBM's codebase.
 
 Decision Types
 *********************

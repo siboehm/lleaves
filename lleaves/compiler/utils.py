@@ -4,17 +4,25 @@ ISSUE_ERROR_MSG = "Please file an issue at https://github.com/siboehm/lleaves."
 
 
 class MissingType(Enum):
+    """
+    Codes for attribute-values that are treated as missing values when present in a record.
+    """
+
     MNone = 0
     MZero = 1
     MNaN = 2
 
 
 class DecisionType:
+    """
+    The different decision types that a node can implement.
+    """
+
     CAT_MASK = 1
     DEFAULT_LEFT_MASK = 2
 
     def __init__(self, idx):
-        if idx not in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]:
+        if idx not in range(12):
             raise ValueError(
                 f"Decision type {idx} not yet tested for. {ISSUE_ERROR_MSG}"
             )
