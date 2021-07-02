@@ -233,7 +233,7 @@ if __name__ == "__main__":
 
     run_benchmark(
         model_files=[model_file_NYC, model_file_airline],
-        np_data=[None, None],
+        np_data=[NYC_X, airline_X],
         model_classes=[
             LLVMModel,
             LLVMModelSingle,
