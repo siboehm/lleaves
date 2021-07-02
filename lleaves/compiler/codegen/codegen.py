@@ -24,10 +24,8 @@ def dconst(value):
     return ir.Constant(DOUBLE, value)
 
 
-def scalar_func(cat_bitmap):
-    return ir.FunctionType(
-        DOUBLE, (INT_CAT if is_cat else DOUBLE for is_cat in cat_bitmap)
-    )
+def scalar_func(dtypes):
+    return ir.FunctionType(DOUBLE, dtypes)
 
 
 def ir_from_ast(forest):
@@ -43,9 +41,8 @@ def ir_from_ast(forest):
     tree_funcs = []
     for tree in forest.trees:
         # Declare the function for this tree
-        tree_func = ir.Function(
-            module, scalar_func(tree.categorical_bitmap), name=str(tree)
-        )
+        func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
+        tree_func = ir.Function(module, scalar_func(func_dtypes), name=str(tree))
         # add IR
         gen_tree(tree, tree_func)
         tree_funcs.append(tree_func)
@@ -149,9 +146,10 @@ def populate_forest_func(forest, root_func, tree_funcs):
     iter_mul_nargs = builder.mul(loop_iter_reg, n_args)
     idx = (builder.add(iter_mul_nargs, iconst(i)) for i in range(forest.n_args))
     raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
-    for is_cat, ptr in zip(forest.categorical_bitmap, raw_ptrs):
+    # cast the categorical inputs to integer
+    for feature, ptr in zip(forest.features, raw_ptrs):
         el = builder.load(ptr)
-        if is_cat:
+        if feature.is_categorical:
             args.append(builder.fptosi(el, INT_CAT))
         else:
             args.append(el)

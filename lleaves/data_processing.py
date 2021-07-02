@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 
 try:
@@ -10,7 +12,7 @@ except ImportError:
         pass
 
 
-def _dataframe_to_ndarray(data, pandas_categories: list[list]):
+def _dataframe_to_ndarray(data, pandas_categories: List[List]):
     """
     Converts the given dataframe into a 2D numpy array, without checking dimensions.
     :param data: 2D pandas dataframe.

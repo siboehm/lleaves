@@ -2,21 +2,21 @@ from lleaves.compiler.utils import DecisionType
 
 
 class Forest:
-    def __init__(self, trees: list, categorical_bitmap: list):
+    def __init__(self, trees: list, features: list):
         """
         :param trees: list of trees
-        :param categorical_bitmap: bitmap indicating categorical / numerical feature
+        :param features: list of entries of type Feature.
         """
         self.trees = trees
-        self.categorical_bitmap = categorical_bitmap
-        self.n_args = len(categorical_bitmap)
+        self.n_args = len(features)
+        self.features = features
 
 
 class Tree:
-    def __init__(self, idx, root_node, categorical_bitmap):
+    def __init__(self, idx, root_node, features):
         self.idx = idx
         self.root_node = root_node
-        self.categorical_bitmap = categorical_bitmap
+        self.features = features
 
     def __str__(self):
         return f"tree_{self.idx}"

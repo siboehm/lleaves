@@ -1,6 +1,12 @@
 import json
 import os
 
+"""
+The Scanner is responsible for iterating over the model.txt and transforming it into a more
+usable representation.
+It doesn't implement any transformations (expect for type casting).
+"""
+
 
 def scan_for_pandas_categorical(file_path):
     """
@@ -64,7 +70,7 @@ def scan_model_file(file_path, general_info_only=False):
         assert lines[0] == "tree" and lines[1].startswith(
             "version="
         ), f"{file_path} is not a LightGBM model file"
-        res["general_info"] = _struct_from_block(lines, INPUT_SCAN_KEYS)
+        res["general_info"] = _scan_block(lines, INPUT_SCAN_KEYS)
         if general_info_only:
             return res
 
@@ -81,12 +87,12 @@ def scan_model_file(file_path, general_info_only=False):
 
 
 def _scan_tree(lines):
-    struct = _struct_from_block(lines, TREE_SCAN_KEYS)
+    struct = _scan_block(lines, TREE_SCAN_KEYS)
     return struct
 
 
 def _get_next_block_of_lines(file):
-    # the only function where we advance file_offset
+    # the only function where the position inside the file is advanced
     result = []
     line = file.readline()
     while line == "\n":
@@ -95,12 +101,6 @@ def _get_next_block_of_lines(file):
         result.append(line.strip())
         line = file.readline()
     return result
-
-
-def cat_args_bitmap(arr):
-    # Feature infos for floats look like [x.xxxx:y.yyyy]
-    # for categoricals like X:Y:Z:
-    return [not val.startswith("[") for val in arr]
 
 
 class ScannedValue:
@@ -131,33 +131,35 @@ TREE_SCAN_KEYS = {
 }
 
 
-def _struct_from_block(lines: list, keys_to_scan: dict):
+def _scan_block(lines: list, items_to_scan: dict):
     """
-    Scans a block (= list of lines), produces a key: value struct
-    @param lines: list of lines in the block
-    @param keys_to_scan: dict with 'key': 'type of value' of keys to scan for
+    Scans a block (= list of lines) into a key: value map.
+    :param lines: list of lines in the block
+    :param items_to_scan: dict with 'key': 'type of value' of keys to scan for
+    :return: dict with a key-value pair for each key in items_to_scan. Raises RuntimeError
+        if a non-nullable value from items_to_scan wasn't found in the block.
     """
-    struct = {}
+    result_map = {}
     for line in lines:
         # initial line in file
         if line == "tree":
             continue
 
-        key, value = line.split("=")
-        if key in keys_to_scan.keys():
-            value_type = keys_to_scan[key]
-            if value_type.is_list:
-                if value:
-                    parsed_value = [value_type.type(x) for x in value.split(" ")]
-                else:
-                    parsed_value = []
+        scanned_key, scanned_value = line.split("=")
+        target_type = items_to_scan.get(scanned_key)
+        if target_type is None:
+            continue
+        if target_type.is_list:
+            if scanned_value:
+                parsed_value = [target_type.type(x) for x in scanned_value.split(" ")]
             else:
-                parsed_value = value_type.type(value)
-            struct[key] = parsed_value
+                parsed_value = []
+        else:
+            parsed_value = target_type.type(scanned_value)
+        result_map[scanned_key] = parsed_value
 
-    missing_keys = keys_to_scan.keys() - struct.keys()
-    for key in missing_keys:
-        value = keys_to_scan[key]
-        assert value.null_ok, f"Non-nullable key {key} wasn't found"
-        struct[key] = None
-    return struct
+    expected_keys = {k for k, v in items_to_scan.items() if not v.null_ok}
+    missing_keys = expected_keys - result_map.keys()
+    if missing_keys:
+        raise RuntimeError(f"Missing non-nullable keys {missing_keys}")
+    return result_map
