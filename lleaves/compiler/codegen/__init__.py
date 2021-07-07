@@ -1,3 +1,3 @@
-from lleaves.compiler.codegen.codegen import ir_from_ast
+from lleaves.compiler.codegen.codegen import gen_forest
 
-__all__ = ["ir_from_ast"]
+__all__ = ["gen_forest"]
