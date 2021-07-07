@@ -131,3 +131,21 @@ def extract_pandas_traintime_categories(file_path):
         if last_line.startswith(pandas_key):
             return json.loads(last_line[len(pandas_key) :])
     raise ValueError("Ill formatted model file!")
+
+
+def extract_num_feature(file_path):
+    """
+    Extract number of features expected by this model as 'max_feature_idx' + 1
+    :param file_path: path to model.txt
+    :return: the number of features expected by this model.
+    """
+    with open(file_path, "r") as f:
+        line = f.readline()
+        while line and not line.startswith("max_feature_idx"):
+            line = f.readline()
+
+        if line.startswith("max_feature_idx"):
+            n_args = int(line.split("=")[1]) + 1
+        else:
+            raise ValueError("Ill formatted model file!")
+    return n_args

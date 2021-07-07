@@ -2,7 +2,9 @@ import concurrent.futures
 import math
 import os
 from ctypes import CFUNCTYPE, POINTER, c_double, c_int
+from pathlib import Path
 
+import llvmlite.binding
 import numpy as np
 
 from lleaves import compiler
@@ -10,6 +12,7 @@ from lleaves.compiler.ast import scanner
 from lleaves.compiler.objective_funcs import get_objective_func
 from lleaves.data_processing import (
     data_to_ndarray,
+    extract_num_feature,
     extract_pandas_traintime_categories,
     ndarray_to_1Darray,
 )
@@ -49,6 +52,7 @@ class Model:
         self.is_compiled = False
 
         self._pandas_categorical = extract_pandas_traintime_categories(model_file)
+        self._num_feature = extract_num_feature(model_file)
 
         general_info = scanner.scan_model_file(model_file, general_info_only=True)[
             "general_info"
@@ -72,7 +76,13 @@ class Model:
                       No effort is made to check staleness / consistency.
                       The precise workings of the cache parameter will be subject to future changes.
         """
-        module, self._num_feature = compiler.compile_to_module(self.model_file)
+
+        if cache is None or not Path(cache).exists():
+            module = compiler.compile_to_module(self.model_file)
+        else:
+            # when loading binary from cache we use a dummy empty module
+            module = llvmlite.binding.parse_assembly("")
+
         # keep a reference to the engine to protect it from being garbage-collected
         self._execution_engine = compile_module_to_asm(module, cache)
 

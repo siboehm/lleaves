@@ -15,22 +15,19 @@ def compile_module_to_asm(module, cache=None):
     # Create execution engine for our module
     execution_engine = llvm.create_mcjit_compiler(module, target_machine)
 
-    # Ich glaube der cache-Code wird einfacher wenn man explizit zwei Faelle
-    # hinschreibt (Cache hit/miss).
-    # Wenn ich den Code richtig verstehe, wird gerade bei Cache hit auch
-    # "save_to_cache" ausgefuehrt und hat dann Abbruch durch den exists()
-    # call? Waere es nicht besser, im Fall von Cache hit einfach set_object_cache ohne
-    # notify_func= aufzurufen?
     # when caching we dump the executable once the module finished compiling
-    def save_to_cache(module, buffer):
-        if cache and not Path(cache).exists():
-            with open(cache, "wb") as file:
-                file.write(buffer)
+    # we only ever have one module, hence we can ignore the 'llvm_module' parameter
+    save_to_cache, load_from_cache = None, None
+    if cache:
+        if not Path(cache).exists():
 
-    # when caching load the executable if it exists
-    def load_from_cache(module):
-        if cache and Path(cache).exists():
-            return Path(cache).read_bytes()
+            def save_to_cache(llvm_module, buffer):
+                Path(cache).write_bytes(buffer)
+
+        else:
+
+            def load_from_cache(llvm_module):
+                return Path(cache).read_bytes()
 
     execution_engine.set_object_cache(
         notify_func=save_to_cache, getbuffer_func=load_from_cache
