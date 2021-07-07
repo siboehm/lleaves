@@ -2,9 +2,7 @@ import concurrent.futures
 import math
 import os
 from ctypes import CFUNCTYPE, POINTER, c_double, c_int
-from pathlib import Path
 
-import llvmlite.binding as llvm
 import numpy as np
 
 from lleaves import compiler
@@ -15,6 +13,7 @@ from lleaves.data_processing import (
     extract_pandas_traintime_categories,
     ndarray_to_1Darray,
 )
+from lleaves.llvm_binding import compile_module_to_asm
 
 ENTRY_FUNC_TYPE = CFUNCTYPE(
     None,  # return void
@@ -31,6 +30,7 @@ class Model:
     """
 
     # machine-targeted compiler & exec engine.
+    # We keep this as an object property to protect the compiled binary from being garbage-collected
     _execution_engine = None
 
     # number of features (=columns)
@@ -67,58 +67,19 @@ class Model:
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
-        This function can be called multiple times, but will only compile once.
-
         :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
                       If path exists, binary will be loaded and compilation skipped.
                       No effort is made to check staleness / consistency.
                       The precise workings of the cache parameter will be subject to future changes.
         """
-        if self.is_compiled:
-            return
-
-        llvm.initialize()
-        llvm.initialize_native_target()
-        llvm.initialize_native_asmprinter()
-
-        # Create a target machine representing the host
-        target = llvm.Target.from_default_triple()
-        target_machine = target.create_target_machine()
-
-        if cache is None or not Path(cache).exists():
-            # Compile to LLVM IR
-            module = self._get_llvm_module()
-        else:
-            # when loading binary from cache we use a dummy empty module
-            module = llvm.parse_assembly("")
         module, self._num_feature = compiler.compile_to_module(self.model_file)
+        # keep a reference to the engine to protect it from being garbage-collected
+        self._execution_engine = compile_module_to_asm(module, cache)
 
-        # Create execution engine for our module
-        self._execution_engine = llvm.create_mcjit_compiler(module, target_machine)
-
-        # when caching we dump the executable once the module finished compiling
-        def save_to_cache(module, buffer):
-            if cache and not Path(cache).exists():
-                with open(cache, "wb") as file:
-                    file.write(buffer)
-
-        # when caching load the executable if it exists
-        def load_from_cache(module):
-            if cache and Path(cache).exists():
-                return Path(cache).read_bytes()
-
-        self._execution_engine.set_object_cache(
-            notify_func=save_to_cache, getbuffer_func=load_from_cache
-        )
-
-        # compile IR to ASM
-        self._execution_engine.finalize_object()
-        self._execution_engine.run_static_constructors()
-
-        # construct entry func
-        addr = self._execution_engine.get_function_address("forest_root")
         # Drops GIL during call, re-acquires it after
+        addr = self._execution_engine.get_function_address("forest_root")
         self._c_entry_func = ENTRY_FUNC_TYPE(addr)
+
         self.is_compiled = True
 
     def predict(self, data, n_jobs=os.cpu_count()):
