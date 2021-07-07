@@ -10,14 +10,20 @@ def test_interface(tmp_path):
     llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
     llvm.compile()
 
-    for arr in [np.array([1.0, 1.0, 1.0]), [1.0, 1.0, 1.0]]:
+    for arr in [
+        np.array([1.0, 1.0, 1.0]),
+        [1.0, 1.0, 1.0],
+    ]:
         with pytest.raises(ValueError) as err1:
             llvm.predict(arr)
         with pytest.raises(ValueError) as err2:
             lgbm.predict(arr)
+        assert "dimension" in err1.value.args[0]
+        assert "dimension" in err2.value.args[0]
 
-        assert "2 dimensional" in err1.value.args[0]
-        assert "2 dimensional" in err2.value.args[0]
+    with pytest.raises(ValueError):
+        wrong_shape_2D = (np.array(3 * [(llvm.num_feature() + 1) * [1.0]]),)
+        llvm.predict(wrong_shape_2D)
 
 
 @pytest.mark.parametrize(
@@ -44,16 +50,25 @@ def test_input_dtypes(model_file, n_args):
 
 def test_cache_model(tmp_path):
     cachefp = tmp_path / "model.bin"
-    llvm = lleaves.Model("tests/models/NYC_taxi/model.txt")
+    pure_cat_llvm = lleaves.Model("tests/models/pure_categorical/model.txt")
     assert not cachefp.exists()
-    llvm.compile(cache=cachefp)
+    pure_cat_llvm.compile(cache=cachefp)
     assert cachefp.exists()
     # we compiled model.txt to IR to asm
-    assert llvm._IR_module is not None
-    res = llvm.predict([5 * [0.0], 5 * [1.0], 5 * [-1.0]])
+    res = pure_cat_llvm.predict([3 * [0.0], 3 * [1.0], 3 * [-1.0]])
 
-    llvm = lleaves.Model("tests/models/NYC_taxi/model.txt")
-    llvm.compile(cache=cachefp)
-    # we never compiled model.txt to IR
-    assert llvm._IR_module is None
-    np.testing.assert_equal(res, llvm.predict([5 * [0.0], 5 * [1.0], 5 * [-1.0]]))
+    cached_model = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
+    cached_model.compile(cache=cachefp)
+
+    tiniest_llvm = lleaves.Model("tests/models/tiniest_single_tree/model.txt")
+    tiniest_llvm.compile()
+
+    # the cache was loaded (which was different from the model.txt passed)
+    np.testing.assert_equal(
+        cached_model.predict([3 * [0.0], 3 * [1.0], 3 * [-1.0]]),
+        pure_cat_llvm.predict([3 * [0.0], 3 * [1.0], 3 * [-1.0]]),
+    )
+    # sanity test
+    np.testing.assert_equal(
+        pure_cat_llvm.predict([3 * [0.0], 3 * [1.0], 3 * [-1.0]]), res
+    )

@@ -24,14 +24,30 @@ def dconst(value):
     return ir.Constant(DOUBLE, value)
 
 
-def scalar_func(cat_bitmap):
-    return ir.FunctionType(
-        DOUBLE, (INT_CAT if is_cat else DOUBLE for is_cat in cat_bitmap)
-    )
+def gen_forest(forest, module):
+    """
+    Populate the passed IR module with code for the forest.
 
+    Overview of generated IR
+    ---------------------------
+    The forest is represented by the @forest_root function, which is called from Python.
+    This function loops over every row of the input array. For each row:
+    - Load all attributes, cast categorical attributes to INT.
+    - Iteratively call each @tree_<index> function. This function returns a DOUBLE. The results
+      of all @tree_<index> calls are summed up into a result variable.
+    - Result variable is stored in the results array passed by the caller.
 
-def ir_from_ast(forest):
-    module = ir.Module(name="forest")
+    For each tree in the forest there is a @tree_<index> function which takes all attributes as arguments
+
+    For each node there are 0-2 blocks in the @tree_<index> function.
+    - Decision node (categorical): 2 Blocks, 1 for the node, 1 for the categorical bitset-comparison
+    - Decision node (numerical): 1 Block.
+    - Leaf node: 0-1 Blocks. If a decision node has only leaves as children we fuse both leaves into
+      a single switch instr in the decision node's block.
+    Each node cbranches to the child node's block.
+
+    :return: None
+    """
 
     # entry function called from Python
     root_func = ir.Function(
@@ -40,18 +56,18 @@ def ir_from_ast(forest):
         name="forest_root",
     )
 
-    tree_funcs = []
-    for tree in forest.trees:
-        # Declare the function for this tree
-        tree_func = ir.Function(
-            module, scalar_func(tree.categorical_bitmap), name=str(tree)
-        )
-        # add IR
+    def make_tree(tree):
+        # declare the function for this tree
+        func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
+        scalar_func_t = ir.FunctionType(DOUBLE, func_dtypes)
+        tree_func = ir.Function(module, scalar_func_t, name=str(tree))
+        # populate function with IR
         gen_tree(tree, tree_func)
-        tree_funcs.append(tree_func)
-    populate_forest_func(forest, root_func, tree_funcs)
+        return tree_func
 
-    return module
+    tree_funcs = [make_tree(tree) for tree in forest.trees]
+
+    _populate_forest_func(forest, root_func, tree_funcs)
 
 
 def gen_tree(tree, tree_func):
@@ -62,24 +78,24 @@ def gen_tree(tree, tree_func):
 
 def gen_node(func, node_block, node):
     """generate code for node, recursing into children"""
-    if node.is_leaf():
-        gen_leaf_node(node_block, node)
+    if node.is_leaf:
+        _gen_leaf_node(node_block, node)
     else:
-        gen_decision_node(func, node_block, node)
+        _gen_decision_node(func, node_block, node)
 
 
-def gen_leaf_node(node_block, leaf):
+def _gen_leaf_node(node_block, leaf):
     """populate block with leaf's return value"""
     builder = ir.IRBuilder(node_block)
     builder.ret(dconst(leaf.value))
 
 
-def gen_decision_node(func, node_block, node):
+def _gen_decision_node(func, node_block, node):
     """generate code for decision node, recursing into children"""
     builder = ir.IRBuilder(node_block)
 
     # optimization for node where both children are leaves (switch instead of cbranch)
-    is_fused_double_leaf_node = node.left.is_leaf() and node.right.is_leaf()
+    is_fused_double_leaf_node = node.left.is_leaf and node.right.is_leaf
     if is_fused_double_leaf_node:
         left_block = None
         right_block = None
@@ -91,34 +107,32 @@ def gen_decision_node(func, node_block, node):
         left_block = func.append_basic_block(name=str(node.left))
         right_block = func.append_basic_block(name=str(node.right))
 
-    # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
-    # So for MZero, NaNs get treated like missing values.
-    # But for MNone, NaNs get treated as the literal value 0.0.
-    # default_left decides where to go when a missing value is encountered
-
+    # populate this node's block up to the terminal statement
     if node.decision_type.is_categorical:
-        bitset_comp_block = builder.append_basic_block("cat_bitset_comp")
+        bitset_comp_block = builder.append_basic_block(str(node) + "_cat_bitset_comp")
         bitset_builder = ir.IRBuilder(bitset_comp_block)
-        comp = populate_categorical_node_block(
+        comp = _populate_categorical_node_block(
             func, builder, bitset_builder, node, bitset_comp_block, right_block
         )
         builder = bitset_builder
     else:
-        comp = populate_numerical_node_block(func, builder, node)
+        comp = _populate_numerical_node_block(func, builder, node)
 
+    # finalize this node's block with a terminal statement
     if is_fused_double_leaf_node:
         ret = builder.select(comp, dconst(node.left.value), dconst(node.right.value))
         builder.ret(ret)
     else:
         builder.cbranch(comp, left_block, right_block)
 
+    # populate generated child blocks
     if left_block:
         gen_node(func, left_block, node.left)
     if right_block:
         gen_node(func, right_block, node.right)
 
 
-def populate_forest_func(forest, root_func, tree_funcs):
+def _populate_forest_func(forest, root_func, tree_funcs):
     """Populate root function IR for forest"""
     data_arr, out_arr, start_index, end_index = root_func.args
 
@@ -149,9 +163,10 @@ def populate_forest_func(forest, root_func, tree_funcs):
     iter_mul_nargs = builder.mul(loop_iter_reg, n_args)
     idx = (builder.add(iter_mul_nargs, iconst(i)) for i in range(forest.n_args))
     raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
-    for is_cat, ptr in zip(forest.categorical_bitmap, raw_ptrs):
+    # cast the categorical inputs to integer
+    for feature, ptr in zip(forest.features, raw_ptrs):
         el = builder.load(ptr)
-        if is_cat:
+        if feature.is_categorical:
             args.append(builder.fptosi(el, INT_CAT))
         else:
             args.append(el)
@@ -173,7 +188,7 @@ def populate_forest_func(forest, root_func, tree_funcs):
     # -- END TERMINAL BLOCK
 
 
-def populate_categorical_node_block(
+def _populate_categorical_node_block(
     func, builder, bitset_comp_builder, node, bitset_comp_block, right_block
 ):
     """Populate block with IR for categorical node"""
@@ -205,13 +220,17 @@ def populate_categorical_node_block(
     return comp
 
 
-def populate_numerical_node_block(func, builder, node):
+def _populate_numerical_node_block(func, builder, node):
     """populate block with IR for numerical node"""
     val = func.args[node.split_feature]
 
     thresh = ir.Constant(DOUBLE, node.threshold)
     missing_t = node.decision_type.missing_type
 
+    # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
+    # So for MZero, NaNs get treated like missing values.
+    # But for MNone, NaNs get treated as the literal value 0.0.
+    # default_left decides where to go when a missing value is encountered
     # for MNone handle NaNs by adjusting default_left to make sure NaNs go where 0.0 would have gone.
     # for MZero we handle NaNs in the IR
     if node.decision_type.missing_type == MissingType.MNone:
