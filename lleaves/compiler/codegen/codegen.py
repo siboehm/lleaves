@@ -24,10 +24,6 @@ def dconst(value):
     return ir.Constant(DOUBLE, value)
 
 
-def scalar_func(dtypes):
-    return ir.FunctionType(DOUBLE, dtypes)
-
-
 def ir_from_ast(forest):
     module = ir.Module(name="forest")
 
@@ -42,7 +38,8 @@ def ir_from_ast(forest):
     for tree in forest.trees:
         # Declare the function for this tree
         func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
-        tree_func = ir.Function(module, scalar_func(func_dtypes), name=str(tree))
+        scalar_func_t = ir.FunctionType(DOUBLE, func_dtypes)
+        tree_func = ir.Function(module, scalar_func_t, name=str(tree))
         # add IR
         gen_tree(tree, tree_func)
         tree_funcs.append(tree_func)
