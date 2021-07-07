@@ -64,7 +64,6 @@ class Model:
         """
         Returns the number of features used by this model.
         """
-        self._assert_is_compiled()
         return self._num_feature
 
     def compile(self, cache=None):
@@ -104,7 +103,10 @@ class Model:
             this should be set to 1.
         :return: 1D numpy array, dtype float64
         """
-        self._assert_is_compiled()
+        if not self.is_compiled:
+            raise RuntimeError(
+                "Functionality only available after compilation. Run model.compile()."
+            )
 
         # convert all input types to numpy arrays
         data = data_to_ndarray(data, self._pandas_categorical)
@@ -137,9 +139,3 @@ class Model:
                         i,
                     )
         return self.objective_transf(predictions)
-
-    def _assert_is_compiled(self):
-        if not self.is_compiled:
-            raise RuntimeError(
-                "Functionality only available after compilation. Run model.compile()."
-            )
