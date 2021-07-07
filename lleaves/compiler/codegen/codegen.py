@@ -56,15 +56,17 @@ def gen_forest(forest, module):
         name="forest_root",
     )
 
-    tree_funcs = []
-    for tree in forest.trees:
-        # Declare the function for this tree
+    def make_tree(tree):
+        # declare the function for this tree
         func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
         scalar_func_t = ir.FunctionType(DOUBLE, func_dtypes)
         tree_func = ir.Function(module, scalar_func_t, name=str(tree))
-        # add IR
+        # populate function with IR
         gen_tree(tree, tree_func)
-        tree_funcs.append(tree_func)
+        return tree_func
+
+    tree_funcs = [make_tree(tree) for tree in forest.trees]
+
     _populate_forest_func(forest, root_func, tree_funcs)
 
 
@@ -105,11 +107,7 @@ def _gen_decision_node(func, node_block, node):
         left_block = func.append_basic_block(name=str(node.left))
         right_block = func.append_basic_block(name=str(node.right))
 
-    # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
-    # So for MZero, NaNs get treated like missing values.
-    # But for MNone, NaNs get treated as the literal value 0.0.
-    # default_left decides where to go when a missing value is encountered
-
+    # populate this node's block up to the terminal statement
     if node.decision_type.is_categorical:
         bitset_comp_block = builder.append_basic_block(str(node) + "_cat_bitset_comp")
         bitset_builder = ir.IRBuilder(bitset_comp_block)
@@ -120,12 +118,14 @@ def _gen_decision_node(func, node_block, node):
     else:
         comp = _populate_numerical_node_block(func, builder, node)
 
+    # finalize this node's block with a terminal statement
     if is_fused_double_leaf_node:
         ret = builder.select(comp, dconst(node.left.value), dconst(node.right.value))
         builder.ret(ret)
     else:
         builder.cbranch(comp, left_block, right_block)
 
+    # populate generated child blocks
     if left_block:
         gen_node(func, left_block, node.left)
     if right_block:
@@ -227,6 +227,10 @@ def _populate_numerical_node_block(func, builder, node):
     thresh = ir.Constant(DOUBLE, node.threshold)
     missing_t = node.decision_type.missing_type
 
+    # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
+    # So for MZero, NaNs get treated like missing values.
+    # But for MNone, NaNs get treated as the literal value 0.0.
+    # default_left decides where to go when a missing value is encountered
     # for MNone handle NaNs by adjusting default_left to make sure NaNs go where 0.0 would have gone.
     # for MZero we handle NaNs in the IR
     if node.decision_type.missing_type == MissingType.MNone:
