@@ -33,4 +33,4 @@ def compile_to_module(file_path):
     if os.environ.get("LLEAVES_PRINT_OPTIMIZED_IR") == "1":
         print(module)
 
-    return module
+    return module, forest.n_args

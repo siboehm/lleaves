@@ -1,4 +1,5 @@
 import concurrent.futures
+import math
 import os
 from ctypes import CFUNCTYPE, POINTER, c_double, c_int
 from pathlib import Path
@@ -9,7 +10,11 @@ import numpy as np
 from lleaves import compiler
 from lleaves.compiler.ast import scanner
 from lleaves.compiler.objective_funcs import get_objective_func
-from lleaves.data_processing import data_to_ndarray, ndarray_to_1Darray
+from lleaves.data_processing import (
+    data_to_ndarray,
+    extract_pandas_traintime_categories,
+    ndarray_to_1Darray,
+)
 
 ENTRY_FUNC_TYPE = CFUNCTYPE(
     None,  # return void
@@ -28,8 +33,8 @@ class Model:
     # machine-targeted compiler & exec engine.
     _execution_engine = None
 
-    # LLVM IR Module
-    _IR_module: llvm.ModuleRef = None
+    # number of features (=columns)
+    _num_feature = None
 
     # prediction function, drops GIL on entry
     _c_entry_func = None
@@ -43,12 +48,11 @@ class Model:
         self.model_file = model_file
         self.is_compiled = False
 
-        self._pandas_categorical = scanner.scan_for_pandas_categorical(model_file)
+        self._pandas_categorical = extract_pandas_traintime_categories(model_file)
+
         general_info = scanner.scan_model_file(model_file, general_info_only=True)[
             "general_info"
         ]
-        self._num_feature = general_info["max_feature_idx"] + 1
-
         # objective function is implemented as an np.ufunc.
         self.objective_transf = get_objective_func(*general_info["objective"])
 
@@ -56,13 +60,8 @@ class Model:
         """
         Returns the number of features used by this model.
         """
+        self._assert_is_compiled()
         return self._num_feature
-
-    def _get_llvm_module(self):
-        if self._IR_module:
-            return self._IR_module
-        self._IR_module = compiler.compile_to_module(self.model_file)
-        return self._IR_module
 
     def compile(self, cache=None):
         """
@@ -92,6 +91,7 @@ class Model:
         else:
             # when loading binary from cache we use a dummy empty module
             module = llvm.parse_assembly("")
+        module, self._num_feature = compiler.compile_to_module(self.model_file)
 
         # Create execution engine for our module
         self._execution_engine = llvm.create_mcjit_compiler(module, target_machine)
@@ -133,10 +133,7 @@ class Model:
             this should be set to 1.
         :return: 1D numpy array, dtype float64
         """
-        if not self.is_compiled:
-            raise RuntimeError(
-                "Model needs to be compiled before prediction. Run model.compile()."
-            )
+        self._assert_is_compiled()
 
         # convert all input types to numpy arrays
         data = data_to_ndarray(data, self._pandas_categorical)
@@ -156,18 +153,22 @@ class Model:
         if n_jobs == 1:
             self._c_entry_func(ptr_data, ptr_preds, 0, n_predictions)
         else:
-            # math.ceil
-            batchsize = n_predictions // n_jobs + (n_predictions % n_jobs > 0)
-
-            def f(start_idx):
-                self._c_entry_func(
-                    ptr_data,
-                    ptr_preds,
-                    start_idx,
-                    min(start_idx + batchsize, n_predictions),
-                )
-
+            batchsize = math.ceil(n_predictions / n_jobs)
             with concurrent.futures.ThreadPoolExecutor(max_workers=n_jobs) as executor:
                 for i in range(0, n_predictions, batchsize):
-                    executor.submit(f, i)
+                    executor.submit(
+                        lambda start_idx: self._c_entry_func(
+                            ptr_data,
+                            ptr_preds,
+                            start_idx,
+                            min(start_idx + batchsize, n_predictions),
+                        ),
+                        i,
+                    )
         return self.objective_transf(predictions)
+
+    def _assert_is_compiled(self):
+        if not self.is_compiled:
+            raise RuntimeError(
+                "Functionality only available after compilation. Run model.compile()."
+            )

@@ -1,3 +1,5 @@
+import json
+import os
 from typing import List
 
 import numpy as np
@@ -67,6 +69,7 @@ def data_to_ndarray(data, pandas_categorical):
         raise ValueError(
             f"Expecting numpy.ndarray, pandas.DataFrame or Python list, got {type(data)}"
         )
+
     return data
 
 
@@ -82,3 +85,49 @@ def ndarray_to_1Darray(data):
     else:
         data = np.array(data.reshape(data.size), dtype=np.float64)
     return data, n_predictions
+
+
+def extract_pandas_traintime_categories(file_path):
+    """
+    Scan the model.txt from the back to extract the 'pandas_categorical' field.
+
+    This is a list of lists that stores the ordering of categories from the pd.DataFrame used for training.
+    Storing this list is necessary as LightGBM encodes categories as integer indices and we need to guarantee that
+    the mapping (<category string> -> <integer idx>) is the same during inference as it was during training.
+
+    Example (pandas categoricals were present in training):
+    pandas_categorical:[["a", "b", "c"], ["b", "c", "d"], ["w", "x", "y", "z"]]
+    Example (no pandas categoricals during training):
+    pandas_categorical:[] OR pandas_categorical=null
+
+    LightGBM generates this list of lists like so:
+      pandas_categorical = [list(df[col].cat.categories) for col in df.select_dtypes(include=['category']).columns]
+    and stores it via json.dump
+
+    :param file_path: path to model.txt
+    :return: list of list. For each pd.categorical column encountered during training, a list of the categories.
+    """
+    pandas_key = "pandas_categorical:"
+    max_offset = os.path.getsize(file_path)
+    stepsize = min(1024, max_offset - 1)
+    current_offset = stepsize
+    lines = []
+    # seek backwards from end of file until we have two lines
+    # the (pen)ultimate line should be pandas_categorical:XXX
+    with open(file_path, "rb") as f:
+        while len(lines) < 2 and current_offset < max_offset:
+            if current_offset > max_offset:
+                current_offset = max_offset
+            # read <current_offset>-many Bytes from end of file
+            f.seek(-current_offset, os.SEEK_END)
+            lines = f.readlines()
+            current_offset *= 2
+
+    # pandas_categorical has to be present in the ultimate or penultimate line. Else the model.txt is malformed.
+    if len(lines) >= 2:
+        last_line = lines[-1].decode().strip()
+        if not last_line.startswith(pandas_key):
+            last_line = lines[-2].decode().strip()
+        if last_line.startswith(pandas_key):
+            return json.loads(last_line[len(pandas_key) :])
+    raise ValueError("Ill formatted model file!")
