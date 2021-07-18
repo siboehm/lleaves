@@ -4,6 +4,10 @@ import llvmlite.binding as llvm
 
 
 def compile_module_to_asm(module, cache_path=None):
+    # this initializes the per-process LLVM state.
+    # TODO we never call llvm.shutdown(), is this a problem?
+    # the execution engine and its modules are collected by gc once they go out of scope
+    # some parts of the llvm memory are only deallocated once the process exits
     llvm.initialize()
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
