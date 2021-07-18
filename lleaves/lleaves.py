@@ -98,7 +98,7 @@ class Model:
         The model needs to be compiled before prediction.
 
         :param data: Pandas df, numpy 2D array or Python list. Shape should be (n_rows, model.num_feature()).
-            For fastest speed pass 2D float64 numpy arrays only.
+            2D float64 numpy arrays have the lowest overhead.
         :param n_jobs: Number of threads to use for prediction. Defaults to number of CPUs. For single-row prediction
             this should be set to 1.
         :return: 1D numpy array, dtype float64

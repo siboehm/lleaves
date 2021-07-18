@@ -1,10 +1,14 @@
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from lleaves.data_processing import (
+    data_to_ndarray,
     extract_num_feature,
     extract_pandas_traintime_categories,
+    ndarray_to_1Darray,
 )
 
 
@@ -56,3 +60,28 @@ def test_n_args_extract(tmp_path):
     assert extract_num_feature(model_file) == 5
     with pytest.raises(ValueError):
         extract_num_feature(mod_model_file)
+
+
+def test_no_data_modification():
+    # the data shouldn't be modified during conversion
+    data = [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]]
+    for dtype in [np.float32, np.float64, np.int64]:
+        orig = np.array(data, dtype=dtype)
+        pred = np.array(data, dtype=dtype)
+
+        ndarray_to_1Darray(data_to_ndarray(pred))
+
+        np.testing.assert_array_equal(pred, orig)
+        assert pred.dtype == orig.dtype
+
+    for dtype in [np.float32, np.float64, np.int64]:
+        orig = pd.DataFrame(data).astype(dtype)
+        pred = pd.DataFrame(data).astype(dtype)
+        ndarray_to_1Darray(data_to_ndarray(pred, []))
+        pd.testing.assert_frame_equal(pred, orig)
+
+    data = [["a", "b"], ["b", "a"]]
+    orig = pd.DataFrame(data).astype("category")
+    pred = pd.DataFrame(data).astype("category")
+    ndarray_to_1Darray(data_to_ndarray(pred, data))
+    pd.testing.assert_frame_equal(pred, orig)

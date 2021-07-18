@@ -1,6 +1,6 @@
 import json
 import os
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 
@@ -35,12 +35,12 @@ def _dataframe_to_ndarray(data, pd_traintime_categories: List[List]):
             "The categorical columns in the dataset don't match the categorical columns during training!"
             f"Train had {len(pd_traintime_categories)} categorical columns, data has {len(cat_cols)}"
         )
-    for col, category in zip(cat_cols, pd_traintime_categories):
-        # we use set_categories to get the same (category -> code) mapping that we used during train
-        if list(data[col].cat.categories) != list(category):
-            data[col] = data[col].cat.set_categories(category)
-    if len(cat_cols):  # cat_cols is list
+    if len(cat_cols):
         data = data.copy()
+        for col, category in zip(cat_cols, pd_traintime_categories):
+            # we use set_categories to get the same (category -> code) mapping that we used during train
+            if list(data[col].cat.categories) != list(category):
+                data[col] = data[col].cat.set_categories(category)
         # apply (category -> code) mapping. Categories become floats
         data[cat_cols] = (
             data[cat_cols].apply(lambda x: x.cat.codes).replace({-1: np.nan})
@@ -51,7 +51,7 @@ def _dataframe_to_ndarray(data, pd_traintime_categories: List[List]):
     return data
 
 
-def data_to_ndarray(data, pd_traintime_categories: List[List]):
+def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     """
     Convert the given data to a numpy ndarray
 
@@ -75,6 +75,7 @@ def data_to_ndarray(data, pd_traintime_categories: List[List]):
         the number of categorical columns needs to equal ``len(pd_traintime_categories)``.
     :param pd_traintime_categories: For each categorical column in dataframe, a list of its categories.
         The ordering of columns and of categories within each column should match the training dataset.
+        Ignored if data is not a pandas DataFrame.
 
     :return: numpy ndarray
     """
