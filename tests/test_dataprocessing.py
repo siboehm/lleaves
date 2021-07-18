@@ -8,7 +8,7 @@ from lleaves.data_processing import (
     data_to_ndarray,
     extract_num_feature,
     extract_pandas_traintime_categories,
-    ndarray_to_1Darray,
+    ndarray_to_ptr,
 )
 
 
@@ -69,7 +69,7 @@ def test_no_data_modification():
         orig = np.array(data, dtype=dtype)
         pred = np.array(data, dtype=dtype)
 
-        ndarray_to_1Darray(data_to_ndarray(pred))
+        ndarray_to_ptr(data_to_ndarray(pred))
 
         np.testing.assert_array_equal(pred, orig)
         assert pred.dtype == orig.dtype
@@ -77,11 +77,11 @@ def test_no_data_modification():
     for dtype in [np.float32, np.float64, np.int64]:
         orig = pd.DataFrame(data).astype(dtype)
         pred = pd.DataFrame(data).astype(dtype)
-        ndarray_to_1Darray(data_to_ndarray(pred, []))
+        ndarray_to_ptr(data_to_ndarray(pred, []))
         pd.testing.assert_frame_equal(pred, orig)
 
     data = [["a", "b"], ["b", "a"]]
     orig = pd.DataFrame(data).astype("category")
     pred = pd.DataFrame(data).astype("category")
-    ndarray_to_1Darray(data_to_ndarray(pred, data))
+    ndarray_to_ptr(data_to_ndarray(pred, data))
     pd.testing.assert_frame_equal(pred, orig)

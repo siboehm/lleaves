@@ -1,5 +1,6 @@
 import json
 import os
+from ctypes import POINTER, c_double
 from typing import List, Optional
 
 import numpy as np
@@ -93,19 +94,16 @@ def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     return data
 
 
-def ndarray_to_1Darray(data):
+def ndarray_to_ptr(data):
     """
-    Takes a 2D numpy array, flattens it and converts to float64 if necessary
+    Takes a 2D numpy array, converts to float64 if necessary and returns a pointer
 
-    :param data: 2D numpy array.
-    :return: (1D numpy array (dtype float64), number of rows in original data)
+    :param data: 2D numpy array. Copying is avoided if possible.
+    :return: pointer to 1D array of dtype float64.
     """
-    n_predictions = data.shape[0]
-    if data.dtype == np.float64:
-        data = np.array(data.reshape(data.size), dtype=np.float64, copy=False)
-    else:
-        data = np.array(data.reshape(data.size), dtype=np.float64)
-    return data, n_predictions
+    data = data.astype(np.float64, copy=False, casting="same_kind").ravel()
+    ptr = data.ctypes.data_as(POINTER(c_double))
+    return ptr
 
 
 def extract_pandas_traintime_categories(file_path):

@@ -14,7 +14,7 @@ from lleaves.data_processing import (
     data_to_ndarray,
     extract_num_feature,
     extract_pandas_traintime_categories,
-    ndarray_to_1Darray,
+    ndarray_to_ptr,
 )
 from lleaves.llvm_binding import compile_module_to_asm
 
@@ -110,18 +110,16 @@ class Model:
 
         # convert all input types to numpy arrays
         data = data_to_ndarray(data, self._pandas_categorical)
+        n_predictions = data.shape[0]
         if len(data.shape) != 2 or data.shape[1] != self.num_feature():
             raise ValueError(
                 f"Data must be of dimension (N, {self.num_feature()}), is {data.shape}."
             )
 
-        # setup input data
-        data, n_predictions = ndarray_to_1Darray(data)
-        ptr_data = data.ctypes.data_as(POINTER(c_double))
-
-        # setup output data (predictions)
+        # setup input data and predictions array
+        ptr_data = ndarray_to_ptr(data)
         predictions = np.empty(n_predictions, dtype=np.float64)
-        ptr_preds = predictions.ctypes.data_as(POINTER(c_double))
+        ptr_preds = ndarray_to_ptr(predictions)
 
         if n_jobs == 1:
             self._c_entry_func(ptr_data, ptr_preds, 0, n_predictions)
