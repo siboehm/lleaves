@@ -8,31 +8,40 @@ It doesn't implement any transformations (expect for type casting).
 def scan_model_file(file_path, general_info_only=False):
     res = {"trees": []}
 
-    with open(file_path, "r") as f:
-        # List of blocks we expect:
-        # 1* General Information
-        # N* Tree, one block for each tree
-        # 1* 'end of trees'
-        # 1* Feature importances
-        # 1* Parameters
-        # 1* 'end of parameters'
-        # 1* 'pandas_categorical:XXXXX'
-        lines = _get_next_block_of_lines(f)
-        assert lines[0] == "tree" and lines[1].startswith(
-            "version="
-        ), f"{file_path} is not a LightGBM model file"
-        res["general_info"] = _scan_block(lines, INPUT_SCAN_KEYS)
-        if general_info_only:
-            return res
+    def read_blocks(file_path):
+        with open(file_path, "r") as f:
+            while True:
+                lines = _get_next_block_of_lines(f)
+                if lines:
+                    yield lines
+                else:
+                    break
 
-        lines = _get_next_block_of_lines(f)
-        while lines:
-            if lines[0].startswith("Tree="):
-                res["trees"].append(_scan_tree(lines))
-            else:
-                assert lines[0] == "end of trees"
-                break
-            lines = _get_next_block_of_lines(f)
+    blocks = read_blocks(file_path)
+    # List of blocks we expect:
+    # 1* General Information
+    # N* Tree, one block for each tree
+    # 1* 'end of trees'
+    # followed by these ignored blocks:
+    # 1* Feature importances
+    # 1* Parameters
+    # 1* 'end of parameters'
+    # 1* 'pandas_categorical:XXXXX'
+
+    general_info_block = next(blocks)
+    assert general_info_block[0] == "tree" and general_info_block[1].startswith(
+        "version="
+    ), f"{file_path} is not a LightGBM model file"
+    res["general_info"] = _scan_block(general_info_block, INPUT_SCAN_KEYS)
+    if general_info_only:
+        return res
+
+    for block in blocks:
+        if block[0].startswith("Tree="):
+            res["trees"].append(_scan_tree(block))
+        else:
+            assert block[0] == "end of trees"
+            break
     return res
 
 

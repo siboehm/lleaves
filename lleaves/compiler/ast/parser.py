@@ -11,7 +11,7 @@ It builds up the Graph for the DecisionTree-Forest, consisting of decision-nodes
 
 class Feature:
     """
-    Represents on feature (= column) that is passed to the tree function or forest function.
+    Represents one feature (= column) that is passed to the tree function or forest function.
     """
 
     def __init__(self, is_categorical):

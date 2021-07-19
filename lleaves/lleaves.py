@@ -14,7 +14,7 @@ from lleaves.data_processing import (
     data_to_ndarray,
     extract_num_feature,
     extract_pandas_traintime_categories,
-    ndarray_to_1Darray,
+    ndarray_to_ptr,
 )
 from lleaves.llvm_binding import compile_module_to_asm
 
@@ -70,6 +70,8 @@ class Model:
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
+        This method may not be thread-safe in all cases.
+
         :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
                       If path exists, binary will be loaded and compilation skipped.
                       No effort is made to check staleness / consistency.
@@ -98,7 +100,7 @@ class Model:
         The model needs to be compiled before prediction.
 
         :param data: Pandas df, numpy 2D array or Python list. Shape should be (n_rows, model.num_feature()).
-            For fastest speed pass 2D float64 numpy arrays only.
+            2D float64 numpy arrays have the lowest overhead.
         :param n_jobs: Number of threads to use for prediction. Defaults to number of CPUs. For single-row prediction
             this should be set to 1.
         :return: 1D numpy array, dtype float64
@@ -110,18 +112,16 @@ class Model:
 
         # convert all input types to numpy arrays
         data = data_to_ndarray(data, self._pandas_categorical)
+        n_predictions = data.shape[0]
         if len(data.shape) != 2 or data.shape[1] != self.num_feature():
             raise ValueError(
                 f"Data must be of dimension (N, {self.num_feature()}), is {data.shape}."
             )
 
-        # setup input data
-        data, n_predictions = ndarray_to_1Darray(data)
-        ptr_data = data.ctypes.data_as(POINTER(c_double))
-
-        # setup output data (predictions)
+        # setup input data and predictions array
+        ptr_data = ndarray_to_ptr(data)
         predictions = np.empty(n_predictions, dtype=np.float64)
-        ptr_preds = predictions.ctypes.data_as(POINTER(c_double))
+        ptr_preds = ndarray_to_ptr(predictions)
 
         if n_jobs == 1:
             self._c_entry_func(ptr_data, ptr_preds, 0, n_predictions)

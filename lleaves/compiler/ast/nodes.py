@@ -3,10 +3,6 @@ from lleaves.compiler.utils import DecisionType
 
 class Forest:
     def __init__(self, trees: list, features: list):
-        """
-        :param trees: list of trees
-        :param features: list of entries of type Feature.
-        """
         self.trees = trees
         self.n_args = len(features)
         self.features = features
