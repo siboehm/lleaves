@@ -101,6 +101,7 @@ def ndarray_to_ptr(data):
     :param data: 2D numpy array. Copying is avoided if possible.
     :return: pointer to 1D array of dtype float64.
     """
+    # ravel makes sure we get a contiguous array in memory and not some strided View
     data = data.astype(np.float64, copy=False, casting="same_kind").ravel()
     ptr = data.ctypes.data_as(POINTER(c_double))
     return ptr

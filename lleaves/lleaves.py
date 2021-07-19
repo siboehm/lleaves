@@ -70,6 +70,8 @@ class Model:
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
+        This method may not be thread-safe in all cases.
+
         :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
                       If path exists, binary will be loaded and compilation skipped.
                       No effort is made to check staleness / consistency.
