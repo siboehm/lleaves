@@ -87,7 +87,11 @@ def _parse_tree_to_ast(tree_struct, features):
 
 def parse_to_ast(model_path):
     scanned_model = scan_model_file(model_path)
+
     n_args = scanned_model["general_info"]["max_feature_idx"] + 1
+    objective = scanned_model["general_info"]["objective"]
+    objective_func = objective[0]
+    objective_func_config = objective[1] if len(objective) > 1 else None
     features = [
         Feature(is_categorical_feature(x))
         for x in scanned_model["general_info"]["feature_infos"]
@@ -98,7 +102,7 @@ def parse_to_ast(model_path):
         _parse_tree_to_ast(tree_struct, features)
         for tree_struct in scanned_model["trees"]
     ]
-    return Forest(trees, features)
+    return Forest(trees, features, objective_func, objective_func_config)
 
 
 def is_categorical_feature(feature_info: str):
