@@ -170,16 +170,24 @@ def _populate_forest_func(forest, root_func, tree_funcs):
             args.append(builder.fptosi(el, INT_CAT))
         else:
             args.append(el)
-    # iterate over each tree, sum up results
-    res = builder.call(tree_funcs[0], args)
-    for func in tree_funcs[1:]:
+    # iterate over each tree, store result in vector
+    res_vector_t = ir.VectorType(DOUBLE, len(tree_funcs))
+    res_vector = ir.Constant(res_vector_t, ir.Undefined)
+    for i, func in enumerate(tree_funcs):
         # could be inlined, but optimizer does for us
         tree_res = builder.call(func, args)
-        res = builder.fadd(tree_res, res)
-    ptr = builder.gep(out_arr, (loop_iter_reg,))
+        res_vector = builder.insert_element(res_vector, tree_res, iconst(i))
+    # reduce vector and call objective function
+    vector_fadd = builder.module.declare_intrinsic(
+        f"llvm.experimental.vector.reduce.v2.fadd.f64.v{len(tree_funcs)}f64",
+        fnty=ir.FunctionType(DOUBLE, (DOUBLE, res_vector_t)),
+    )
+    res = builder.call(vector_fadd, [dconst(0.0), res_vector])
     res = _populate_objective_func_block(
         builder, res, forest.objective_func, forest.objective_func_config
     )
+
+    ptr = builder.gep(out_arr, (loop_iter_reg,))
     builder.store(res, ptr)
     tmpp1 = builder.add(loop_iter_reg, iconst(1))
     builder.store(tmpp1, loop_iter)
