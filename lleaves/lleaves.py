@@ -8,8 +8,6 @@ import llvmlite.binding
 import numpy as np
 
 from lleaves import compiler
-from lleaves.compiler.ast import scanner
-from lleaves.compiler.objective_funcs import get_objective_func
 from lleaves.data_processing import (
     data_to_ndarray,
     extract_num_feature,
@@ -53,12 +51,6 @@ class Model:
 
         self._pandas_categorical = extract_pandas_traintime_categories(model_file)
         self._num_feature = extract_num_feature(model_file)
-
-        general_info = scanner.scan_model_file(model_file, general_info_only=True)[
-            "general_info"
-        ]
-        # objective function is implemented as an np.ufunc.
-        self.objective_transf = get_objective_func(*general_info["objective"])
 
     def num_feature(self):
         """
@@ -138,4 +130,4 @@ class Model:
                         ),
                         i,
                     )
-        return self.objective_transf(predictions)
+        return predictions

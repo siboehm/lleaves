@@ -2,10 +2,18 @@ from lleaves.compiler.utils import DecisionType
 
 
 class Forest:
-    def __init__(self, trees: list, features: list):
+    def __init__(
+        self,
+        trees: list,
+        features: list,
+        objective_func: str,
+        objective_func_config: str,
+    ):
         self.trees = trees
         self.n_args = len(features)
         self.features = features
+        self.objective_func = objective_func
+        self.objective_func_config = objective_func_config
 
 
 class Tree:

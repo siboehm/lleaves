@@ -1,6 +1,6 @@
 from llvmlite import ir
 
-from lleaves.compiler.utils import MissingType
+from lleaves.compiler.utils import ISSUE_ERROR_MSG, MissingType
 
 BOOL = ir.IntType(bits=1)
 DOUBLE = ir.DoubleType()
@@ -177,6 +177,9 @@ def _populate_forest_func(forest, root_func, tree_funcs):
         tree_res = builder.call(func, args)
         res = builder.fadd(tree_res, res)
     ptr = builder.gep(out_arr, (loop_iter_reg,))
+    res = _populate_objective_func_block(
+        builder, res, forest.objective_func, forest.objective_func_config
+    )
     builder.store(res, ptr)
     tmpp1 = builder.add(loop_iter_reg, iconst(1))
     builder.store(tmpp1, loop_iter)
@@ -186,6 +189,60 @@ def _populate_forest_func(forest, root_func, tree_funcs):
     # -- TERMINAL BLOCK
     ir.IRBuilder(term_block).ret_void()
     # -- END TERMINAL BLOCK
+
+
+def _populate_objective_func_block(
+    builder, input, objective: str, objective_config: str
+):
+    """
+    Takes the objective function specification and generates the code for it into the builder
+    """
+    llvm_exp = builder.module.declare_intrinsic("llvm.exp", (DOUBLE,))
+    llvm_log = builder.module.declare_intrinsic("llvm.log", (DOUBLE,))
+    llvm_copysign = builder.module.declare_intrinsic(
+        "llvm.copysign", (DOUBLE, DOUBLE), ir.FunctionType(DOUBLE, (DOUBLE, DOUBLE))
+    )
+
+    def _populate_sigmoid(alpha):
+        if alpha <= 0:
+            raise ValueError(f"Sigmoid parameter needs to be >0, is {alpha}")
+
+        # 1 / (1 + exp(- alpha * x))
+        inner = builder.fmul(dconst(-alpha), input)
+        exp = builder.call(llvm_exp, [inner])
+        denom = builder.fadd(dconst(1.0), exp)
+        return builder.fdiv(dconst(1.0), denom)
+
+    if objective == "binary":
+        alpha = objective_config.split(":")[1]
+        return _populate_sigmoid(float(alpha))
+    elif objective in ("xentropy", "cross_entropy"):
+        return _populate_sigmoid(1.0)
+    elif objective in ("xentlambda", "cross_entropy_lambda"):
+        # naive implementation which will be numerically unstable for small x.
+        # should be changed to log1p
+        exp = builder.call(llvm_exp, [input])
+        return builder.call(llvm_log, [builder.fadd(dconst(1.0), exp)])
+    elif objective in ("poisson", "gamma", "tweedie"):
+        return builder.call(llvm_exp, [input])
+    elif objective in (
+        "regression",
+        "regression_l1",
+        "huber",
+        "fair",
+        "quantile",
+        "mape",
+    ):
+        if objective_config and "sqrt" in objective_config:
+            return builder.call(llvm_copysign, [builder.fmul(input, input), input])
+        else:
+            return input
+    elif objective in ("lambdarank", "rank_xendcg", "custom"):
+        return input
+    else:
+        raise ValueError(
+            f"Objective '{objective}' not yet implemented. {ISSUE_ERROR_MSG}"
+        )
 
 
 def _populate_categorical_node_block(
