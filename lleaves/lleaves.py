@@ -112,7 +112,7 @@ class Model:
 
         # setup input data and predictions array
         ptr_data = ndarray_to_ptr(data)
-        predictions = np.empty(n_predictions, dtype=np.float64)
+        predictions = np.zeros(n_predictions, dtype=np.float64)
         ptr_preds = ndarray_to_ptr(predictions)
 
         if n_jobs == 1:

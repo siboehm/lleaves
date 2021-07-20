@@ -55,43 +55,35 @@ def gen_forest(forest, module):
         ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, DOUBLE_PTR, INT, INT)),
         name="forest_root",
     )
+    setup_block = root_func.append_basic_block("setup")
 
-    def make_tree(tree):
-        # declare the function for this tree
-        func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
-        scalar_func_t = ir.FunctionType(DOUBLE, func_dtypes)
-        tree_func = ir.Function(module, scalar_func_t, name=str(tree))
-        tree_func.linkage = "private"
-        # populate function with IR
-        gen_tree(tree, tree_func)
-        return tree_func
+    tree_blocks = [root_func.append_basic_block(str(tree)) for tree in forest.trees]
 
-    tree_funcs = [make_tree(tree) for tree in forest.trees]
-
-    _populate_forest_func(forest, root_func, tree_funcs)
+    _populate_forest_func(forest, root_func, setup_block, tree_blocks)
 
 
-def gen_tree(tree, tree_func):
+def gen_tree(tree, root_func, tree_block, next_block, args, res_ptr):
     """generate code for tree given the function, recursing into nodes"""
-    node_block = tree_func.append_basic_block(name=str(tree.root_node))
-    gen_node(tree_func, node_block, tree.root_node)
+    gen_node(root_func, tree_block, next_block, tree.root_node, args, res_ptr)
 
 
-def gen_node(func, node_block, node):
+def gen_node(func, node_block, next_block, node, args, res_ptr):
     """generate code for node, recursing into children"""
     if node.is_leaf:
-        _gen_leaf_node(node_block, node)
+        _gen_leaf_node(node_block, next_block, node, res_ptr)
     else:
-        _gen_decision_node(func, node_block, node)
+        _gen_decision_node(func, node_block, next_block, node, args, res_ptr)
 
 
-def _gen_leaf_node(node_block, leaf):
+def _gen_leaf_node(node_block, next_block, leaf, res_ptr):
     """populate block with leaf's return value"""
     builder = ir.IRBuilder(node_block)
-    builder.ret(dconst(leaf.value))
+    res = builder.load(res_ptr)
+    builder.store(builder.fadd(dconst(leaf.value), res), res_ptr)
+    builder.branch(next_block)
 
 
-def _gen_decision_node(func, node_block, node):
+def _gen_decision_node(func, node_block, next_block, node, args, res_ptr):
     """generate code for decision node, recursing into children"""
     builder = ir.IRBuilder(node_block)
 
@@ -113,32 +105,33 @@ def _gen_decision_node(func, node_block, node):
         bitset_comp_block = builder.append_basic_block(str(node) + "_cat_bitset_comp")
         bitset_builder = ir.IRBuilder(bitset_comp_block)
         comp = _populate_categorical_node_block(
-            func, builder, bitset_builder, node, bitset_comp_block, right_block
+            args, builder, bitset_builder, node, bitset_comp_block, right_block
         )
         builder = bitset_builder
     else:
-        comp = _populate_numerical_node_block(func, builder, node)
+        comp = _populate_numerical_node_block(args, builder, node)
 
     # finalize this node's block with a terminal statement
     if is_fused_double_leaf_node:
         ret = builder.select(comp, dconst(node.left.value), dconst(node.right.value))
-        builder.ret(ret)
+        res = builder.load(res_ptr)
+        builder.store(builder.fadd(res, ret), res_ptr)
+        builder.branch(next_block)
     else:
         builder.cbranch(comp, left_block, right_block)
 
     # populate generated child blocks
     if left_block:
-        gen_node(func, left_block, node.left)
+        gen_node(func, left_block, next_block, node.left, args, res_ptr)
     if right_block:
-        gen_node(func, right_block, node.right)
+        gen_node(func, right_block, next_block, node.right, args, res_ptr)
 
 
-def _populate_forest_func(forest, root_func, tree_funcs):
+def _populate_forest_func(forest, root_func, setup_block, tree_blocks):
     """Populate root function IR for forest"""
     data_arr, out_arr, start_index, end_index = root_func.args
 
     # -- SETUP BLOCK
-    setup_block = root_func.append_basic_block("setup")
     builder = ir.IRBuilder(setup_block)
     loop_iter = builder.alloca(INT, 1, "loop-idx")
     builder.store(start_index, loop_iter)
@@ -165,23 +158,33 @@ def _populate_forest_func(forest, root_func, tree_funcs):
     idx = (builder.add(iter_mul_nargs, iconst(i)) for i in range(forest.n_args))
     raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
     # cast the categorical inputs to integer
-    for feature, ptr in zip(forest.features, raw_ptrs):
-        el = builder.load(ptr)
+    for feature, res_ptr in zip(forest.features, raw_ptrs):
+        el = builder.load(res_ptr)
         if feature.is_categorical:
             args.append(builder.fptosi(el, INT_CAT))
         else:
             args.append(el)
     # iterate over each tree, sum up results
-    res = builder.call(tree_funcs[0], args)
-    for func in tree_funcs[1:]:
-        # could be inlined, but optimizer does for us
-        tree_res = builder.call(func, args)
-        res = builder.fadd(tree_res, res)
-    ptr = builder.gep(out_arr, (loop_iter_reg,))
+    res_ptr = builder.gep(out_arr, (loop_iter_reg,))
+    output_block = builder.append_basic_block()
+
+    def make_tree(tree, i):
+        tree_block = tree_blocks[i]
+        next_block = tree_blocks[i + 1] if i < len(tree_blocks) - 1 else output_block
+        # populate function with IR
+        gen_tree(tree, root_func, tree_block, next_block, args, res_ptr)
+
+    for i, tree in enumerate(forest.trees):
+        make_tree(tree, i)
+
+    builder.branch(tree_blocks[0])
+
+    builder = ir.IRBuilder(output_block)
+    res = builder.load(res_ptr)
     res = _populate_objective_func_block(
         builder, res, forest.objective_func, forest.objective_func_config
     )
-    builder.store(res, ptr)
+    builder.store(res, res_ptr)
     tmpp1 = builder.add(loop_iter_reg, iconst(1))
     builder.store(tmpp1, loop_iter)
     builder.branch(condition_block)
@@ -247,10 +250,10 @@ def _populate_objective_func_block(
 
 
 def _populate_categorical_node_block(
-    func, builder, bitset_comp_builder, node, bitset_comp_block, right_block
+    args, builder, bitset_comp_builder, node, bitset_comp_block, right_block
 ):
     """Populate block with IR for categorical node"""
-    val = func.args[node.split_feature]
+    val = args[node.split_feature]
 
     # For categoricals, processing NaNs happens through casting them via fptosi in the Forest root
     # NaNs become negative max_val, which never exists in the Bitset, so they always go right
@@ -278,9 +281,9 @@ def _populate_categorical_node_block(
     return comp
 
 
-def _populate_numerical_node_block(func, builder, node):
+def _populate_numerical_node_block(args, builder, node):
     """populate block with IR for numerical node"""
-    val = func.args[node.split_feature]
+    val = args[node.split_feature]
 
     thresh = ir.Constant(DOUBLE, node.threshold)
     missing_t = node.decision_type.missing_type
