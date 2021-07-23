@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import llvmlite.binding as llvm
@@ -35,4 +36,8 @@ def compile_module_to_asm(module, cache_path=None):
     # compile IR to ASM
     execution_engine.finalize_object()
     execution_engine.run_static_constructors()
+
+    if os.environ.get("LLEAVES_PRINT_ASM") == "1":
+        print(target_machine.emit_assembly(module))
+
     return execution_engine
