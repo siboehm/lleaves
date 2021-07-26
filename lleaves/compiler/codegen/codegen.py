@@ -61,6 +61,7 @@ def gen_forest(forest, module):
         func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
         scalar_func_t = ir.FunctionType(DOUBLE, func_dtypes)
         tree_func = ir.Function(module, scalar_func_t, name=str(tree))
+        tree_func.linkage = "private"
         # populate function with IR
         gen_tree(tree, tree_func)
         return tree_func
