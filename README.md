@@ -44,7 +44,7 @@ mostly numerical features.
 
 ### Dataset: [MTPL2](https://www.openml.org/d/41214)
 mix of categorical and numerical features.
-|batchsize   | 10,000  | 100,000  |1,000,000 |
+|batchsize   | 10,000  | 100,000  | 678,000 |
 |---|---:|---:|---:|
 |LightGBM   | 95.14ms | 992.472ms   | 7034.65ms  |
 |ONNX   | 38.83ms  | 381.40ms  | 2849.42ms  |

@@ -22,6 +22,10 @@ dependencies:
   - setuptools-scm
   # benchmarks
   - treelite
+  - compilers
   - onnxruntime
+  - cmake
+  - libcnpy
+  - pip
   - pip:
       - "git+git://github.com/onnx/onnxmltools@master"

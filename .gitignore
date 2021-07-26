@@ -3,6 +3,8 @@
 
 # data
 benchmarks/data
+# compile models
+benchmarks/c_bench/*.o
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
