@@ -4,21 +4,42 @@ from pathlib import Path
 import llvmlite.binding as llvm
 
 
-def compile_module_to_asm(module, cache_path=None):
-    # this initializes the per-process LLVM state.
+def _initialize_llvm():
+    # this initializes the per-process LLVM state. It's save to call multiple times.
     # TODO we never call llvm.shutdown(), is this a problem?
-    # the execution engine and its modules are collected by gc once they go out of scope
     # some parts of the llvm memory are only deallocated once the process exits
     llvm.initialize()
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
 
+
+def _get_target_machine():
+    target = llvm.Target.from_triple(llvm.get_process_triple())
+    try:
+        # LLVM raises if features cannot be detected
+        features = llvm.get_host_cpu_features().flatten()
+    except RuntimeError:
+        features = ""
+
+    # similar to Numba's AOT configuration
+    target_machine = target.create_target_machine(
+        cpu=llvm.get_host_cpu_name(),
+        features=features,
+        reloc="pic",
+        codemodel="default",
+    )
+    return target_machine
+
+
+def compile_module_to_asm(module, cache_path=None):
+    _initialize_llvm()
+
     # Create a target machine representing the host
-    target = llvm.Target.from_default_triple()
-    target_machine = target.create_target_machine()
+    target_machine = _get_target_machine()
 
     # Create execution engine for our module
     execution_engine = llvm.create_mcjit_compiler(module, target_machine)
+    module.data_layout = str(execution_engine.target_data)
 
     # when caching we dump the executable once the module finished compiling
     # we only ever have one module, hence we can ignore the 'llvm_module' parameter

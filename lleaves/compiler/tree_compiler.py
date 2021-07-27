@@ -13,7 +13,9 @@ def compile_to_module(file_path, inline=True):
     ir = llvmlite.ir.Module(name="forest")
     gen_forest(forest, ir)
 
+    ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
+    module.name = str(file_path)
     module.verify()
 
     if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
