@@ -133,12 +133,12 @@ def _gen_decision_node(func, node_block, node):
         gen_node(func, right_block, node.right)
 
 
-def _populate_forest_func(forest, root_func, tree_funcs):
-    """Populate root function IR for forest"""
+def _populate_instruction_block(
+    forest, root_func, tree_funcs, setup_block, next_block, eval_obj_func
+):
     data_arr, out_arr, start_index, end_index = root_func.args
 
     # -- SETUP BLOCK
-    setup_block = root_func.append_basic_block("setup")
     builder = ir.IRBuilder(setup_block)
     loop_iter = builder.alloca(INT, 1, "loop-idx")
     builder.store(start_index, loop_iter)
@@ -150,8 +150,7 @@ def _populate_forest_func(forest, root_func, tree_funcs):
     builder = ir.IRBuilder(condition_block)
     comp = builder.icmp_signed("<", builder.load(loop_iter), end_index)
     core_block = root_func.append_basic_block("loop-core")
-    term_block = root_func.append_basic_block("term")
-    builder.cbranch(comp, core_block, term_block)
+    builder.cbranch(comp, core_block, next_block)
     # -- END CONDITION BLOCK
 
     # -- CORE LOOP BLOCK
@@ -174,22 +173,37 @@ def _populate_forest_func(forest, root_func, tree_funcs):
     # iterate over each tree, sum up results
     res = builder.call(tree_funcs[0], args)
     for func in tree_funcs[1:]:
-        # could be inlined, but optimizer does for us
         tree_res = builder.call(func, args)
         res = builder.fadd(tree_res, res)
     ptr = builder.gep(out_arr, (loop_iter_reg,))
-    res = _populate_objective_func_block(
-        builder, res, forest.objective_func, forest.objective_func_config
-    )
+    res = builder.fadd(res, builder.load(ptr))
+    if eval_obj_func:
+        res = _populate_objective_func_block(
+            builder, res, forest.objective_func, forest.objective_func_config
+        )
     builder.store(res, ptr)
     tmpp1 = builder.add(loop_iter_reg, iconst(1))
     builder.store(tmpp1, loop_iter)
     builder.branch(condition_block)
     # -- END CORE LOOP BLOCK
 
-    # -- TERMINAL BLOCK
+
+def _populate_forest_func(forest, root_func, tree_funcs):
+    """Populate root function IR for forest"""
+
+    n_funcs_per_block = 34
+    instr_blocks = [
+        (root_func.append_basic_block("setup"), tree_funcs[i : i + n_funcs_per_block])
+        for i in range(0, len(tree_funcs), n_funcs_per_block)
+    ]
+    term_block = root_func.append_basic_block("term")
     ir.IRBuilder(term_block).ret_void()
-    # -- END TERMINAL BLOCK
+    for i, (setup_block, funcs) in enumerate(instr_blocks):
+        next_block = instr_blocks[i + 1][0] if i < len(instr_blocks) - 1 else term_block
+        eval_objective_func = next_block == term_block
+        _populate_instruction_block(
+            forest, root_func, funcs, setup_block, next_block, eval_objective_func
+        )
 
 
 def _populate_objective_func_block(
