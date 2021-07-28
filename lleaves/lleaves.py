@@ -58,7 +58,7 @@ class Model:
         """
         return self._num_feature
 
-    def compile(self, cache=None, quick=True):
+    def compile(self, cache=None):
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
@@ -68,13 +68,10 @@ class Model:
                       If path exists, binary will be loaded and compilation skipped.
                       No effort is made to check staleness / consistency.
                       The precise workings of the cache parameter will be subject to future changes.
-        :param quick: If True, disable some optimization to compile more quickly.
-                      If False, enable all optimizations.
-                      Commonly enabling all optimizations takes 10x more time to compile, but the model runs 2x as fast.
         """
 
         if cache is None or not Path(cache).exists():
-            module = compiler.compile_to_module(self.model_file, inline=not quick)
+            module = compiler.compile_to_module(self.model_file)
         else:
             # when loading binary from cache we use a dummy empty module
             module = llvmlite.binding.parse_assembly("")

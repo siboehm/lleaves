@@ -53,7 +53,7 @@ class LLVMModel(BenchmarkModel):
 
     def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)
-        self.model.compile(quick=False)
+        self.model.compile()
 
 
 class LLVMModelSingle(BenchmarkModel):
@@ -61,7 +61,7 @@ class LLVMModelSingle(BenchmarkModel):
 
     def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)
-        self.model.compile(quick=False)
+        self.model.compile()
 
     def predict(self, data, index, batchsize, n_threads):
         return self.model.predict(data[index : index + batchsize], n_jobs=1)

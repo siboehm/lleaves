@@ -7,7 +7,7 @@ from lleaves.compiler.ast import parse_to_ast
 from lleaves.compiler.codegen import gen_forest
 
 
-def compile_to_module(file_path, inline=True):
+def compile_to_module(file_path):
     forest = parse_to_ast(file_path)
 
     ir = llvmlite.ir.Module(name="forest")
@@ -25,8 +25,7 @@ def compile_to_module(file_path, inline=True):
     pmb = llvm.PassManagerBuilder()
     pmb.opt_level = 3
     # if inline_threshold is set LLVM inlines, precise value doesn't seem to matter
-    if inline:
-        pmb.inlining_threshold = 1
+    pmb.inlining_threshold = 1
     pm_module = llvm.ModulePassManager()
     # Add optimization passes to module-level optimizer
     pmb.populate(pm_module)
