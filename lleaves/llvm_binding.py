@@ -21,12 +21,13 @@ def _get_target_machine():
     except RuntimeError:
         features = ""
 
-    # similar to Numba's AOT configuration
+    # large codemodel is necessary for large, ~1000 tree models.
+    # for smaller models "default" codemodel would be faster.
     target_machine = target.create_target_machine(
         cpu=llvm.get_host_cpu_name(),
         features=features,
         reloc="pic",
-        codemodel="default",
+        codemodel="large",
     )
     return target_machine
 
