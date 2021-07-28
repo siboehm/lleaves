@@ -4,19 +4,19 @@
 
 A LLVM-based compiler for LightGBM decision trees.
 
-`lleaves` converts trained LightGBM models to optimized machine code, speeding-up inference by up to 10x.
+`lleaves` converts trained LightGBM models to optimized machine code, speeding-up inference by ≥10x.
 
 ## Example
 
 ```python
-lgbm_model = lightgbm.Model(model_file="NYC_taxi/model.txt")
+lgbm_model = lightgbm.Booster(model_file="NYC_taxi/model.txt")
 %timeit lgbm_model.predict(df)
-# 11.6 s ± 442 ms
+# 12.77s
 
 llvm_model = lleaves.Model(model_file="NYC_taxi/model.txt")
 llvm_model.compile()
 %timeit llvm_model.predict(df)
-# 1.84 s ± 68.7 ms
+# 0.90s 
 ```
 
 ## Why lleaves?
@@ -26,20 +26,30 @@ llvm_model.compile()
 
 Some LightGBM features are not yet implemented: multiclass prediction, linear models.
 
-
 ## Installation
 `conda install -c conda-forge lleaves` or `pip install lleaves` (Linux and MacOS only).
 
 ## Benchmarks
-Ran on Intel Xeon Haswell, 8vCPUs.
-Some of the variance is due to performance interference.
+Ran on a dedicated Intel i7-4770 Haswell, 4 cores.
+Stated runtime is the minimum over 20.000 runs.
 
-Datasets: NYC-taxi (mostly numerical features), Airlines (categorical features with high cardinality)
+### Dataset: NYC-taxi 
+mostly numerical features
+|batchsize   | 1  | 10| 100 |
+|---|---:|---:|---:|
+|LightGBM   | 52.31μs   | 84.46μs   | 441.15μs |
+|Treelite   | 28.03μs   | 40.81μs   | 94.14μs  |
+|ONNX   | 11.00μs | 36.74μs | 190.87μs  |
+|lleaves   | 9.61μs | 14.06μs | 31.88μs  |
 
-#### Small batches (single-threaded)
-![benchmark small batches](https://raw.githubusercontent.com/siboehm/lleaves/master/benchmarks/1.png)
-#### Large batches (multi-threaded)
-![benchmark large batches](https://raw.githubusercontent.com/siboehm/lleaves/master/benchmarks/4.png)
+### Dataset: MTPL2 
+mix of categorical and numerical features
+|batchsize   | 10,000  | 100,000  |1,000,000 |
+|---|---:|---:|---:|
+|LightGBM   | 95.14ms | 992.472ms   | 7034.65ms  |
+|ONNX   | 38.83ms  | 381.40ms  | 2849.42ms  |
+|Treelite   | 38.15ms | 414.15ms  | 2854.10ms  |
+|lleaves  | 5.90ms  | 56.96ms | 388.88ms |
 
 ## Development
 ```bash
@@ -49,5 +59,5 @@ pip install -e .
 pre-commit install
 pytest
 # (optional) benchmark dependencies
-conda install treelite onnxruntime onnxmltools seaborn
+conda install -c conda-forge treelite onnxruntime onnxmltools seaborn
 ```
