@@ -1,16 +1,11 @@
 import os
-import pickle
 import time
-from pathlib import Path
-from statistics import mean, pstdev
 
 import lightgbm
-import matplotlib.pyplot as plt
 import numpy as np
 import onnxmltools
 import onnxruntime as rt
 import pandas as pd
-import seaborn
 import treelite
 import treelite_runtime
 from onnxconverter_common import FloatTensorType
@@ -54,17 +49,6 @@ class LLVMModel(BenchmarkModel):
     def _setup(self, data, n_threads):
         self.model = Model(model_file=self.model_file)
         self.model.compile()
-
-
-class LLVMModelSingle(BenchmarkModel):
-    name = "lleaves (single-threaded)"
-
-    def _setup(self, data, n_threads):
-        self.model = Model(model_file=self.model_file)
-        self.model.compile()
-
-    def predict(self, data, index, batchsize, n_threads):
-        return self.model.predict(data[index : index + batchsize], n_jobs=1)
 
 
 class TreeliteModel(BenchmarkModel):
@@ -120,50 +104,6 @@ class ONNXModel(BenchmarkModel):
         )
 
 
-def get_color(libname):
-    libkey = libname.lower()
-    d = {
-        "lleaves": "red",
-        "lightgbm": "sandybrown",
-        "treelite": "mediumseagreen",
-        "onnx": "cornflowerblue",
-    }
-    for key, value in d.items():
-        if key in libkey:
-            return value
-
-
-def save_plots(results_full, n_threads, model_files, batchsizes):
-    for n_thread in n_threads:
-        fig, axs = plt.subplots(ncols=2, nrows=1)
-        fig.set_size_inches(16, 9)
-        keys = sorted(results_full.keys())
-        for count, model_file in enumerate(model_files):
-            model_name = model_file.split("/")[-2]
-            for key in keys:
-                if key.startswith(f"{model_name}_{n_thread}"):
-                    if "(single-threaded)" in key:
-                        continue
-                    seaborn.lineplot(
-                        x="batchsize",
-                        y="time (μs)",
-                        ci="sd",
-                        data=results_full[key],
-                        ax=axs[count],
-                        color=get_color(key),
-                        label=key.split("_")[3] if count == 0 else None,
-                    )
-            axs[count].set(
-                xscale="log",
-                yscale="log",
-                title=model_name,
-                xticks=batchsizes,
-                xticklabels=batchsizes,
-                xlim=(1, None) if n_thread == 1 else None,
-            )
-        plt.savefig(f"{n_thread}.png", bbox_inches="tight")
-
-
 NYC_used_columns = [
     "fare_amount",
     "pickup_latitude",
@@ -175,25 +115,9 @@ NYC_used_columns = [
 ]
 
 
-def load_results():
-    datafile = Path("data/results.pkl")
-    res = {}
-    if datafile.exists():
-        with open(datafile, "rb") as file:
-            res = pickle.load(file)
-    return res
-
-
-def save_results(results):
-    datafile = Path("data/results.pkl")
-    with open(datafile, "wb") as file:
-        pickle.dump(results, file)
-
-
 def run_benchmark(
     model_files, np_data, model_classes, threadcount, batchsizes, n_samples=1000
 ):
-    results_full = load_results()
     for model_file, data in zip(model_files, np_data):
         model_name = model_file.split("/")[-2]
         print(model_file, f"\n---- {str.upper(model_name)} --- \n")
@@ -201,7 +125,6 @@ def run_benchmark(
             for model_class in model_classes:
                 model = model_class(model_file)
                 results = {"time (μs)": [], "batchsize": []}
-                results_full[f"{model_name}_{n_threads}_{model}"] = results
                 model.setup(data, n_threads)
                 for batchsize in batchsizes:
                     times = []
@@ -213,10 +136,9 @@ def run_benchmark(
                     results["time (μs)"] += times
                     results["batchsize"] += len(times) * [batchsize]
                     print(
-                        f"{model} (Batchsize {batchsize}, nthread {n_threads}): {round(mean(times), 2)}μs ± {round(pstdev(times), 2)}μs"
+                        f"{model} (Batchsize {batchsize}, nthread {n_threads}): {round(min(times), 2)}μs"
                     )
-    save_results(results_full)
-    save_plots(results_full, threadcount, model_files, batchsizes)
+        print()
 
 
 if __name__ == "__main__":
@@ -228,35 +150,16 @@ if __name__ == "__main__":
     df = pd.read_csv("data/airline_data_factorized.csv")
     airline_X = df.to_numpy(np.float32)
 
+    df = pd.read_parquet("data/mtpl2.parquet")
+    mtpl2_X = df.to_numpy(np.float32)
+
     model_file_NYC = "../tests/models/NYC_taxi/model.txt"
     model_file_airline = "../tests/models/airline/model.txt"
+    model_file_mtpl2 = "../tests/models/mtpl2/model.txt"
 
     run_benchmark(
-        model_files=[model_file_NYC, model_file_airline],
-        np_data=[NYC_X, airline_X],
-        model_classes=[
-            LLVMModel,
-            LLVMModelSingle,
-            LGBMModel,
-            TreeliteModel,
-            ONNXModel,
-        ],
-        threadcount=[4],
-        batchsizes=[
-            1000,
-            3000,
-            5000,
-            10000,
-            100000,
-            300000,
-            1000000,
-        ],
-        n_samples=100,
-    )
-
-    run_benchmark(
-        model_files=[model_file_NYC, model_file_airline],
-        np_data=[NYC_X, airline_X],
+        model_files=[model_file_NYC, model_file_airline, mtpl2_X],
+        np_data=[NYC_X, airline_X, mtpl2_X],
         model_classes=[
             LLVMModel,
             LGBMModel,
@@ -266,4 +169,22 @@ if __name__ == "__main__":
         threadcount=[1],
         batchsizes=[1, 2, 3, 5, 7, 10, 20, 30, 50, 70, 100, 200, 300],
         n_samples=20000,
+    )
+
+    run_benchmark(
+        model_files=[model_file_mtpl2],
+        np_data=[mtpl2_X],
+        model_classes=[
+            LLVMModel,
+            LGBMModel,
+            TreeliteModel,
+            ONNXModel,
+        ],
+        threadcount=[4],
+        batchsizes=[
+            10000,
+            100000,
+            1000000,
+        ],
+        n_samples=100,
     )

@@ -38,8 +38,8 @@ mostly numerical features.
 |batchsize   | 1  | 10| 100 |
 |---|---:|---:|---:|
 |LightGBM   | 52.31μs   | 84.46μs   | 441.15μs |
-|Treelite   | 28.03μs   | 40.81μs   | 94.14μs  |
 |ONNX   | 11.00μs | 36.74μs | 190.87μs  |
+|Treelite   | 28.03μs   | 40.81μs   | 94.14μs  |
 |``lleaves``   | 9.61μs | 14.06μs | 31.88μs  |
 
 ### Dataset: [MTPL2](https://www.openml.org/d/41214)
@@ -59,5 +59,5 @@ pip install -e .
 pre-commit install
 pytest
 # (optional) benchmark dependencies
-conda install -c conda-forge treelite onnxruntime onnxmltools seaborn
+conda install -c conda-forge treelite onnxruntime onnxmltools
 ```
