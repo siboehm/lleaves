@@ -32,5 +32,5 @@ def test_benchmark_datsets_correct_output():
         llvm = lleaves.Model(model_file=model_file)
         llvm.compile()
         np.testing.assert_almost_equal(
-            lgb.predict(data, n_jobs=4), llvm.predict(data, n_jobs=4), decimal=15
+            lgb.predict(data, n_jobs=4), llvm.predict(data, n_jobs=4), decimal=13
         )

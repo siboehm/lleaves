@@ -13,7 +13,9 @@ def compile_to_module(file_path):
     ir = llvmlite.ir.Module(name="forest")
     gen_forest(forest, ir)
 
+    ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
+    module.name = str(file_path)
     module.verify()
 
     if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
@@ -22,7 +24,8 @@ def compile_to_module(file_path):
     # Create optimizer
     pmb = llvm.PassManagerBuilder()
     pmb.opt_level = 3
-    pmb.inlining_threshold = 30
+    # if inline_threshold is set LLVM inlines, precise value doesn't seem to matter
+    pmb.inlining_threshold = 1
     pm_module = llvm.ModulePassManager()
     # Add optimization passes to module-level optimizer
     pmb.populate(pm_module)

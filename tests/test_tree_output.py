@@ -69,7 +69,9 @@ def test_forest_llvm_mode(data, llvm_lgbm_model):
         )
     )
     input_data = np.array([input_data])
-    assert llvm_model.predict(input_data) == lightgbm_model.predict(input_data)
+    np.testing.assert_array_almost_equal(
+        llvm_model.predict(input_data), lightgbm_model.predict(input_data)
+    )
 
 
 @settings(max_examples=10)
@@ -88,7 +90,7 @@ def test_batchmode(data, llvm_lgbm_model):
             )
         )
     input_data = np.array(input_data)
-    np.testing.assert_array_equal(
+    np.testing.assert_almost_equal(
         llvm_model.predict(input_data), lightgbm_model.predict(input_data)
     )
 

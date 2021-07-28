@@ -13,8 +13,8 @@ def test_parallel_iteration():
 
     data = np.array(4 * [5 * [1.0]], dtype=np.float64)
     data_flat = np.array(data.reshape(data.size), dtype=np.float64)
-    np.testing.assert_equal(
-        llvm_model.predict(data, n_jobs=4), lgbm_model.predict(data)
+    np.testing.assert_almost_equal(
+        llvm_model.predict(data, n_jobs=4), lgbm_model.predict(data), decimal=14
     )
 
     ptr_data = data_flat.ctypes.data_as(POINTER(c_double))
