@@ -33,23 +33,23 @@ Some LightGBM features are not yet implemented: multiclass prediction, linear mo
 Ran on a dedicated Intel i7-4770 Haswell, 4 cores.
 Stated runtime is the minimum over 20.000 runs.
 
-### Dataset: NYC-taxi 
-mostly numerical features
+### Dataset: [NYC-taxi](https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page)
+mostly numerical features.
 |batchsize   | 1  | 10| 100 |
 |---|---:|---:|---:|
 |LightGBM   | 52.31μs   | 84.46μs   | 441.15μs |
 |Treelite   | 28.03μs   | 40.81μs   | 94.14μs  |
 |ONNX   | 11.00μs | 36.74μs | 190.87μs  |
-|lleaves   | 9.61μs | 14.06μs | 31.88μs  |
+|``lleaves``   | 9.61μs | 14.06μs | 31.88μs  |
 
-### Dataset: MTPL2 
-mix of categorical and numerical features
+### Dataset: [MTPL2](https://www.openml.org/d/41214)
+mix of categorical and numerical features.
 |batchsize   | 10,000  | 100,000  |1,000,000 |
 |---|---:|---:|---:|
 |LightGBM   | 95.14ms | 992.472ms   | 7034.65ms  |
 |ONNX   | 38.83ms  | 381.40ms  | 2849.42ms  |
 |Treelite   | 38.15ms | 414.15ms  | 2854.10ms  |
-|lleaves  | 5.90ms  | 56.96ms | 388.88ms |
+|``lleaves``  | 5.90ms  | 56.96ms | 388.88ms |
 
 ## Development
 ```bash
