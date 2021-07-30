@@ -158,7 +158,7 @@ if __name__ == "__main__":
     model_file_mtpl2 = "../tests/models/mtpl2/model.txt"
 
     run_benchmark(
-        model_files=[model_file_NYC, model_file_airline, mtpl2_X],
+        model_files=[model_file_NYC, model_file_airline, model_file_mtpl2],
         np_data=[NYC_X, airline_X, mtpl2_X],
         model_classes=[
             LLVMModel,

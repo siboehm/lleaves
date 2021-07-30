@@ -20,3 +20,8 @@ dependencies:
   - numpydoc
   - sphinxcontrib-apidoc
   - setuptools-scm
+  # benchmarks
+  - treelite
+  - onnxruntime
+  - pip:
+      - "git+git://github.com/onnx/onnxmltools@master"

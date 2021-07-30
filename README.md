@@ -57,7 +57,6 @@ conda env create
 conda activate lleaves
 pip install -e .
 pre-commit install
+./benchmarks/data/setup_data.sh
 pytest
-# (optional) benchmark dependencies
-conda install -c conda-forge treelite onnxruntime onnxmltools
 ```
