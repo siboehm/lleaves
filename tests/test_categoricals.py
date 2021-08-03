@@ -5,7 +5,7 @@ import numpy as np
 import numpy.random
 import pandas as pd
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from lleaves import Model
@@ -186,6 +186,7 @@ def test_predict_pandas_categorical(tmpdir_factory):
         llvm_model.predict(data)
 
 
+@settings(deadline=1000)
 @given(data=st.data())
 def test_categorical_prediction_llvm_real(data, categorical_model_txt):
     lgbm_model = lgb.Booster(model_file=str(categorical_model_txt))
