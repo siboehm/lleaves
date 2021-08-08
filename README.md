@@ -1,6 +1,7 @@
 # lleaves 🍃
 ![CI](https://github.com/siboehm/lleaves/workflows/CI/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/lleaves/badge/?version=latest)](https://lleaves.readthedocs.io/en/latest/?badge=latest)
+[![Downloads](https://pepy.tech/badge/lleaves)](https://pepy.tech/project/lleaves)
 
 A LLVM-based compiler for LightGBM decision trees.
 
@@ -38,7 +39,7 @@ mostly numerical features.
 |batchsize   | 1  | 10| 100 |
 |---|---:|---:|---:|
 |LightGBM   | 52.31μs   | 84.46μs   | 441.15μs |
-|ONNX   | 11.00μs | 36.74μs | 190.87μs  |
+|ONNX  Runtime| 11.00μs | 36.74μs | 190.87μs  |
 |Treelite   | 28.03μs   | 40.81μs   | 94.14μs  |
 |``lleaves``   | 9.61μs | 14.06μs | 31.88μs  |
 
@@ -47,7 +48,7 @@ mix of categorical and numerical features.
 |batchsize   | 10,000  | 100,000  | 678,000 |
 |---|---:|---:|---:|
 |LightGBM   | 95.14ms | 992.472ms   | 7034.65ms  |
-|ONNX   | 38.83ms  | 381.40ms  | 2849.42ms  |
+|ONNX  Runtime | 38.83ms  | 381.40ms  | 2849.42ms  |
 |Treelite   | 38.15ms | 414.15ms  | 2854.10ms  |
 |``lleaves``  | 5.90ms  | 56.96ms | 388.88ms |
 
