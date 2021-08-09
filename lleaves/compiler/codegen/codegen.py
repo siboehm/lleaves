@@ -8,12 +8,21 @@ FLOAT = ir.FloatType()
 INT_CAT = ir.IntType(bits=32)
 INT = ir.IntType(bits=32)
 ZERO_V = ir.Constant(BOOL, 0)
-FLOAT_POINTER = ir.PointerType(FLOAT)
+FLOAT_PTR = ir.PointerType(FLOAT)
 DOUBLE_PTR = ir.PointerType(DOUBLE)
 
 # 34 funcs per block works well for CPUs with ~128KB of L1i-cache (eg most modern x86).
 # ultimately this should be made configurable, as the optimal value depends on the specific hardware and tree.
 N_FUNCS_PER_BLOCK = 34
+
+
+def get_fdtype_const(value, double_precision):
+    f = dconst if double_precision else fconst
+    return f(value)
+
+
+def get_fdtype(double_precision):
+    return DOUBLE if double_precision else FLOAT
 
 
 def iconst(value):
@@ -28,7 +37,7 @@ def dconst(value):
     return ir.Constant(DOUBLE, value)
 
 
-def gen_forest(forest, module):
+def gen_forest(forest, module, double_precision: bool):
     """
     Populate the passed IR module with code for the forest.
 
@@ -67,48 +76,52 @@ def gen_forest(forest, module):
     """
 
     # entry function called from Python
+    DTYPE_PTR = DOUBLE_PTR if double_precision else FLOAT_PTR
     root_func = ir.Function(
         module,
-        ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, DOUBLE_PTR, INT, INT)),
+        ir.FunctionType(ir.VoidType(), (DTYPE_PTR, DTYPE_PTR, INT, INT)),
         name="forest_root",
     )
 
     def make_tree(tree):
         # declare the function for this tree
-        func_dtypes = (INT_CAT if f.is_categorical else DOUBLE for f in tree.features)
-        scalar_func_t = ir.FunctionType(DOUBLE, func_dtypes)
+        func_dtypes = (
+            INT_CAT if f.is_categorical else get_fdtype(double_precision)
+            for f in tree.features
+        )
+        scalar_func_t = ir.FunctionType(get_fdtype(double_precision), func_dtypes)
         tree_func = ir.Function(module, scalar_func_t, name=str(tree))
         tree_func.linkage = "private"
         # populate function with IR
-        gen_tree(tree, tree_func)
+        gen_tree(tree, tree_func, double_precision)
         return tree_func
 
     tree_funcs = [make_tree(tree) for tree in forest.trees]
 
-    _populate_forest_func(forest, root_func, tree_funcs)
+    _populate_forest_func(forest, root_func, tree_funcs, double_precision)
 
 
-def gen_tree(tree, tree_func):
+def gen_tree(tree, tree_func, double_precision):
     """generate code for tree given the function, recursing into nodes"""
     node_block = tree_func.append_basic_block(name=str(tree.root_node))
-    gen_node(tree_func, node_block, tree.root_node)
+    gen_node(tree_func, node_block, tree.root_node, double_precision)
 
 
-def gen_node(func, node_block, node):
+def gen_node(func, node_block, node, double_precision):
     """generate code for node, recursing into children"""
     if node.is_leaf:
-        _gen_leaf_node(node_block, node)
+        _gen_leaf_node(node_block, node, double_precision)
     else:
-        _gen_decision_node(func, node_block, node)
+        _gen_decision_node(func, node_block, node, double_precision)
 
 
-def _gen_leaf_node(node_block, leaf):
+def _gen_leaf_node(node_block, leaf, double_precision):
     """populate block with leaf's return value"""
     builder = ir.IRBuilder(node_block)
-    builder.ret(dconst(leaf.value))
+    builder.ret(get_fdtype_const(leaf.value, double_precision))
 
 
-def _gen_decision_node(func, node_block, node):
+def _gen_decision_node(func, node_block, node, double_precision):
     """generate code for decision node, recursing into children"""
     builder = ir.IRBuilder(node_block)
 
@@ -134,24 +147,34 @@ def _gen_decision_node(func, node_block, node):
         )
         builder = bitset_builder
     else:
-        comp = _populate_numerical_node_block(func, builder, node)
+        comp = _populate_numerical_node_block(func, builder, node, double_precision)
 
     # finalize this node's block with a terminal statement
     if is_fused_double_leaf_node:
-        ret = builder.select(comp, dconst(node.left.value), dconst(node.right.value))
+        ret = builder.select(
+            comp,
+            get_fdtype_const(node.left.value, double_precision),
+            get_fdtype_const(node.right.value, double_precision),
+        )
         builder.ret(ret)
     else:
         builder.cbranch(comp, left_block, right_block)
 
     # populate generated child blocks
     if left_block:
-        gen_node(func, left_block, node.left)
+        gen_node(func, left_block, node.left, double_precision)
     if right_block:
-        gen_node(func, right_block, node.right)
+        gen_node(func, right_block, node.right, double_precision)
 
 
 def _populate_instruction_block(
-    forest, root_func, tree_funcs, setup_block, next_block, eval_obj_func
+    forest,
+    root_func,
+    tree_funcs,
+    setup_block,
+    next_block,
+    eval_obj_func,
+    double_precision,
 ):
     """Generates an instruction_block: loops over all input data and evaluates its chunk of tree_funcs."""
     data_arr, out_arr, start_index, end_index = root_func.args
@@ -197,7 +220,11 @@ def _populate_instruction_block(
     res = builder.fadd(res, builder.load(ptr))
     if eval_obj_func:
         res = _populate_objective_func_block(
-            builder, res, forest.objective_func, forest.objective_func_config
+            builder,
+            res,
+            forest.objective_func,
+            forest.objective_func_config,
+            double_precision,
         )
     builder.store(res, ptr)
     tmpp1 = builder.add(loop_iter_reg, iconst(1))
@@ -206,7 +233,7 @@ def _populate_instruction_block(
     # -- END CORE LOOP BLOCK
 
 
-def _populate_forest_func(forest, root_func, tree_funcs):
+def _populate_forest_func(forest, root_func, tree_funcs, double_precision):
     """Populate root function IR for forest"""
 
     # generate the setup-blocks upfront, so each instruction_block can be passed its successor
@@ -226,19 +253,21 @@ def _populate_forest_func(forest, root_func, tree_funcs):
             setup_block,
             next_block,
             eval_objective_func,
+            double_precision,
         )
 
 
 def _populate_objective_func_block(
-    builder, input, objective: str, objective_config: str
+    builder, input, objective: str, objective_config: str, double_precision
 ):
     """
     Takes the objective function specification and generates the code for it into the builder
     """
-    llvm_exp = builder.module.declare_intrinsic("llvm.exp", (DOUBLE,))
-    llvm_log = builder.module.declare_intrinsic("llvm.log", (DOUBLE,))
+    DTYPE = get_fdtype(double_precision)
+    llvm_exp = builder.module.declare_intrinsic("llvm.exp", (DTYPE,))
+    llvm_log = builder.module.declare_intrinsic("llvm.log", (DTYPE,))
     llvm_copysign = builder.module.declare_intrinsic(
-        "llvm.copysign", (DOUBLE, DOUBLE), ir.FunctionType(DOUBLE, (DOUBLE, DOUBLE))
+        "llvm.copysign", (DTYPE, DTYPE), ir.FunctionType(DTYPE, (DTYPE, DTYPE))
     )
 
     def _populate_sigmoid(alpha):
@@ -246,10 +275,10 @@ def _populate_objective_func_block(
             raise ValueError(f"Sigmoid parameter needs to be >0, is {alpha}")
 
         # 1 / (1 + exp(- alpha * x))
-        inner = builder.fmul(dconst(-alpha), input)
+        inner = builder.fmul(get_fdtype_const(-alpha, double_precision), input)
         exp = builder.call(llvm_exp, [inner])
-        denom = builder.fadd(dconst(1.0), exp)
-        return builder.fdiv(dconst(1.0), denom)
+        denom = builder.fadd(get_fdtype_const(1.0, double_precision), exp)
+        return builder.fdiv(get_fdtype_const(1.0, double_precision), denom)
 
     if objective == "binary":
         alpha = objective_config.split(":")[1]
@@ -260,7 +289,9 @@ def _populate_objective_func_block(
         # naive implementation which will be numerically unstable for small x.
         # should be changed to log1p
         exp = builder.call(llvm_exp, [input])
-        return builder.call(llvm_log, [builder.fadd(dconst(1.0), exp)])
+        return builder.call(
+            llvm_log, [builder.fadd(get_fdtype_const(1.0, double_precision), exp)]
+        )
     elif objective in ("poisson", "gamma", "tweedie"):
         return builder.call(llvm_exp, [input])
     elif objective in (
@@ -315,11 +346,12 @@ def _populate_categorical_node_block(
     return comp
 
 
-def _populate_numerical_node_block(func, builder, node):
+def _populate_numerical_node_block(func, builder, node, double_precision):
     """populate block with IR for numerical node"""
     val = func.args[node.split_feature]
 
-    thresh = ir.Constant(DOUBLE, node.threshold)
+    DTYPE = get_fdtype(double_precision)
+    thresh = ir.Constant(DTYPE, node.threshold)
     missing_t = node.decision_type.missing_type
 
     # If missingType != MNaN, LightGBM treats NaNs values as if they were 0.0.
@@ -341,7 +373,9 @@ def _populate_numerical_node_block(func, builder, node):
             # unordered cmp: we'll get True (and go left) if any arg is qNaN
             comp = builder.fcmp_unordered("<=", val, thresh)
         else:
-            is_missing = builder.fcmp_unordered("==", val, fconst(0.0))
+            is_missing = builder.fcmp_unordered(
+                "==", val, get_fdtype_const(0.0, double_precision)
+            )
             less_eq = builder.fcmp_unordered("<=", val, thresh)
             comp = builder.or_(is_missing, less_eq)
     else:
@@ -351,7 +385,9 @@ def _populate_numerical_node_block(func, builder, node):
             # ordered cmp: we'll get False (and go right) if any arg is qNaN
             comp = builder.fcmp_ordered("<=", val, thresh)
         else:
-            is_missing = builder.fcmp_unordered("==", val, fconst(0.0))
+            is_missing = builder.fcmp_unordered(
+                "==", val, get_fdtype_const(0.0, double_precision)
+            )
             greater = builder.fcmp_ordered(">", val, thresh)
             comp = builder.not_(builder.or_(is_missing, greater))
     return comp

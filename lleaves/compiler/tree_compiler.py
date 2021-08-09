@@ -7,19 +7,19 @@ from lleaves.compiler.ast import parse_to_ast
 from lleaves.compiler.codegen import gen_forest
 
 
-def compile_to_module(file_path):
+def compile_to_module(file_path, double_precision=True):
     forest = parse_to_ast(file_path)
 
     ir = llvmlite.ir.Module(name="forest")
-    gen_forest(forest, ir)
+    gen_forest(forest, ir, double_precision)
+
+    if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
+        print(ir)
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
     module.name = str(file_path)
     module.verify()
-
-    if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
-        print(module)
 
     # Create optimizer
     pmb = llvm.PassManagerBuilder()

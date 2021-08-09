@@ -37,6 +37,17 @@ def llvm_lgbm_model(request):
     )
 
 
+@pytest.fixture(scope="session", params=MODEL_DIRS_NUMERICAL)
+def llvm_lgbm_model_single_precision(request):
+    path = request.param
+    llvm = lleaves.Model(model_file=path + "model.txt", dtype="float32")
+    llvm.compile()
+    return (
+        llvm,
+        lightgbm.Booster(model_file=path + "model.txt"),
+    )
+
+
 @pytest.fixture(
     scope="session", params=zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
 )
@@ -95,9 +106,34 @@ def test_batchmode(data, llvm_lgbm_model):
     )
 
 
+@settings(max_examples=10)
+@given(data=st.data())
+def test_batchmode_single_precision(data, llvm_lgbm_model_single_precision):
+    llvm_model, lightgbm_model = llvm_lgbm_model_single_precision
+    input_data = []
+    for i in range(10):
+        input_data.append(
+            data.draw(
+                st.lists(
+                    st.floats(allow_nan=True, allow_infinity=True),
+                    max_size=llvm_model.num_feature(),
+                    min_size=llvm_model.num_feature(),
+                )
+            )
+        )
+    input_data = np.array(input_data, dtype=np.float32)
+    lgbm_result = lightgbm_model.predict(input_data).astype(np.float32)
+    np.testing.assert_allclose(
+        llvm_model.predict(input_data),
+        lgbm_result,
+        rtol=1e-2,
+        atol=1e-2,
+    )
+
+
 @given(data=st.data())
 @settings(deadline=None)  # the airline model takes a few seconds to compile
-def test_forest_llvm_mode_cat(data, llvm_lgbm_model_cat):
+def test_categorical_forest(data, llvm_lgbm_model_cat):
     llvm_model, lgbm_model, cat_bitvec = llvm_lgbm_model_cat
 
     input_cats = data.draw(

@@ -1,6 +1,6 @@
 import json
 import os
-from ctypes import POINTER, c_double
+from ctypes import POINTER, c_double, c_float
 from typing import List, Optional
 
 import numpy as np
@@ -15,9 +15,9 @@ except ImportError:
         pass
 
 
-def _dataframe_to_ndarray(data, pd_traintime_categories: List[List]):
+def _dataframe_to_ndarray(data, pd_traintime_categories: List[List], dtype="float64"):
     """
-    Converts the given dataframe into a 2D numpy array and converts categorical columns to float.
+    Converts the given dataframe into a 2D numpy array of the correct dtype and converts categorical columns to float.
 
     Categoricals present in the dataframe are mapped to their float IDs. The `pd_traintime_categories` are used
     to ensure this categorical -> ID mapping is the same as it was in the training dataset.
@@ -28,6 +28,7 @@ def _dataframe_to_ndarray(data, pd_traintime_categories: List[List]):
 
         Example (two columns with two categories each): ``[["a", "b"], ["b", "a"]]``.
         These columns are different and will result in two different mappings ("a" -> 0.0 vs "a" -> 1.0).
+    :param dtype: One of ("float64", "float32"). The target dtype to cast the array to.
     :return: 2D np.ndarray, dtype float64 or float32
     """
     cat_cols = list(data.select_dtypes(include=["category"]).columns)
@@ -47,12 +48,15 @@ def _dataframe_to_ndarray(data, pd_traintime_categories: List[List]):
             data[cat_cols].apply(lambda x: x.cat.codes).replace({-1: np.nan})
         )
     data = data.values
-    if data.dtype != np.float64 and data.dtype != np.float32:
-        data = data.astype(np.float64)
+    target_dtype = np.float64 if dtype == "float64" else np.float32
+    if data.dtype != target_dtype:
+        data = data.astype(target_dtype)
     return data
 
 
-def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
+def data_to_ndarray(
+    data, pd_traintime_categories: Optional[List[List]] = None, dtype="float64"
+):
     """
     Convert the given data to a numpy ndarray
 
@@ -77,15 +81,16 @@ def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     :param pd_traintime_categories: For each categorical column in dataframe, a list of its categories.
         The ordering of columns and of categories within each column should match the training dataset.
         Ignored if data is not a pandas DataFrame.
+    :param dtype: One of ("float64", "float32"). The target dtype to cast the array to.
 
-    :return: numpy ndarray
+    :return: numpy ndarray, dtype float64 / float32
     """
     if isinstance(data, np.ndarray):
         data = data
     elif isinstance(data, pd_DataFrame):
-        data = _dataframe_to_ndarray(data, pd_traintime_categories)
+        data = _dataframe_to_ndarray(data, pd_traintime_categories, dtype)
     elif isinstance(data, list):
-        data = np.array(data, dtype=np.float64)
+        data = np.array(data, dtype=np.float64 if dtype == "float64" else np.float32)
     else:
         raise ValueError(
             f"Expecting numpy.ndarray, pandas.DataFrame or Python list, got {type(data)}"
@@ -94,16 +99,21 @@ def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     return data
 
 
-def ndarray_to_ptr(data):
+def ndarray_to_ptr(data, dtype="float64"):
     """
-    Takes a 2D numpy array, converts to float64 if necessary and returns a pointer
+    Takes a 2D numpy array, converts to the given dtype if necessary and returns a pointer
 
     :param data: 2D numpy array. Copying is avoided if possible.
-    :return: pointer to 1D array of dtype float64.
+    :param dtype: One of ("float64", "float32"). The target dtype to cast the array to.
+    :return: pointer to 1D array of dtype float64 / float32.
     """
     # ravel makes sure we get a contiguous array in memory and not some strided View
-    data = data.astype(np.float64, copy=False, casting="same_kind").ravel()
-    ptr = data.ctypes.data_as(POINTER(c_double))
+    data = data.astype(
+        np.float64 if dtype == "float64" else np.float32,
+        copy=False,
+        casting="same_kind",
+    ).ravel()
+    ptr = data.ctypes.data_as(POINTER(c_double if dtype == "float64" else c_float))
     return ptr
 
 
