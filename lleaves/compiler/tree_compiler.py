@@ -3,6 +3,7 @@ import os
 import llvmlite.binding as llvm
 import llvmlite.ir
 
+from lleaves.compiler import fastmathpass
 from lleaves.compiler.ast import parse_to_ast
 from lleaves.compiler.codegen import gen_forest
 
@@ -12,6 +13,9 @@ def compile_to_module(file_path):
 
     ir = llvmlite.ir.Module(name="forest")
     gen_forest(forest, ir)
+
+    # Adds fastmath flags to every float-op and float-function call
+    fastmathpass.rewrite_module(ir, ["fast"])
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
