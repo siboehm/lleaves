@@ -25,5 +25,5 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     python_requires=">=3.6",
-    install_requires=["llvmlite>=0.36", "numpy"],
+    install_requires=["llvmlite>=0.36", "numpy", "dataclasses; python_version < '3.7'"],
 )

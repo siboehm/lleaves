@@ -6,7 +6,7 @@ import pytest
 
 from lleaves.data_processing import (
     data_to_ndarray,
-    extract_num_feature,
+    extract_n_features_n_classes,
     extract_pandas_traintime_categories,
     ndarray_to_ptr,
 )
@@ -57,9 +57,11 @@ def test_n_args_extract(tmp_path):
             (line for line in lines if not line.startswith("max_feature_idx"))
         )
 
-    assert extract_num_feature(model_file) == 5
+    res = extract_n_features_n_classes(model_file)
+    assert res["n_class"] == 1
+    assert res["n_feature"] == 5
     with pytest.raises(ValueError):
-        extract_num_feature(mod_model_file)
+        extract_n_features_n_classes(mod_model_file)
 
 
 def test_no_data_modification():

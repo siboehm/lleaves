@@ -11,6 +11,7 @@ MODEL_DIRS_NUMERICAL = [
     "tests/models/NYC_taxi/",
     "tests/models/single_tree/",
     "tests/models/tiniest_single_tree/",
+    "tests/models/multiclass/",
 ]
 
 
@@ -55,6 +56,9 @@ def llvm_lgbm_model_cat(request):
 def test_attribute_similarity(llvm_lgbm_model):
     llvm_model, lightgbm_model = llvm_lgbm_model
     assert llvm_model.num_feature() == lightgbm_model.num_feature()
+    assert (
+        llvm_model.num_model_per_iteration() == lightgbm_model.num_model_per_iteration()
+    )
 
 
 @settings(deadline=1000)

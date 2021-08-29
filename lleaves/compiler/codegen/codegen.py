@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from llvmlite import ir
 
 from lleaves.compiler.utils import ISSUE_ERROR_MSG, MissingType
@@ -26,6 +28,14 @@ def fconst(value):
 
 def dconst(value):
     return ir.Constant(DOUBLE, value)
+
+
+@dataclass
+class LTree:
+    """Class for the LLVM function of a tree paired with relevant non-LLVM context"""
+
+    llvm_function: ir.Function
+    class_id: int
 
 
 def gen_forest(forest, module):
@@ -81,9 +91,13 @@ def gen_forest(forest, module):
         tree_func.linkage = "private"
         # populate function with IR
         gen_tree(tree, tree_func)
-        return tree_func
+        return LTree(llvm_function=tree_func, class_id=tree.class_id)
 
     tree_funcs = [make_tree(tree) for tree in forest.trees]
+
+    if forest.n_classes > 1:
+        # better locality by running trees for each class together
+        tree_funcs.sort(key=lambda t: t.class_id)
 
     _populate_forest_func(forest, root_func, tree_funcs)
 
@@ -189,17 +203,30 @@ def _populate_instruction_block(
         else:
             args.append(el)
     # iterate over each tree, sum up results
-    res = builder.call(tree_funcs[0], args)
-    for func in tree_funcs[1:]:
-        tree_res = builder.call(func, args)
-        res = builder.fadd(tree_res, res)
-    ptr = builder.gep(out_arr, (loop_iter_reg,))
-    res = builder.fadd(res, builder.load(ptr))
+    results = [dconst(0.0) for _ in range(forest.n_classes)]
+    for func in tree_funcs:
+        tree_res = builder.call(func.llvm_function, args)
+        results[func.class_id] = builder.fadd(tree_res, results[func.class_id])
+    res_idx = builder.mul(iconst(forest.n_classes), loop_iter_reg)
+    results_ptr = [
+        builder.gep(out_arr, (builder.add(res_idx, iconst(class_idx)),))
+        for class_idx in range(forest.n_classes)
+    ]
+
+    results = [
+        builder.fadd(result, builder.load(result_ptr))
+        for result, result_ptr in zip(results, results_ptr)
+    ]
     if eval_obj_func:
-        res = _populate_objective_func_block(
-            builder, res, forest.objective_func, forest.objective_func_config
+        results = _populate_objective_func_block(
+            builder,
+            results,
+            forest.objective_func,
+            forest.objective_func_config,
         )
-    builder.store(res, ptr)
+    for result, result_ptr in zip(results, results_ptr):
+        builder.store(result, result_ptr)
+
     tmpp1 = builder.add(loop_iter_reg, iconst(1))
     builder.store(tmpp1, loop_iter)
     builder.branch(condition_block)
@@ -230,7 +257,7 @@ def _populate_forest_func(forest, root_func, tree_funcs):
 
 
 def _populate_objective_func_block(
-    builder, input, objective: str, objective_config: str
+    builder, args, objective: str, objective_config: str
 ):
     """
     Takes the objective function specification and generates the code for it into the builder
@@ -246,23 +273,23 @@ def _populate_objective_func_block(
             raise ValueError(f"Sigmoid parameter needs to be >0, is {alpha}")
 
         # 1 / (1 + exp(- alpha * x))
-        inner = builder.fmul(dconst(-alpha), input)
+        inner = builder.fmul(dconst(-alpha), args[0])
         exp = builder.call(llvm_exp, [inner])
         denom = builder.fadd(dconst(1.0), exp)
         return builder.fdiv(dconst(1.0), denom)
 
     if objective == "binary":
         alpha = objective_config.split(":")[1]
-        return _populate_sigmoid(float(alpha))
+        result = _populate_sigmoid(float(alpha))
     elif objective in ("xentropy", "cross_entropy"):
-        return _populate_sigmoid(1.0)
+        result = _populate_sigmoid(1.0)
     elif objective in ("xentlambda", "cross_entropy_lambda"):
         # naive implementation which will be numerically unstable for small x.
         # should be changed to log1p
-        exp = builder.call(llvm_exp, [input])
-        return builder.call(llvm_log, [builder.fadd(dconst(1.0), exp)])
+        exp = builder.call(llvm_exp, [args[0]])
+        result = builder.call(llvm_log, [builder.fadd(dconst(1.0), exp)])
     elif objective in ("poisson", "gamma", "tweedie"):
-        return builder.call(llvm_exp, [input])
+        result = builder.call(llvm_exp, [args[0]])
     elif objective in (
         "regression",
         "regression_l1",
@@ -272,15 +299,27 @@ def _populate_objective_func_block(
         "mape",
     ):
         if objective_config and "sqrt" in objective_config:
-            return builder.call(llvm_copysign, [builder.fmul(input, input), input])
+            arg = args[0]
+            result = builder.call(llvm_copysign, [builder.fmul(arg, arg), arg])
         else:
-            return input
+            result = args[0]
     elif objective in ("lambdarank", "rank_xendcg", "custom"):
-        return input
+        result = args[0]
+    elif objective == "multiclass":
+        assert len(args)
+        # TODO Check vectorization / vectorize by hand
+        result = [builder.call(llvm_exp, [arg]) for arg in args]
+
+        denominator = dconst(0.0)
+        for r in result:
+            denominator = builder.fadd(r, denominator)
+
+        result = [builder.fdiv(r, denominator) for r in result]
     else:
         raise ValueError(
             f"Objective '{objective}' not yet implemented. {ISSUE_ERROR_MSG}"
         )
+    return result if len(args) > 1 else [result]
 
 
 def _populate_categorical_node_block(
