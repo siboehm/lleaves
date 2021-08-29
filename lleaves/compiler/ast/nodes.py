@@ -1,5 +1,7 @@
-from lleaves.compiler.utils import DecisionType
 from dataclasses import dataclass
+from typing import List
+
+from lleaves.compiler.utils import DecisionType
 
 
 class Node:
@@ -21,7 +23,7 @@ class Tree:
 
 @dataclass
 class Forest:
-    trees: list[Tree]
+    trees: List[Tree]
     features: list
     n_classes: int
     objective_func: str

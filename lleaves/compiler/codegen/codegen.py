@@ -307,7 +307,7 @@ def _populate_objective_func_block(
         result = args[0]
     elif objective == "multiclass":
         assert len(args)
-        # TODO Check vectorization / vectorize by hand
+        # TODO Might profit from vectorization, needs testing
         result = [builder.call(llvm_exp, [arg]) for arg in args]
 
         denominator = dconst(0.0)
