@@ -31,6 +31,9 @@ jobs:
         with:
           path: ./.hypothesis
           key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
+      - if: matrix.PYTHON_VERSION == '3.6'
+        shell: bash -x -l {0}
+        run: pip install dataclasses
       - name: Run the unittests
         shell: bash -x -l {0}
         run: ./.github/ci.sh ${{ matrix.PYTHON_VERSION }}
