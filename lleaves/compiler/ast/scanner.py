@@ -71,6 +71,8 @@ class ScannedValue:
 
 INPUT_SCAN_KEYS = {
     "max_feature_idx": ScannedValue(int),
+    "num_class": ScannedValue(int),
+    "num_tree_per_iteration": ScannedValue(int),
     "version": ScannedValue(str),
     "feature_infos": ScannedValue(str, True),
     "objective": ScannedValue(str, True),

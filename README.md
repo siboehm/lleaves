@@ -25,8 +25,6 @@ llvm_model.compile()
 - Drop-in replacement: The interface of `lleaves.Model` is a subset of `LightGBM.Booster`.
 - Dependencies: `llvmlite` and `numpy`. LLVM comes statically linked.
 
-Some LightGBM features are not yet implemented: multiclass prediction, linear models.
-
 ## Installation
 `conda install -c conda-forge lleaves` or `pip install lleaves` (Linux and MacOS only).
 

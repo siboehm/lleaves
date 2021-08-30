@@ -81,6 +81,21 @@ An example from the *model.txt* of the airlines model::
 
 The bitvectors of the first three categorical nodes are <1 x i32>, <1 x i32> and <8 x i32> long.
 
+Multiclass prediction
+*********************
+
+Multiclass prediction works by basically fitting individual forests for each class, and then running a
+softmax across the outputs.
+So for 3 classes with 100 iterations LightGBM will generate 300 trees.
+The trees are saved in the model.txt in strides, like so::
+
+    tree 0 # (=class 0, tree 0)
+    tree 1 # (=class 1, tree 0)
+    tree 2 # (=class 2, tree 0)
+    tree 3 # (=class 0, tree 1)
+    tree 4 # (=class 1, tree 1)
+    ...
+
 Software Architecture Overview
 ------------------------------
 

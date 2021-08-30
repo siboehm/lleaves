@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 
 if __name__ == "__main__":
-    # data can be downloaded from here: https://www.openml.org/d/1169
-    # todo download data automatically
     df = pd.read_csv("data/airline_data.csv")
     y = df.pop("Delay")
     for c in ["Airline", "Flight", "AirportFrom", "AirportTo"]:

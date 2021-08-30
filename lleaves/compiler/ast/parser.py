@@ -1,3 +1,5 @@
+import itertools
+
 from lleaves.compiler.ast.nodes import DecisionNode, Forest, LeafNode, Tree
 from lleaves.compiler.ast.scanner import scan_model_file
 from lleaves.compiler.utils import DecisionType
@@ -18,7 +20,7 @@ class Feature:
         self.is_categorical = is_categorical
 
 
-def _parse_tree_to_ast(tree_struct, features):
+def _parse_tree_to_ast(tree_struct, features, class_id):
     n_nodes = len(tree_struct["decision_type"])
     leaves = [
         LeafNode(idx, value) for idx, value in enumerate(tree_struct["leaf_value"])
@@ -28,7 +30,12 @@ def _parse_tree_to_ast(tree_struct, features):
     # categorical nodes are finalized later
     nodes = [
         DecisionNode(
-            idx, split_feature, threshold, decision_type_id, left_idx, right_idx
+            idx,
+            split_feature,
+            threshold,
+            DecisionType(decision_type_id),
+            left_idx,
+            right_idx,
         )
         for idx, (
             split_feature,
@@ -78,17 +85,19 @@ def _parse_tree_to_ast(tree_struct, features):
         node.validate()
 
     if nodes:
-        return Tree(tree_struct["Tree"], nodes[0], features)
+        return Tree(tree_struct["Tree"], nodes[0], features, class_id)
     else:
         # special case for when tree is just single leaf
         assert len(leaves) == 1
-        return Tree(tree_struct["Tree"], leaves[0], features)
+        return Tree(tree_struct["Tree"], leaves[0], features, class_id)
 
 
 def parse_to_ast(model_path):
     scanned_model = scan_model_file(model_path)
 
     n_args = scanned_model["general_info"]["max_feature_idx"] + 1
+    n_classes = scanned_model["general_info"]["num_class"]
+    assert n_classes == scanned_model["general_info"]["num_tree_per_iteration"]
     objective = scanned_model["general_info"]["objective"]
     objective_func = objective[0]
     objective_func_config = objective[1] if len(objective) > 1 else None
@@ -99,10 +108,13 @@ def parse_to_ast(model_path):
     assert n_args == len(features), "Ill formed model file"
 
     trees = [
-        _parse_tree_to_ast(tree_struct, features)
-        for tree_struct in scanned_model["trees"]
+        _parse_tree_to_ast(scanned_tree, features, class_id)
+        for scanned_tree, class_id in zip(
+            scanned_model["trees"], itertools.cycle(range(n_classes))
+        )
     ]
-    return Forest(trees, features, objective_func, objective_func_config)
+    assert len(trees) % n_classes == 0, "Ill formed model file"
+    return Forest(trees, features, n_classes, objective_func, objective_func_config)
 
 
 def is_categorical_feature(feature_info: str):

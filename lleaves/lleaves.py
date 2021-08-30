@@ -10,7 +10,7 @@ import numpy as np
 from lleaves import compiler
 from lleaves.data_processing import (
     data_to_ndarray,
-    extract_num_feature,
+    extract_n_features_n_classes,
     extract_pandas_traintime_categories,
     ndarray_to_ptr,
 )
@@ -35,7 +35,9 @@ class Model:
     _execution_engine = None
 
     # number of features (=columns)
-    _num_feature = None
+    _n_feature = None
+    # number of classes
+    _n_classes = None
 
     # prediction function, drops GIL on entry
     _c_entry_func = None
@@ -50,13 +52,23 @@ class Model:
         self.is_compiled = False
 
         self._pandas_categorical = extract_pandas_traintime_categories(model_file)
-        self._num_feature = extract_num_feature(model_file)
+        num_attrs = extract_n_features_n_classes(model_file)
+        self._n_feature = num_attrs["n_feature"]
+        self._n_classes = num_attrs["n_class"]
 
     def num_feature(self):
         """
         Returns the number of features used by this model.
         """
-        return self._num_feature
+        return self._n_feature
+
+    def num_model_per_iteration(self):
+        """
+        Returns the number of models per iteration.
+
+        This is equal to the number of classes for multiclass models, else will be 1.
+        """
+        return self._n_classes
 
     def compile(self, cache=None):
         """
@@ -95,7 +107,8 @@ class Model:
             2D float64 numpy arrays have the lowest overhead.
         :param n_jobs: Number of threads to use for prediction. Defaults to number of CPUs. For single-row prediction
             this should be set to 1.
-        :return: 1D numpy array, dtype float64
+        :return: 1D numpy array, dtype float64.
+            If multiclass model: 2D numpy array of shape (n_rows, model.num_model_per_iteration())
         """
         if not self.is_compiled:
             raise RuntimeError(
@@ -112,7 +125,11 @@ class Model:
 
         # setup input data and predictions array
         ptr_data = ndarray_to_ptr(data)
-        predictions = np.zeros(n_predictions, dtype=np.float64)
+
+        pred_shape = (
+            n_predictions if self._n_classes == 1 else (n_predictions, self._n_classes)
+        )
+        predictions = np.zeros(pred_shape, dtype=np.float64)
         ptr_preds = ndarray_to_ptr(predictions)
 
         if n_jobs == 1:
