@@ -82,18 +82,14 @@ def test_forest_llvm_mode(data, llvm_lgbm_model):
 @given(data=st.data())
 def test_batchmode(data, llvm_lgbm_model):
     llvm_model, lightgbm_model = llvm_lgbm_model
-    input_data = []
-    for i in range(10):
-        input_data.append(
-            data.draw(
-                st.lists(
-                    st.floats(allow_nan=True, allow_infinity=True),
-                    max_size=llvm_model.num_feature(),
-                    min_size=llvm_model.num_feature(),
-                )
-            )
+    input_data = data.draw(
+        st.lists(
+            st.floats(allow_nan=True, allow_infinity=True),
+            max_size=20 * llvm_model.num_feature(),
+            min_size=20 * llvm_model.num_feature(),
         )
-    input_data = np.array(input_data)
+    )
+    input_data = np.array(input_data).reshape((20, llvm_model.num_feature()))
     np.testing.assert_almost_equal(
         llvm_model.predict(input_data), lightgbm_model.predict(input_data)
     )
