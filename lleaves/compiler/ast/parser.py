@@ -30,7 +30,12 @@ def _parse_tree_to_ast(tree_struct, features, class_id):
     # categorical nodes are finalized later
     nodes = [
         DecisionNode(
-            idx, split_feature, threshold, decision_type_id, left_idx, right_idx
+            idx,
+            split_feature,
+            threshold,
+            DecisionType(decision_type_id),
+            left_idx,
+            right_idx,
         )
         for idx, (
             split_feature,

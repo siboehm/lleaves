@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List
 
 from lleaves.compiler.utils import DecisionType
@@ -34,29 +34,21 @@ class Forest:
         return len(self.features)
 
 
+@dataclass
 class DecisionNode(Node):
     # the threshold in bit-representation if this node is categorical
-    cat_threshold = None
+    cat_threshold: List[int] = field(default=None, init=False)
 
     # child nodes
-    left = None
-    right = None
+    left: Node = field(default=None, init=False)
+    right: Node = field(default=None, init=False)
 
-    def __init__(
-        self,
-        idx: int,
-        split_feature: int,
-        threshold: int,
-        decision_type_id: int,
-        left_idx: int,
-        right_idx: int,
-    ):
-        self.idx = idx
-        self.split_feature = split_feature
-        self.threshold = threshold
-        self.decision_type = DecisionType(decision_type_id)
-        self.right_idx = right_idx
-        self.left_idx = left_idx
+    idx: int
+    split_feature: int
+    threshold: int
+    decision_type: DecisionType
+    left_idx: int
+    right_idx: int
 
     def add_children(self, left, right):
         self.left = left
