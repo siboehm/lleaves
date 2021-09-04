@@ -13,7 +13,7 @@ def _initialize_llvm():
     llvm.initialize_native_asmprinter()
 
 
-def _get_target_machine():
+def _get_target_machine(fcodemodel="large"):
     target = llvm.Target.from_triple(llvm.get_process_triple())
     try:
         # LLVM raises if features cannot be detected
@@ -27,16 +27,16 @@ def _get_target_machine():
         cpu=llvm.get_host_cpu_name(),
         features=features,
         reloc="pic",
-        codemodel="large",
+        codemodel=fcodemodel,
     )
     return target_machine
 
 
-def compile_module_to_asm(module, cache_path=None):
+def compile_module_to_asm(module, cache_path=None, fcodemodel="large"):
     _initialize_llvm()
 
     # Create a target machine representing the host
-    target_machine = _get_target_machine()
+    target_machine = _get_target_machine(fcodemodel)
 
     # Create execution engine for our module
     execution_engine = llvm.create_mcjit_compiler(module, target_machine)

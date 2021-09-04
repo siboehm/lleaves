@@ -13,10 +13,6 @@ ZERO_V = ir.Constant(BOOL, 0)
 FLOAT_POINTER = ir.PointerType(FLOAT)
 DOUBLE_PTR = ir.PointerType(DOUBLE)
 
-# 34 funcs per block works well for CPUs with ~128KB of L1i-cache (eg most modern x86).
-# ultimately this should be made configurable, as the optimal value depends on the specific hardware and tree.
-N_FUNCS_PER_BLOCK = 34
-
 
 def iconst(value):
     return ir.Constant(INT, value)
@@ -38,7 +34,7 @@ class LTree:
     class_id: int
 
 
-def gen_forest(forest, module):
+def gen_forest(forest, module, fblocksize):
     """
     Populate the passed IR module with code for the forest.
 
@@ -99,7 +95,7 @@ def gen_forest(forest, module):
         # better locality by running trees for each class together
         tree_funcs.sort(key=lambda t: t.class_id)
 
-    _populate_forest_func(forest, root_func, tree_funcs)
+    _populate_forest_func(forest, root_func, tree_funcs, fblocksize)
 
 
 def gen_tree(tree, tree_func):
@@ -233,13 +229,14 @@ def _populate_instruction_block(
     # -- END CORE LOOP BLOCK
 
 
-def _populate_forest_func(forest, root_func, tree_funcs):
+def _populate_forest_func(forest, root_func, tree_funcs, fblocksize):
     """Populate root function IR for forest"""
 
+    assert fblocksize > 0
     # generate the setup-blocks upfront, so each instruction_block can be passed its successor
     instr_blocks = [
-        (root_func.append_basic_block("setup"), tree_funcs[i : i + N_FUNCS_PER_BLOCK])
-        for i in range(0, len(tree_funcs), N_FUNCS_PER_BLOCK)
+        (root_func.append_basic_block("setup"), tree_funcs[i : i + fblocksize])
+        for i in range(0, len(tree_funcs), fblocksize)
     ]
     term_block = root_func.append_basic_block("term")
     ir.IRBuilder(term_block).ret_void()

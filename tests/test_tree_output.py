@@ -60,6 +60,7 @@ def test_attribute_similarity(llvm_lgbm_model):
     assert (
         llvm_model.num_model_per_iteration() == lightgbm_model.num_model_per_iteration()
     )
+    assert llvm_model.num_trees() == lightgbm_model.num_trees()
 
 
 @settings(deadline=1000)

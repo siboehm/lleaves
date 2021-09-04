@@ -50,6 +50,11 @@ mix of categorical and numerical features.
 |Treelite   | 38.15ms | 414.15ms  | 2854.10ms  |
 |``lleaves``  | 5.90ms  | 56.96ms | 388.88ms |
 
+## Advanced usage
+To avoid any Python overhead during inference you can use `lleaves` as the compiler and 
+link against the generated binary directly. For an example of how to do this see `benchmarks/c_bench/`.
+The function signature might change between major versions.
+
 ## Development
 ```bash
 conda env create

@@ -149,24 +149,29 @@ def extract_pandas_traintime_categories(file_path):
     raise ValueError("Ill formatted model file!")
 
 
-def extract_n_features_n_classes(file_path):
+def extract_model_global_features(file_path):
     """
-    Extract number of features and the number of classes of this model
+    Extract number of features, number of classes and number of trees of this model
 
     :param file_path: path to model.txt
-    :return: dict with "n_args": number of features, "n_classes": number of classes
+    :return: dict with "n_args", "n_classes", "n_trees"
     """
     res = {}
     with open(file_path, "r") as f:
-        for _ in range(2):
+        for _ in range(3):
             line = f.readline()
-            while line and not line.startswith(("max_feature_idx", "num_class")):
+            while line and not line.startswith(
+                ("max_feature_idx", "num_class", "tree_sizes")
+            ):
                 line = f.readline()
 
             if line.startswith("max_feature_idx"):
                 res["n_feature"] = int(line.split("=")[1]) + 1
             elif line.startswith("num_class"):
                 res["n_class"] = int(line.split("=")[1])
+            elif line.startswith("tree_sizes"):
+                # `tree_sizes=123 123 123 123`
+                res["n_trees"] = len(line.split("=")[1].split(" "))
             else:
                 raise ValueError("Ill formatted model file!")
     return res
