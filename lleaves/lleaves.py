@@ -77,7 +77,7 @@ class Model:
         """
         return self._n_trees
 
-    def compile(self, cache=None, *, fblocksize=34, fcodemodel="large"):
+    def compile(self, cache=None, *, fblocksize=34, fcodemodel="large", finline=True):
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
@@ -97,12 +97,16 @@ class Model:
             One of {"small", "large"}.
             The small codemodel will work for most forest and provide speedups but will segfault when used for compiling
             very large forests.
+        :param finline: Whether or not to inline function. Setting this to False will speed-up compilation time
+            significantly but will slow down inference.
         """
         assert 0 < fblocksize
         assert fcodemodel in ("small", "large")
 
         if cache is None or not Path(cache).exists():
-            module = compiler.compile_to_module(self.model_file, fblocksize=fblocksize)
+            module = compiler.compile_to_module(
+                self.model_file, fblocksize=fblocksize, finline=finline
+            )
         else:
             # when loading binary from cache we use a dummy empty module
             module = llvmlite.binding.parse_assembly("")

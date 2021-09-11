@@ -39,3 +39,14 @@ def test_small_codemodel(NYC_data):
         llvm_model.predict(NYC_data[:1000], n_jobs=2),
         lgbm_model.predict(NYC_data[:1000], n_jobs=2),
     )
+
+
+def test_no_inline(NYC_data):
+    llvm_model = Model(model_file="tests/models/NYC_taxi/model.txt")
+    lgbm_model = Booster(model_file="tests/models/NYC_taxi/model.txt")
+    llvm_model.compile(finline=False)
+
+    np.testing.assert_almost_equal(
+        llvm_model.predict(NYC_data[:1000], n_jobs=2),
+        lgbm_model.predict(NYC_data[:1000], n_jobs=2),
+    )

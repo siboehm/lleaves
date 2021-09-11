@@ -45,14 +45,14 @@ mostly numerical features.
 mix of categorical and numerical features.
 |batchsize   | 10,000  | 100,000  | 678,000 |
 |---|---:|---:|---:|
-|LightGBM   | 95.14ms | 992.472ms   | 7034.65ms  |
+|LightGBM   | 95.14ms | 992.47ms   | 7034.65ms  |
 |ONNX  Runtime | 38.83ms  | 381.40ms  | 2849.42ms  |
 |Treelite   | 38.15ms | 414.15ms  | 2854.10ms  |
 |``lleaves``  | 5.90ms  | 56.96ms | 388.88ms |
 
 ## Advanced usage
-To avoid any Python overhead during inference you can use `lleaves` as the compiler and 
-link against the generated binary directly. For an example of how to do this see `benchmarks/c_bench/`.
+To avoid any Python overhead during inference you can link against the generated binary.
+For an example of how to do this see `benchmarks/c_bench/`.
 The function signature might change between major versions.
 
 ## Development
