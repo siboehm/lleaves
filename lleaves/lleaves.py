@@ -10,7 +10,7 @@ import numpy as np
 from lleaves import compiler
 from lleaves.data_processing import (
     data_to_ndarray,
-    extract_n_features_n_classes,
+    extract_model_global_features,
     extract_pandas_traintime_categories,
     ndarray_to_ptr,
 )
@@ -52,9 +52,10 @@ class Model:
         self.is_compiled = False
 
         self._pandas_categorical = extract_pandas_traintime_categories(model_file)
-        num_attrs = extract_n_features_n_classes(model_file)
+        num_attrs = extract_model_global_features(model_file)
         self._n_feature = num_attrs["n_feature"]
         self._n_classes = num_attrs["n_class"]
+        self._n_trees = num_attrs["n_trees"]
 
     def num_feature(self):
         """
@@ -70,26 +71,63 @@ class Model:
         """
         return self._n_classes
 
-    def compile(self, cache=None):
+    def num_trees(self):
+        """
+        Returns the number of trees in this model.
+        """
+        return self._n_trees
+
+    def compile(
+        self,
+        cache=None,
+        *,
+        raw_score=False,
+        fblocksize=34,
+        fcodemodel="large",
+        finline=True,
+    ):
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
-        This method may not be thread-safe in all cases.
+        For most users tweaking the compilation flags (fcodemodel, fblocksize) will be unnecessary as the default
+        configuration is already very fast.
+        Modifying the flags is useful only if you're trying to squeeze out the last few percent of performance.
+
+        The compile() method is generally not thread-safe.
 
         :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
-                      If path exists, binary will be loaded and compilation skipped.
-                      No effort is made to check staleness / consistency.
-                      The precise workings of the cache parameter will be subject to future changes.
+            If path exists, binary will be loaded and compilation skipped.
+            No effort is made to check staleness / consistency.
+        :param raw_score: If true, compile the tree to always return raw predictions, without applying
+            the objective function. Equivalent to the `raw_score` parameter of LightGBM's Booster.predict().
+        :param fblocksize: Trees are cache-blocked into blocks of this size, reducing the icache miss-rate.
+            For deep trees or small caches a lower blocksize is better. For single-row predictions cache-blocking
+            adds overhead, set `fblocksize=Model.num_trees()` to disable it.
+        :param fcodemodel: The LLVM codemodel. Relates to the maximum offsets that may appear in an ASM instruction.
+            One of {"small", "large"}.
+            The small codemodel will give speedups for most forests, but will segfault when used for compiling
+            very large forests.
+        :param finline: Whether or not to inline function. Setting this to False will speed-up compilation time
+            significantly but will slow down prediction.
         """
+        assert 0 < fblocksize
+        assert fcodemodel in ("small", "large")
 
         if cache is None or not Path(cache).exists():
-            module = compiler.compile_to_module(self.model_file)
+            module = compiler.compile_to_module(
+                self.model_file,
+                raw_score=raw_score,
+                fblocksize=fblocksize,
+                finline=finline,
+            )
         else:
             # when loading binary from cache we use a dummy empty module
             module = llvmlite.binding.parse_assembly("")
 
         # keep a reference to the engine to protect it from being garbage-collected
-        self._execution_engine = compile_module_to_asm(module, cache)
+        self._execution_engine = compile_module_to_asm(
+            module, cache, fcodemodel=fcodemodel
+        )
 
         # Drops GIL during call, re-acquires it after
         addr = self._execution_engine.get_function_address("forest_root")
