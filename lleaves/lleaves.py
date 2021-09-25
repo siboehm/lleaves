@@ -77,7 +77,15 @@ class Model:
         """
         return self._n_trees
 
-    def compile(self, cache=None, *, fblocksize=34, fcodemodel="large", finline=True):
+    def compile(
+        self,
+        cache=None,
+        *,
+        raw_score=False,
+        fblocksize=34,
+        fcodemodel="large",
+        finline=True,
+    ):
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
@@ -90,22 +98,27 @@ class Model:
         :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
             If path exists, binary will be loaded and compilation skipped.
             No effort is made to check staleness / consistency.
+        :param raw_score: If true, compile the tree to always return raw predictions, without applying
+            the objective function. Equivalent to the raw_score parameter of LightGBM's Booster.predict().
         :param fblocksize: Trees are cache-blocked into blocks of this size, reducing the icache miss-rate.
             For deep trees or small caches a lower blocksize is better. For single-row predictions cache-blocking
             adds overhead, set `fblocksize=Model.num_trees()` to disable it.
-        :param fcodemodel: The LLVM codemodel. Relates to the maximum offsets that may appear in a asm instruction.
+        :param fcodemodel: The LLVM codemodel. Relates to the maximum offsets that may appear in an ASM instruction.
             One of {"small", "large"}.
-            The small codemodel will work for most forest and provide speedups but will segfault when used for compiling
+            The small codemodel will give speedups for most forests, but will segfault when used for compiling
             very large forests.
         :param finline: Whether or not to inline function. Setting this to False will speed-up compilation time
-            significantly but will slow down inference.
+            significantly but will slow down prediction.
         """
         assert 0 < fblocksize
         assert fcodemodel in ("small", "large")
 
         if cache is None or not Path(cache).exists():
             module = compiler.compile_to_module(
-                self.model_file, fblocksize=fblocksize, finline=finline
+                self.model_file,
+                raw_score=raw_score,
+                fblocksize=fblocksize,
+                finline=finline,
             )
         else:
             # when loading binary from cache we use a dummy empty module

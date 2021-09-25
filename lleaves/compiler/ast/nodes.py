@@ -28,6 +28,7 @@ class Forest:
     n_classes: int
     objective_func: str
     objective_func_config: str
+    raw_score: bool = False
 
     @property
     def n_args(self):

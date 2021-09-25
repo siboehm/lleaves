@@ -42,8 +42,20 @@ def test_all_obj_funcs(modified_model_txt):
     np.testing.assert_almost_equal(lgbm_model.predict(data), llvm_model.predict(data))
 
 
-@pytest.mark.parametrize("objective", ["regression", "binary"])
-def test_basic(tmp_path, objective):
+@pytest.mark.parametrize(
+    "objective, raw_score",
+    [
+        ("regression", False),
+        ("regression", True),
+        ("regression sqrt", False),
+        ("regression sqrt", True),
+        ("binary", False),
+        ("binary", True),
+        ("multiclass", False),
+        ("multiclass", True),
+    ],
+)
+def test_basic(tmp_path, objective, raw_score):
     X = np.expand_dims(np.array([1, 2, 3, 1, 2, 3, 1, 2, 3]), axis=1)
     y = np.array([1, 0, 0, 1, 0, 0, 1, 0, 0])
     train_data = lgb.Dataset(X, label=y, categorical_feature=[0])
@@ -55,5 +67,7 @@ def test_basic(tmp_path, objective):
     reg_model_f = str(tmp_path / f"{objective}.txt")
     bst.save_model(reg_model_f)
     llvm_model = Model(model_file=reg_model_f)
-    llvm_model.compile()
-    np.testing.assert_almost_equal(bst.predict(X), llvm_model.predict(X))
+    llvm_model.compile(raw_score=raw_score)
+    np.testing.assert_almost_equal(
+        bst.predict(X, raw_score=raw_score), llvm_model.predict(X)
+    )

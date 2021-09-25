@@ -219,6 +219,7 @@ def _populate_instruction_block(
             results,
             forest.objective_func,
             forest.objective_func_config,
+            forest.raw_score,
         )
     for result, result_ptr in zip(results, results_ptr):
         builder.store(result, result_ptr)
@@ -254,7 +255,7 @@ def _populate_forest_func(forest, root_func, tree_funcs, fblocksize):
 
 
 def _populate_objective_func_block(
-    builder, args, objective: str, objective_config: str
+    builder, args, objective: str, objective_config: str, raw_score: bool
 ):
     """
     Takes the objective function specification and generates the code for it into the builder
@@ -274,6 +275,10 @@ def _populate_objective_func_block(
         exp = builder.call(llvm_exp, [inner])
         denom = builder.fadd(dconst(1.0), exp)
         return builder.fdiv(dconst(1.0), denom)
+
+    # raw score means we don't need to add the objective function
+    if raw_score:
+        return args
 
     if objective == "binary":
         alpha = objective_config.split(":")[1]
