@@ -99,7 +99,7 @@ class Model:
             If path exists, binary will be loaded and compilation skipped.
             No effort is made to check staleness / consistency.
         :param raw_score: If true, compile the tree to always return raw predictions, without applying
-            the objective function. Equivalent to the raw_score parameter of LightGBM's Booster.predict().
+            the objective function. Equivalent to the `raw_score` parameter of LightGBM's Booster.predict().
         :param fblocksize: Trees are cache-blocked into blocks of this size, reducing the icache miss-rate.
             For deep trees or small caches a lower blocksize is better. For single-row predictions cache-blocking
             adds overhead, set `fblocksize=Model.num_trees()` to disable it.

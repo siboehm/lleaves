@@ -236,7 +236,10 @@ def _populate_forest_func(forest, root_func, tree_funcs, fblocksize):
     assert fblocksize > 0
     # generate the setup-blocks upfront, so each instruction_block can be passed its successor
     instr_blocks = [
-        (root_func.append_basic_block("setup"), tree_funcs[i : i + fblocksize])
+        (
+            root_func.append_basic_block("instr-block-setup"),
+            tree_funcs[i : i + fblocksize],
+        )
         for i in range(0, len(tree_funcs), fblocksize)
     ]
     term_block = root_func.append_basic_block("term")
