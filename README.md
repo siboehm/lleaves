@@ -5,7 +5,7 @@
 
 A LLVM-based compiler for LightGBM decision trees.
 
-`lleaves` converts trained LightGBM models to optimized machine code, speeding-up inference by ≥10x.
+`lleaves` converts trained LightGBM models to optimized machine code, speeding-up prediction by ≥10x.
 
 ## Example
 
@@ -51,9 +51,9 @@ mix of categorical and numerical features.
 |``lleaves``  | 5.90ms  | 56.96ms | 388.88ms |
 
 ## Advanced usage
-To avoid any Python overhead during inference you can link against the generated binary.
-For an example of how to do this see `benchmarks/c_bench/`.
-The function signature might change between major versions.
+To avoid any Python overhead during prediction you can link directly against the generated binary.
+See `benchmarks/c_bench/` for an example of how to do this.
+The function signature can change between major versions.
 
 ## Development
 ```bash

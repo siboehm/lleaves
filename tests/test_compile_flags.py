@@ -20,8 +20,7 @@ def NYC_data():
     return feature_enginering().fit_transform(df).astype(np.float64)
 
 
-# we don't test the default, which is 34
-@pytest.mark.parametrize("blocksize", [1, 100])
+@pytest.mark.parametrize("blocksize", [1, 34, 100])
 def test_cache_blocksize(blocksize, NYC_data):
     llvm_model = Model(model_file="tests/models/NYC_taxi/model.txt")
     lgbm_model = Booster(model_file="tests/models/NYC_taxi/model.txt")
@@ -39,6 +38,12 @@ def test_cache_blocksize(blocksize, NYC_data):
         assert "instr-block-setup.1:" in stdout
         assert "instr-block-setup.99:" in stdout
         assert "instr-block-setup.100:" not in stdout
+    if blocksize == 34:
+        # NYC_taxi has 100 trees, hence blocksize 34 should create 3 blocks
+        assert "instr-block-setup.1:" in stdout
+        assert "instr-block-setup.2:" in stdout
+        assert "instr-block-setup.3:" not in stdout
+        assert "instr-block-setup.4:" not in stdout
     if blocksize == 100:
         assert "instr-block-setup.1:" not in stdout
         assert "instr-block-setup.2:" not in stdout
