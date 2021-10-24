@@ -24,8 +24,6 @@ dependencies:
   - treelite
   - compilers
   - onnxruntime
+  - onnxmltools
   - cmake
   - libcnpy
-  - pip
-  - pip:
-      - "git+git://github.com/onnx/onnxmltools@master"
