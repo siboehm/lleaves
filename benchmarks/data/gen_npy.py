@@ -10,8 +10,8 @@ np.save("airline.npy", airline_X)
 
 df = pd.read_parquet("yellow_tripdata_2016-01.parquet", columns=NYC_used_columns)
 NYC_X = feature_enginering().fit_transform(df).astype(np.float64)
-np.save("NYC_taxi.npy", airline_X)
+np.save("NYC_taxi.npy", NYC_X)
 
 df = pd.read_parquet("mtpl2.parquet")
 mtpl2_X = df.to_numpy(np.float64)
-np.save("mtpl2.npy", airline_X)
+np.save("mtpl2.npy", mtpl2_X)
