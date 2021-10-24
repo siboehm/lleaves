@@ -5,8 +5,6 @@
 #include <cstdlib>
 #include <iostream>
 
-#define N_REPEAT 20
-
 static void bm_lleaves(benchmark::State& state) {
   char *model_name = std::getenv("LLEAVES_BENCHMARK_MODEL");
   std::cout << "Running model " << model_name << "\n";
@@ -19,7 +17,7 @@ static void bm_lleaves(benchmark::State& state) {
   std::cout << "Batchsize: " << arr.shape[0] << "\n";
 
   auto *loaded_data = arr.data<double>();
-  ulong n_preds = arr.shape[0] / (ulong)6;
+  ulong n_preds = arr.shape[0];
   auto *out = (double *)(malloc(n_preds * sizeof(double)));
 
   for (auto _ : state){
