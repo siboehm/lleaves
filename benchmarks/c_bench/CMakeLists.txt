@@ -6,7 +6,9 @@ set(MODEL $ENV{LLEAVES_BENCHMARK_MODEL}) # NYC_taxi / airline / mtpl2
 
 add_executable(c_bench c_bench.cpp)
 
+# remove the cached model file
 file(REMOVE ${MODEL}.o)
+# generate new model file
 find_package(Python COMPONENTS Interpreter)
 add_custom_target(
         run ALL

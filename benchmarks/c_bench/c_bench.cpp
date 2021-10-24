@@ -14,14 +14,12 @@ static void bm_lleaves(benchmark::State& state) {
   std::string model_file = model_stream.str();
   cnpy::NpyArray arr = cnpy::npy_load(model_file);
 
-  std::cout << "Batchsize: " << arr.shape[0] << "\n";
-
   auto *loaded_data = arr.data<double>();
   ulong n_preds = arr.shape[0];
   auto *out = (double *)(malloc(n_preds * sizeof(double)));
 
   for (auto _ : state){
-      // predict the whole input array
+      // predict over the whole input array
       forest_root(loaded_data, out, (int)0, (int)n_preds);
   }
 }

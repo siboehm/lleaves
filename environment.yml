@@ -21,6 +21,7 @@ dependencies:
   - sphinxcontrib-apidoc
   - setuptools-scm
   # benchmarks
+  - benchmark
   - treelite
   - compilers
   - onnxruntime
