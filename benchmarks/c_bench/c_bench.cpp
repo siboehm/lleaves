@@ -7,7 +7,6 @@
 
 static void bm_lleaves(benchmark::State& state) {
   char *model_name = std::getenv("LLEAVES_BENCHMARK_MODEL");
-  std::cout << "Running model " << model_name << "\n";
 
   std::ostringstream model_stream;
   model_stream << "../../data/" << model_name << ".npy";
