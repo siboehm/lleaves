@@ -22,4 +22,4 @@ llvm_model.compile(
     fcodemodel=fcodemodel,
     finline=finline == "True",
 )
-print(f"Compiling took: {time.time() - start}s")
+print(f"Compiling took: {time.time() - start}")
