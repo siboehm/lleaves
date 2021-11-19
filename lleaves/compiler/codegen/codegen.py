@@ -9,6 +9,7 @@ DOUBLE = ir.DoubleType()
 FLOAT = ir.FloatType()
 INT_CAT = ir.IntType(bits=32)
 INT = ir.IntType(bits=32)
+LONG = ir.IntType(bits=64)
 ZERO_V = ir.Constant(BOOL, 0)
 FLOAT_POINTER = ir.PointerType(FLOAT)
 DOUBLE_PTR = ir.PointerType(DOUBLE)
@@ -16,6 +17,10 @@ DOUBLE_PTR = ir.PointerType(DOUBLE)
 
 def iconst(value):
     return ir.Constant(INT, value)
+
+
+def lconst(value):
+    return ir.Constant(LONG, value)
 
 
 def fconst(value):
@@ -168,7 +173,9 @@ def _populate_instruction_block(
 
     # -- SETUP BLOCK
     builder = ir.IRBuilder(setup_block)
-    loop_iter = builder.alloca(INT, 1, "loop-idx")
+    start_index = builder.zext(start_index, LONG)
+    end_index = builder.zext(end_index, LONG)
+    loop_iter = builder.alloca(LONG, 1, "loop-idx")
     builder.store(start_index, loop_iter)
     condition_block = root_func.append_basic_block("loop-condition")
     builder.branch(condition_block)
@@ -187,9 +194,9 @@ def _populate_instruction_block(
     args = []
     loop_iter_reg = builder.load(loop_iter)
 
-    n_args = ir.Constant(INT, forest.n_args)
+    n_args = ir.Constant(LONG, forest.n_args)
     iter_mul_nargs = builder.mul(loop_iter_reg, n_args)
-    idx = (builder.add(iter_mul_nargs, iconst(i)) for i in range(forest.n_args))
+    idx = (builder.add(iter_mul_nargs, lconst(i)) for i in range(forest.n_args))
     raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
     # cast the categorical inputs to integer
     for feature, ptr in zip(forest.features, raw_ptrs):
@@ -203,9 +210,9 @@ def _populate_instruction_block(
     for func in tree_funcs:
         tree_res = builder.call(func.llvm_function, args)
         results[func.class_id] = builder.fadd(tree_res, results[func.class_id])
-    res_idx = builder.mul(iconst(forest.n_classes), loop_iter_reg)
+    res_idx = builder.mul(lconst(forest.n_classes), loop_iter_reg)
     results_ptr = [
-        builder.gep(out_arr, (builder.add(res_idx, iconst(class_idx)),))
+        builder.gep(out_arr, (builder.add(res_idx, lconst(class_idx)),))
         for class_idx in range(forest.n_classes)
     ]
 
@@ -224,8 +231,7 @@ def _populate_instruction_block(
     for result, result_ptr in zip(results, results_ptr):
         builder.store(result, result_ptr)
 
-    tmpp1 = builder.add(loop_iter_reg, iconst(1))
-    builder.store(tmpp1, loop_iter)
+    builder.store(builder.add(loop_iter_reg, lconst(1)), loop_iter)
     builder.branch(condition_block)
     # -- END CORE LOOP BLOCK
 
