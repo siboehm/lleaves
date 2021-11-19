@@ -3,7 +3,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
+from lightgbm import Booster
 
+from lleaves import Model
 from lleaves.data_processing import (
     data_to_ndarray,
     extract_model_global_features,
@@ -87,3 +89,20 @@ def test_no_data_modification():
     pred = pd.DataFrame(data).astype("category")
     ndarray_to_ptr(data_to_ndarray(pred, data))
     pd.testing.assert_frame_equal(pred, orig)
+
+
+def test_sliced_arrays():
+    # predictions should be correct when passed a sliced array
+    llvm_model = Model(model_file="tests/models/single_tree/model.txt")
+    llvm_model.compile()
+    lgbm_model = Booster(model_file="tests/models/single_tree/model.txt")
+
+    n_feature = lgbm_model.num_feature()
+    data = np.array(list(range(-5 * n_feature, 5 * n_feature)), dtype=np.float64)
+    data = data.reshape((5, 2 * n_feature))
+    sliced = data[:, ::2]
+    assert not sliced.flags.c_contiguous
+    np.testing.assert_almost_equal(
+        llvm_model.predict(sliced, n_jobs=4), lgbm_model.predict(sliced), decimal=13
+    )
+    return

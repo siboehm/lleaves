@@ -4,6 +4,7 @@ from ctypes import POINTER, c_double
 from typing import List, Optional
 
 import numpy as np
+import pandas as pd
 
 try:
     from pandas import DataFrame as pd_DataFrame
@@ -15,7 +16,7 @@ except ImportError:
         pass
 
 
-def _dataframe_to_ndarray(data, pd_traintime_categories: List[List]):
+def _dataframe_to_ndarray(data: pd.DataFrame, pd_traintime_categories: List[List]):
     """
     Converts the given dataframe into a 2D numpy array and converts categorical columns to float.
 
@@ -94,7 +95,7 @@ def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     return data
 
 
-def ndarray_to_ptr(data):
+def ndarray_to_ptr(data: np.ndarray):
     """
     Takes a 2D numpy array, converts to float64 if necessary and returns a pointer
 
