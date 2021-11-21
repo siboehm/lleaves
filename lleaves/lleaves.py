@@ -1,7 +1,7 @@
 import concurrent.futures
 import math
 import os
-from ctypes import CFUNCTYPE, POINTER, c_double, c_int
+from ctypes import CFUNCTYPE, POINTER, c_double, c_int32
 from pathlib import Path
 
 import llvmlite.binding
@@ -20,8 +20,8 @@ ENTRY_FUNC_TYPE = CFUNCTYPE(
     None,  # return void
     POINTER(c_double),  # pointer to data array
     POINTER(c_double),  # pointer to results array
-    c_int,  # start index
-    c_int,  # end index
+    c_int32,  # start index
+    c_int32,  # end index
 )
 
 
@@ -89,11 +89,9 @@ class Model:
         """
         Generate the LLVM IR for this model and compile it to ASM.
 
-        For most users tweaking the compilation flags (fcodemodel, fblocksize) will be unnecessary as the default
-        configuration is already very fast.
+        For most users tweaking the compilation flags (fcodemodel, fblocksize, finline) will be unnecessary
+        as the default configuration is already very fast.
         Modifying the flags is useful only if you're trying to squeeze out the last few percent of performance.
-
-        The compile() method is generally not thread-safe.
 
         :param cache: Path to a cache file. If this path doesn't exist, binary will be dumped at path after compilation.
             If path exists, binary will be loaded and compilation skipped.
@@ -159,6 +157,12 @@ class Model:
         if len(data.shape) != 2 or data.shape[1] != self.num_feature():
             raise ValueError(
                 f"Data must be of dimension (N, {self.num_feature()}), is {data.shape}."
+            )
+        # protect against `ctypes.c_int32` silently overflowing and causing SIGSEGV
+        if n_predictions >= 2 ** 31 - 1:
+            raise ValueError(
+                "Prediction is not supported for datasets with >=2^31-1 rows. "
+                "Split the dataset into smaller chunks first."
             )
 
         # setup input data and predictions array
