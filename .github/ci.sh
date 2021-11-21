@@ -8,7 +8,7 @@ python -m pip install --no-use-pep517 --no-deps --disable-pip-version-check -e .
 pytest -v tests
 
 # Check documentation build only in one job, also do releases
-if [ "${PYTHON_VERSION}" = "3.6" ]; then
+if [ "${PYTHON_VERSION}" = "3.7" ]; then
   pushd docs
   make html
   popd
