@@ -15,18 +15,17 @@ def test_benchmarks_correct_output():
     df = pd.read_parquet(
         "benchmarks/data/yellow_tripdata_2016-01.parquet", columns=NYC_used_columns
     )
-    NYC_X = feature_enginering().fit_transform(df).astype(np.float32)
+    NYC_X = feature_enginering().fit_transform(df)
 
-    df = pd.read_csv("benchmarks/data/airline_data_factorized.csv")
-    airline_X = df.to_numpy(np.float32)
+    airline_X = pd.read_csv("benchmarks/data/airline_data_factorized.csv")
 
-    df = pd.read_parquet("benchmarks/data/mtpl2.parquet")
-    mtpl2_X = df.to_numpy(np.float32)
+    mtpl2_X = pd.read_parquet("benchmarks/data/mtpl2.parquet")
+    mtpl2_X[["Region", "VehGas"]] = mtpl2_X[["Region", "VehGas"]].astype("category")
 
     for model_file, data in [
-        (model_file_mtpl2, mtpl2_X),
         (model_file_NYC, NYC_X),
         (model_file_airline, airline_X),
+        (model_file_mtpl2, mtpl2_X),
     ]:
         lgb = lightgbm.Booster(model_file=model_file)
         llvm = lleaves.Model(model_file=model_file)

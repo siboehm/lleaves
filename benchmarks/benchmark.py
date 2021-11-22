@@ -12,6 +12,39 @@ from onnxconverter_common import FloatTensorType
 
 from benchmarks.train_NYC_model import feature_enginering
 from lleaves import Model
+from lleaves.data_processing import extract_pandas_traintime_categories
+
+
+def ndarray_from_pandas(data, pandas_categorical=None, target_dtype=np.float64):
+    """
+    Convert a pandas dataframe to a numpy array
+
+    The main difficulty here is making sure the categoricals are mapped correctly to their float index.
+    This is done by passing pandas_categorical, which is saved inside LightGBM's model.txt.
+    These were the categories for each categorical in the dataframe during train time.
+
+    :param data: dataframe
+    :param pandas_categorical: list of list of categories
+    :param target_dtype: np dtype for the resulting array
+    """
+    cat_cols = list(data.select_dtypes(include=["category"]).columns)
+    if pandas_categorical is None:
+        pandas_categorical = []
+    if len(cat_cols) != len(pandas_categorical):
+        raise ValueError(
+            "The categorical features passed don't match the train dataset."
+        )
+    for col, category in zip(cat_cols, pandas_categorical):
+        # we use set_categories to get the same (category -> code) mapping that we used during train
+        if list(data[col].cat.categories) != list(category):
+            data[col] = data[col].cat.set_categories(category)
+    if len(cat_cols):  # cat_cols is list
+        data = data.copy()
+        # apply (category -> code) mapping. Categories become floats
+        data[cat_cols] = (
+            data[cat_cols].apply(lambda x: x.cat.codes).replace({-1: np.nan})
+        )
+    return data.to_numpy(target_dtype)
 
 
 class BenchmarkModel:
@@ -57,6 +90,7 @@ class TreeliteModel(BenchmarkModel):
     def _setup(self, data, n_threads):
         # disable thread pinning, which modifies (and never resets!) process-global pthreads state
         os.environ["TREELITE_BIND_THREADS"] = "0"
+        self._pandas_categorical = extract_pandas_traintime_categories(self.model_file)
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
         treelite_model.export_lib(
             toolchain="gcc",
@@ -70,15 +104,22 @@ class TreeliteModel(BenchmarkModel):
         )
 
     def predict(self, data, index, batchsize, n_threads):
-        return self.model.predict(
-            treelite_runtime.DMatrix(data[index : index + batchsize])
-        )
+        if not isinstance(data, np.ndarray):
+            data = ndarray_from_pandas(
+                data[index : index + batchsize],
+                self._pandas_categorical,
+                target_dtype=np.float64,
+            )
+        else:
+            data = data[index : index + batchsize]
+        return self.model.predict(treelite_runtime.DMatrix(data))
 
 
 class ONNXModel(BenchmarkModel):
     name = "ONNX Runtime"
 
     def _setup(self, data, n_threads):
+        self._pandas_categorical = extract_pandas_traintime_categories(self.model_file)
         lgbm_model = lightgbm.Booster(model_file=self.model_file)
         onnx_model = onnxmltools.convert_lightgbm(
             lgbm_model,
@@ -96,12 +137,18 @@ class ONNXModel(BenchmarkModel):
         options.intra_op_num_threads = n_threads
         self.model = rt.InferenceSession("/tmp/model.onnx", sess_options=options)
         self.input_name = self.model.get_inputs()[0].name
-        self.label_name = self.model.get_outputs()[0].name
+        self.label_name = self.model.get_outputs()[-1].name
 
     def predict(self, data, index, batchsize, n_threads):
-        return self.model.run(
-            [self.label_name], {self.input_name: data[index : index + batchsize]}
-        )
+        if not isinstance(data, np.ndarray):
+            data = ndarray_from_pandas(
+                data[index : index + batchsize],
+                self._pandas_categorical,
+                target_dtype=np.float32,
+            )
+        else:
+            data = data[index : index + batchsize].astype(np.float32)
+        return self.model.run([self.label_name], {self.input_name: data})
 
 
 NYC_used_columns = [
@@ -145,13 +192,12 @@ if __name__ == "__main__":
     df = pd.read_parquet(
         "data/yellow_tripdata_2016-01.parquet", columns=NYC_used_columns
     )
-    NYC_X = feature_enginering().fit_transform(df).astype(np.float32)
+    NYC_X = feature_enginering().fit_transform(df)
 
-    df = pd.read_csv("data/airline_data_factorized.csv")
-    airline_X = df.to_numpy(np.float32)
+    airline_X = pd.read_csv("data/airline_data_factorized.csv")
 
-    df = pd.read_parquet("data/mtpl2.parquet")
-    mtpl2_X = df.to_numpy(np.float32)
+    mtpl2_X = pd.read_parquet("data/mtpl2.parquet")
+    mtpl2_X[["Region", "VehGas"]] = mtpl2_X[["Region", "VehGas"]].astype("category")
 
     model_file_NYC = "../tests/models/NYC_taxi/model.txt"
     model_file_airline = "../tests/models/airline/model.txt"
