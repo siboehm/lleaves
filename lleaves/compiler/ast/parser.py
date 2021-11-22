@@ -23,7 +23,10 @@ class Feature:
 def _parse_tree_to_ast(tree_struct, features, class_id):
     n_nodes = len(tree_struct["decision_type"])
     leaves = [
-        LeafNode(idx, value) for idx, value in enumerate(tree_struct["leaf_value"])
+        LeafNode(idx, value, n_visits)
+        for idx, (value, n_visits) in enumerate(
+            itertools.zip_longest(tree_struct["leaf_value"], tree_struct["leaf_count"])
+        )
     ]
 
     # Create the nodes using all non-specific data
@@ -36,6 +39,7 @@ def _parse_tree_to_ast(tree_struct, features, class_id):
             DecisionType(decision_type_id),
             left_idx,
             right_idx,
+            n_visits,
         )
         for idx, (
             split_feature,
@@ -43,6 +47,7 @@ def _parse_tree_to_ast(tree_struct, features, class_id):
             decision_type_id,
             left_idx,
             right_idx,
+            n_visits,
         ) in enumerate(
             zip(
                 tree_struct["split_feature"],
@@ -50,6 +55,7 @@ def _parse_tree_to_ast(tree_struct, features, class_id):
                 tree_struct["decision_type"],
                 tree_struct["left_child"],
                 tree_struct["right_child"],
+                tree_struct["internal_count"],
             )
         )
     ]

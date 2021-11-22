@@ -87,8 +87,10 @@ TREE_SCAN_KEYS = {
     "left_child": ScannedValue(int, True),
     "right_child": ScannedValue(int, True),
     "leaf_value": ScannedValue(float, True),
+    "leaf_count": ScannedValue(int, True, True),
     "cat_threshold": ScannedValue(int, True, True),
     "cat_boundaries": ScannedValue(int, True, True),
+    "internal_count": ScannedValue(int, True, True),
 }
 
 

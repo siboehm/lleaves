@@ -50,6 +50,7 @@ class DecisionNode(Node):
     decision_type: DecisionType
     left_idx: int
     right_idx: int
+    n_visits: int
 
     def add_children(self, left, right):
         self.left = left
@@ -73,6 +74,7 @@ class DecisionNode(Node):
 class LeafNode(Node):
     idx: int
     value: float
+    n_visits: int
 
     def __str__(self):
         return f"leaf_{self.idx}"

@@ -156,7 +156,8 @@ def _gen_decision_node(func, node_block, node):
         ret = builder.select(comp, dconst(node.left.value), dconst(node.right.value))
         builder.ret(ret)
     else:
-        builder.cbranch(comp, left_block, right_block)
+        branch = builder.cbranch(comp, left_block, right_block)
+        branch.set_weights([node.left.n_visits, node.right.n_visits])
 
     # populate generated child blocks
     if left_block:
