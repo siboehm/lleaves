@@ -4,7 +4,6 @@ from ctypes import POINTER, c_double
 from typing import List, Optional
 
 import numpy as np
-import pandas as pd
 
 try:
     from pandas import DataFrame as pd_DataFrame
@@ -16,7 +15,7 @@ except ImportError:
         pass
 
 
-def _dataframe_to_ndarray(data: pd.DataFrame, pd_traintime_categories: List[List]):
+def _dataframe_to_ndarray(data: pd_DataFrame, pd_traintime_categories: List[List]):
     """
     Converts the given dataframe into a 2D numpy array and converts categorical columns to float.
 
