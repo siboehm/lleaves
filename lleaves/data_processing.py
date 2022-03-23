@@ -145,7 +145,10 @@ def extract_pandas_traintime_categories(file_path):
         if not last_line.startswith(pandas_key):
             last_line = lines[-2].decode().strip()
         if last_line.startswith(pandas_key):
-            return json.loads(last_line[len(pandas_key) :])
+            pandas_categorical = json.loads(last_line[len(pandas_key) :])
+            if pandas_categorical is None:
+                pandas_categorical = []
+            return pandas_categorical
     raise ValueError("Ill formatted model file!")
 
 
