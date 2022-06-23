@@ -39,7 +39,7 @@ class LTree:
     class_id: int
 
 
-def gen_forest(forest, module, fblocksize):
+def gen_forest(forest, module, fblocksize, function_name="forest_root"):
     """
     Populate the passed IR module with code for the forest.
 
@@ -81,7 +81,7 @@ def gen_forest(forest, module, fblocksize):
     root_func = ir.Function(
         module,
         ir.FunctionType(ir.VoidType(), (DOUBLE_PTR, DOUBLE_PTR, INT, INT)),
-        name="forest_root",
+        name=function_name,
     )
 
     def make_tree(tree):
