@@ -108,7 +108,7 @@ class Model:
             very large forests.
         :param finline: Whether or not to inline function. Setting this to False will speed-up compilation time
             significantly but will slow down prediction.
-        :function_name: Name of the prediction function, default to be `forest_root`.
+        :param function_name: Name of the prediction function, default to be `forest_root`.
         """
         assert 0 < fblocksize
         assert fcodemodel in ("small", "large")
