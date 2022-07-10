@@ -159,7 +159,7 @@ class Model:
                 f"Data must be of dimension (N, {self.num_feature()}), is {data.shape}."
             )
         # protect against `ctypes.c_int32` silently overflowing and causing SIGSEGV
-        if n_predictions >= 2 ** 31 - 1:
+        if n_predictions >= 2**31 - 1:
             raise ValueError(
                 "Prediction is not supported for datasets with >=2^31-1 rows. "
                 "Split the dataset into smaller chunks first."

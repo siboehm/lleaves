@@ -195,7 +195,7 @@ def test_categorical_prediction_llvm_real(data, categorical_model_txt):
 
     input = data.draw(
         st.lists(
-            st.integers(min_value=0, max_value=2 ** 31 - 2),
+            st.integers(min_value=0, max_value=2**31 - 2),
             max_size=llvm_model.num_feature(),
             min_size=llvm_model.num_feature(),
         )
