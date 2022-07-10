@@ -85,7 +85,7 @@ class Model:
         fblocksize=34,
         fcodemodel="large",
         finline=True,
-        function_name="forest_root",
+        froot_func_name="forest_root",
     ):
         """
         Generate the LLVM IR for this model and compile it to ASM.
@@ -108,7 +108,8 @@ class Model:
             very large forests.
         :param finline: Whether or not to inline function. Setting this to False will speed-up compilation time
             significantly but will slow down prediction.
-        :param function_name: Name of the prediction function, default to be `forest_root`.
+        :param froot_func_name: Name of entry point function in the compiled binary. This is the function to link when
+            writing a C function wrapper. Defaults to "forest_root".
         """
         assert 0 < fblocksize
         assert fcodemodel in ("small", "large")
@@ -119,7 +120,7 @@ class Model:
                 raw_score=raw_score,
                 fblocksize=fblocksize,
                 finline=finline,
-                function_name=function_name,
+                froot_func_name=froot_func_name,
             )
         else:
             # when loading binary from cache we use a dummy empty module
@@ -131,7 +132,7 @@ class Model:
         )
 
         # Drops GIL during call, re-acquires it after
-        addr = self._execution_engine.get_function_address(function_name)
+        addr = self._execution_engine.get_function_address(froot_func_name)
         self._c_entry_func = ENTRY_FUNC_TYPE(addr)
 
         self.is_compiled = True

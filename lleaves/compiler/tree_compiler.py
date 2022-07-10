@@ -7,12 +7,18 @@ from lleaves.compiler.ast import parse_to_ast
 from lleaves.compiler.codegen import gen_forest
 
 
-def compile_to_module(file_path, fblocksize=34, finline=True, raw_score=False, function_name="forest_root"):
+def compile_to_module(
+    file_path,
+    fblocksize=34,
+    finline=True,
+    raw_score=False,
+    froot_func_name="forest_root",
+):
     forest = parse_to_ast(file_path)
     forest.raw_score = raw_score
 
     ir = llvmlite.ir.Module(name="forest")
-    gen_forest(forest, ir, fblocksize, function_name)
+    gen_forest(forest, ir, fblocksize, froot_func_name)
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))

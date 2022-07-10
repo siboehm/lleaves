@@ -79,7 +79,7 @@ def test_no_inline(NYC_data):
 def test_function_name():
     llvm_model = Model(model_file="tests/models/tiniest_single_tree/model.txt")
     lgbm_model = Booster(model_file="tests/models/tiniest_single_tree/model.txt")
-    llvm_model.compile(function_name="tiniest_single_tree_123132_XXX-")
+    llvm_model.compile(froot_func_name="tiniest_single_tree_123132_XXX-")
 
     data = [
         [1.0] * 3,
