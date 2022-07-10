@@ -202,7 +202,11 @@ def _populate_instruction_block(
     for feature, ptr in zip(forest.features, raw_ptrs):
         el = builder.load(ptr)
         if feature.is_categorical:
-            args.append(builder.fptosi(el, INT_CAT))
+            # first, check if the value is NaN
+            is_nan = builder.fcmp_ordered("uno", el, dconst(0.0))
+            # if it is, return smallest possible int (will always go right), else cast to int
+            el = builder.select(is_nan, iconst(-(2**31)), builder.fptosi(el, INT_CAT))
+            args.append(el)
         else:
             args.append(el)
     # iterate over each tree, sum up results
