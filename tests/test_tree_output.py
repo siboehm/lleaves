@@ -104,7 +104,7 @@ def test_forest_llvm_mode_cat(data, llvm_lgbm_model_cat):
 
     input_cats = data.draw(
         st.lists(
-            st.integers(min_value=0, max_value=2 ** 31 - 2),
+            st.integers(min_value=0, max_value=2**31 - 2),
             min_size=sum(cat_bitvec),
             max_size=sum(cat_bitvec),
         )
