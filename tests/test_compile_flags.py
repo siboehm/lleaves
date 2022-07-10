@@ -74,3 +74,19 @@ def test_no_inline(NYC_data):
         llvm_model.predict(NYC_data[:1000], n_jobs=2),
         lgbm_model.predict(NYC_data[:1000], n_jobs=2),
     )
+
+
+def test_function_name():
+    llvm_model = Model(model_file="tests/models/tiniest_single_tree/model.txt")
+    lgbm_model = Booster(model_file="tests/models/tiniest_single_tree/model.txt")
+    llvm_model.compile(froot_func_name="tiniest_single_tree_123132_XXX-")
+
+    data = [
+        [1.0] * 3,
+        [0.0] * 3,
+        [-1.0] * 3,
+    ]
+    np.testing.assert_almost_equal(
+        llvm_model.predict(data, n_jobs=2),
+        lgbm_model.predict(data, n_jobs=2),
+    )
