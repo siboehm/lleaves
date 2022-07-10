@@ -131,7 +131,7 @@ class Model:
         )
 
         # Drops GIL during call, re-acquires it after
-        addr = self._execution_engine.get_function_address("forest_root")
+        addr = self._execution_engine.get_function_address(function_name)
         self._c_entry_func = ENTRY_FUNC_TYPE(addr)
 
         self.is_compiled = True
