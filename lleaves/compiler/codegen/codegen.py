@@ -16,10 +16,12 @@ DOUBLE_PTR = ir.PointerType(DOUBLE)
 
 
 def iconst(value):
+    assert -(2**31) <= value <= 2**31 - 1
     return ir.Constant(INT, value)
 
 
 def lconst(value):
+    assert -(2**63) <= value <= 2**63 - 1
     return ir.Constant(LONG, value)
 
 
@@ -343,8 +345,8 @@ def _populate_categorical_node_block(
     """Populate block with IR for categorical node"""
     val = func.args[node.split_feature]
 
-    # For categoricals, processing NaNs happens through casting them via fptosi in the Forest root
-    # NaNs become negative max_val, which never exists in the Bitset, so they always go right
+    # For categoricals, processing NaNs happens in the Forest root, by explicitly checking for them
+    # NaNs are converted to negative max_val, which never exists in the Bitset, so they always go right
 
     # Find in bitset
     # First, check value > max categorical
