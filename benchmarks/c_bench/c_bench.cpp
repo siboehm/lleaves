@@ -5,7 +5,8 @@
 #include <cstdlib>
 #include <iostream>
 
-static void bm_lleaves(benchmark::State& state) {
+static void bm_lleaves(benchmark::State &state)
+{
   char *model_name = std::getenv("LLEAVES_BENCHMARK_MODEL");
 
   std::ostringstream model_stream;
@@ -17,11 +18,12 @@ static void bm_lleaves(benchmark::State& state) {
   ulong n_preds = arr.shape[0];
   auto *out = (double *)(malloc(n_preds * sizeof(double)));
 
-  for (auto _ : state){
-      // predict over the whole input array
-      forest_root(loaded_data, out, (int)0, (int)n_preds);
+  for (auto _ : state)
+  {
+    // predict over the whole input array
+    forest_root(loaded_data, out, (int)0, (int)n_preds);
   }
 }
 
-BENCHMARK(bm_lleaves);
+BENCHMARK(bm_lleaves)->Unit(benchmark::kMillisecond);
 BENCHMARK_MAIN();
