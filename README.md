@@ -50,10 +50,15 @@ mix of categorical and numerical features.
 |Treelite   | 38.15ms | 414.15ms  | 2854.10ms  |
 |``lleaves``  | 5.90ms  | 56.96ms | 388.88ms |
 
-## Advanced usage
-To avoid any Python overhead during prediction you can link directly against the generated binary.
-See `benchmarks/c_bench/` for an example of how to do this.
-The function signature can change between major versions.
+## Advanced Usage
+To avoid expensive recompilation, you can call `lleaves.Model.compile()` and pass a `cache=<filepath>` argument.
+This will store an ELF (Linux) / Mach-O (macOS) file at the given path when the method is first called.
+Subsequent calls of `compile(cache=<same filepath>)` will skip compilation and load the stored binary file instead.
+For more info, see [docs](https://lleaves.readthedocs.io/en/latest/).
+
+To eliminate any Python overhead during inference you can link against this generated binary.
+For an example of how to do this see `benchmarks/c_bench/`.
+The function signature might change between major versions.
 
 ## Development
 ```bash
