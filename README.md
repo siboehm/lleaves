@@ -61,6 +61,7 @@ For an example of how to do this see `benchmarks/c_bench/`.
 The function signature might change between major versions.
 
 ## Development
+High-level explanation of the inner workings of the lleaves compiler: [link](https://siboehm.com/articles/21/lleaves)
 ```bash
 conda env create
 conda activate lleaves
