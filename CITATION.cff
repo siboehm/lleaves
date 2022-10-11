@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+title: lleaves
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Simon
+    family-names: Boehm
+repository-code: 'https://github.com/siboehm/lleaves'
+url: 'https://github.com/siboehm/lleaves'
+license: MIT
