@@ -152,6 +152,7 @@ If you already have a trained model file named ``lgbmModel.txt``, the command to
       return 0;
     }
     ...
+- Due to C++ name mangling, it's important to retain the ``extern C`` function declaration for ``forest_root`` in the header. Else the linker will fail.
 - Modify the ``CMakeLists``, like so::
 
     cmake_minimum_required(VERSION 3.19)
