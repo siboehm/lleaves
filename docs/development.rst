@@ -134,7 +134,7 @@ If you already have a trained model file named ``lgbmModel.txt``, the command to
 2. Modifying and Moving Relevant Files
 
 - The modifications were made primarily based on this section of code: ``https://github.com/siboehm/lleaves/tree/master/benchmarks/c_bench``
-- 将lleaves.o移动到这个目录下
+- Move ``lleaves.o`` to the current directory
 - Modify the ``c_bench.cpp``, like so::
 
     #include "c_bench.h"
