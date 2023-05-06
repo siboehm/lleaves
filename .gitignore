@@ -1,6 +1,8 @@
 # idea
 .idea/
 
+*.secret
+
 # data
 benchmarks/data
 # compile models

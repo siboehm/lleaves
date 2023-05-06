@@ -1,0 +1,7 @@
+name: oai-api
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - openai
+  - jupyterlab
