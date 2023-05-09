@@ -168,7 +168,13 @@ def _gen_decision_node(func, node_block, node):
 
 
 def _populate_instruction_block(
-    forest, root_func, tree_funcs, setup_block, next_block, eval_obj_func
+    instr_block_idx,
+    forest,
+    root_func,
+    tree_funcs,
+    setup_block,
+    next_block,
+    eval_obj_func,
 ):
     """Generates an instruction_block: loops over all input data and evaluates its chunk of tree_funcs."""
     data_arr, out_arr, start_index, end_index = root_func.args
@@ -222,10 +228,12 @@ def _populate_instruction_block(
         for class_idx in range(forest.n_classes)
     ]
 
-    results = [
-        builder.fadd(result, builder.load(result_ptr))
-        for result, result_ptr in zip(results, results_ptr)
-    ]
+    if instr_block_idx > 0:
+        results = [
+            builder.fadd(result, builder.load(result_ptr))
+            for result, result_ptr in zip(results, results_ptr)
+        ]
+
     if eval_obj_func:
         results = _populate_objective_func_block(
             builder,
@@ -260,6 +268,7 @@ def _populate_forest_func(forest, root_func, tree_funcs, fblocksize):
         next_block = instr_blocks[i + 1][0] if i < len(instr_blocks) - 1 else term_block
         eval_objective_func = next_block == term_block
         _populate_instruction_block(
+            i,
             forest,
             root_func,
             tree_func_chunk,
