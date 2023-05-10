@@ -70,3 +70,9 @@ pre-commit install
 ./benchmarks/data/setup_data.sh
 pytest
 ```
+
+Release:
+```
+git tag -a 1.0.0
+git push origin 1.0.0
+```
