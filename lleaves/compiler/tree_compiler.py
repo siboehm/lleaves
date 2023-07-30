@@ -6,6 +6,8 @@ import llvmlite.ir
 from lleaves.compiler.ast import parse_to_ast
 from lleaves.compiler.codegen import gen_forest
 
+from lleaves.compiler.passes import fastmathpass
+
 
 def compile_to_module(
     file_path,
@@ -19,6 +21,8 @@ def compile_to_module(
 
     ir = llvmlite.ir.Module(name="forest")
     gen_forest(forest, ir, fblocksize, froot_func_name)
+
+    fastmathpass.rewrite_module(ir)
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
