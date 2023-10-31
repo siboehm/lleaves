@@ -147,8 +147,8 @@ def test_predict_pandas_categorical(tmpdir_factory):
     # reorder categories to ensure that same letter now maps to a different pandas code
     df2["C1"] = df2["C1"].cat.set_categories(["c", "b", "a"])
     df2["C2"] = df2["C2"].cat.set_categories(["a", "z", "w"])
-    assert not (list(df["C1"].cat.codes) == list(df2["C1"].cat.codes))
-    assert not (list(df["C2"].cat.codes) == list(df2["C2"].cat.codes))
+    assert list(df["C1"].cat.codes) != list(df2["C1"].cat.codes)
+    assert list(df["C2"].cat.codes) != list(df2["C2"].cat.codes)
 
     df3 = pd.DataFrame(
         {

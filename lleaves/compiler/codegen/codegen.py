@@ -394,14 +394,14 @@ def _populate_numerical_node_block(func, builder, node):
     # for MNone handle NaNs by adjusting default_left to make sure NaNs go where 0.0 would have gone.
     # for MZero we handle NaNs in the IR
     if node.decision_type.missing_type == MissingType.MNone:
-        default_left = 0.0 <= node.threshold
+        default_left = node.threshold >= 0.0
     else:
         default_left = node.decision_type.is_default_left
 
     # MissingType.MZero: Treat 0s (and NaNs) as missing values
     if default_left:
         if missing_t != MissingType.MZero or (
-            missing_t == MissingType.MZero and 0.0 <= node.threshold
+            missing_t == MissingType.MZero and node.threshold >= 0.0
         ):
             # unordered cmp: we'll get True (and go left) if any arg is qNaN
             comp = builder.fcmp_unordered("<=", val, thresh)

@@ -160,7 +160,7 @@ def extract_model_global_features(file_path):
     :return: dict with "n_args", "n_classes", "n_trees"
     """
     res = {}
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         for _ in range(3):
             line = f.readline()
             while line and not line.startswith(
