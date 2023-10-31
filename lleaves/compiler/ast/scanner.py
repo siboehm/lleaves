@@ -9,7 +9,7 @@ def scan_model_file(file_path, general_info_only=False):
     res = {"trees": []}
 
     def read_blocks(file_path):
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             while True:
                 lines = _get_next_block_of_lines(f)
                 if lines:

@@ -17,7 +17,7 @@ from lleaves.data_processing import (
 def test_parsing_pandas(tmp_path):
     mod_model_file = tmp_path / "mod_model.txt"
     model_file = Path("tests/models/pure_categorical/model.txt")
-    with open(model_file, "r") as file:
+    with open(model_file) as file:
         lines = file.readlines()
     assert lines[-1].startswith("pandas_categorical")
     lines[
@@ -51,12 +51,12 @@ def test_parsing_pandas_broken_file(tmp_path):
 def test_n_args_extract(tmp_path):
     mod_model_file = tmp_path / "mod_model.txt"
     model_file = Path("tests/models/mixed_categorical/model.txt")
-    with open(model_file, "r") as file:
+    with open(model_file) as file:
         lines = file.readlines()
 
     with open(mod_model_file, "x") as file:
         file.writelines(
-            (line for line in lines if not line.startswith("max_feature_idx"))
+            line for line in lines if not line.startswith("max_feature_idx")
         )
 
     res = extract_model_global_features(model_file)
