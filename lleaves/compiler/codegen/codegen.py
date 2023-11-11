@@ -242,7 +242,7 @@ def _populate_instruction_block(
             forest.objective_func_config,
             forest.raw_score,
             forest.average_output,
-            len(tree_funcs),
+            len(forest.trees),
         )
     for result, result_ptr in zip(results, results_ptr):
         builder.store(result, result_ptr)
