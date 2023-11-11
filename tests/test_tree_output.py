@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from sklearn.datasets import make_classification
+from sklearn.datasets import make_blobs, make_classification, make_regression
 
 import lleaves
 
@@ -156,3 +156,60 @@ def test_multiclass_generated(tmpdir):
         lgbm.predict(X, n_jobs=2), llvm.predict(X, n_jobs=2), decimal=10
     )
     assert lgbm.num_model_per_iteration() == llvm.num_model_per_iteration()
+
+
+def test_random_forest_classifier(tmpdir):
+    centers = [[-4, -4], [4, 4]]
+    X, y = make_blobs(n_samples=100, centers=centers, random_state=42)
+
+    # rf = random forest (outputs are averaged over all trees)
+    params = {
+        "boosting_type": "rf",
+        "n_estimators": 7,
+        "bagging_freq": 1,
+        "bagging_fraction": 0.8,
+    }
+    clf = lightgbm.LGBMClassifier(**params).fit(X, y)
+    model_file = str(tmpdir / "model.txt")
+    clf.booster_.save_model(model_file)
+
+    lgbm = lightgbm.Booster(model_file=model_file)
+    llvm = lleaves.Model(model_file=model_file)
+    llvm.compile()
+
+    # check predictions equal on the whole dataset
+    np.testing.assert_almost_equal(
+        lgbm.predict(X, n_jobs=2), llvm.predict(X, n_jobs=2), decimal=10
+    )
+    assert lgbm.num_model_per_iteration() == llvm.num_model_per_iteration()
+
+
+@pytest.mark.parametrize("num_trees", [34, 35])
+def test_random_forest_regressor(tmpdir, num_trees):
+    n_samples = 1000
+    X, y = make_regression(n_samples=n_samples, n_features=5, noise=10.0)
+
+    params = {
+        "objective": "regression",
+        "n_jobs": 1,
+        "boosting_type": "rf",
+        "subsample_freq": 1,
+        "subsample": 0.9,
+        "colsample_bytree": 0.9,
+        "num_leaves": 25,
+        "n_estimators": num_trees,
+        "min_child_samples": 100,
+        "verbose": 0,
+    }
+
+    model = lightgbm.LGBMRegressor(**params).fit(X, y)
+    model_file = str(tmpdir / "model.txt")
+    model.booster_.save_model(model_file)
+
+    lgbm = lightgbm.Booster(model_file=model_file)
+    llvm = lleaves.Model(model_file=model_file)
+    llvm.compile()
+
+    np.testing.assert_almost_equal(
+        lgbm.predict(X, n_jobs=2), llvm.predict(X, n_jobs=2), decimal=10
+    )

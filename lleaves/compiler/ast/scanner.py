@@ -76,6 +76,7 @@ INPUT_SCAN_KEYS = {
     "version": ScannedValue(str),
     "feature_infos": ScannedValue(str, True),
     "objective": ScannedValue(str, True),
+    "average_output": ScannedValue(bool, null_ok=True),
 }
 TREE_SCAN_KEYS = {
     "Tree": ScannedValue(int),
@@ -106,7 +107,13 @@ def _scan_block(lines: list, items_to_scan: dict):
         if line == "tree":
             continue
 
-        scanned_key, scanned_value = line.split("=")
+        line_split = line.split("=")
+        if len(line_split) == 2:
+            scanned_key, scanned_value = line.split("=")
+        else:
+            assert len(line_split) == 1, f"Unexpected line {line}"
+            scanned_key, scanned_value = line_split[0], True
+
         target_type = items_to_scan.get(scanned_key)
         if target_type is None:
             continue

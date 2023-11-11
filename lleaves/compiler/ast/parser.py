@@ -101,6 +101,7 @@ def parse_to_ast(model_path):
     objective = scanned_model["general_info"]["objective"]
     objective_func = objective[0]
     objective_func_config = objective[1] if len(objective) > 1 else None
+    average_output = "average_output" in scanned_model["general_info"]
     features = [
         Feature(is_categorical_feature(x))
         for x in scanned_model["general_info"]["feature_infos"]
@@ -114,7 +115,14 @@ def parse_to_ast(model_path):
         )
     ]
     assert len(trees) % n_classes == 0, "Ill formed model file"
-    return Forest(trees, features, n_classes, objective_func, objective_func_config)
+    return Forest(
+        trees,
+        features,
+        n_classes,
+        objective_func,
+        objective_func_config,
+        average_output=average_output,
+    )
 
 
 def is_categorical_feature(feature_info: str):

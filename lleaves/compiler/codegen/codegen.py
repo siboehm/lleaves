@@ -241,6 +241,8 @@ def _populate_instruction_block(
             forest.objective_func,
             forest.objective_func_config,
             forest.raw_score,
+            forest.average_output,
+            len(forest.trees),
         )
     for result, result_ptr in zip(results, results_ptr):
         builder.store(result, result_ptr)
@@ -279,7 +281,13 @@ def _populate_forest_func(forest, root_func, tree_funcs, fblocksize):
 
 
 def _populate_objective_func_block(
-    builder, args, objective: str, objective_config: str, raw_score: bool
+    builder,
+    args,
+    objective: str,
+    objective_config: str,
+    raw_score: bool,
+    average_output: bool,
+    num_trees: int,
 ):
     """
     Takes the objective function specification and generates the code for it into the builder
@@ -289,6 +297,9 @@ def _populate_objective_func_block(
     llvm_copysign = builder.module.declare_intrinsic(
         "llvm.copysign", (DOUBLE, DOUBLE), ir.FunctionType(DOUBLE, (DOUBLE, DOUBLE))
     )
+
+    if average_output:
+        args[0] = builder.fdiv(args[0], dconst(num_trees))
 
     def _populate_sigmoid(alpha):
         if alpha <= 0:
