@@ -29,6 +29,8 @@ class Forest:
     objective_func: str
     objective_func_config: str
     raw_score: bool = False
+    # average output over trees instead of just accumulating
+    average_output: bool = False
 
     @property
     def n_args(self):

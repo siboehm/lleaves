@@ -162,6 +162,7 @@ def test_rf_generated(tmpdir):
     centers = [[-4, -4], [4, 4]]
     X, y = make_blobs(n_samples=100, centers=centers, random_state=42)
 
+    # rf = random forest (outputs are averaged over all trees)
     params = {
         "boosting_type": "rf",
         "n_estimators": 7,
