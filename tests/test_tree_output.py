@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
-from sklearn.datasets import make_classification
+from sklearn.datasets import make_blobs, make_classification
 
 import lleaves
 
@@ -146,6 +146,31 @@ def test_multiclass_generated(tmpdir):
 
     model_file = str(tmpdir / "model.txt")
     clf.save_model(model_file)
+
+    lgbm = lightgbm.Booster(model_file=model_file)
+    llvm = lleaves.Model(model_file=model_file)
+    llvm.compile()
+
+    # check predictions equal on the whole dataset
+    np.testing.assert_almost_equal(
+        lgbm.predict(X, n_jobs=2), llvm.predict(X, n_jobs=2), decimal=10
+    )
+    assert lgbm.num_model_per_iteration() == llvm.num_model_per_iteration()
+
+
+def test_rf_generated(tmpdir):
+    centers = [[-4, -4], [4, 4]]
+    X, y = make_blobs(n_samples=100, centers=centers, random_state=42)
+
+    params = {
+        "boosting_type": "rf",
+        "n_estimators": 7,
+        "bagging_freq": 1,
+        "bagging_fraction": 0.8,
+    }
+    clf = lightgbm.LGBMClassifier(**params).fit(X, y)
+    model_file = str(tmpdir / "model.txt")
+    clf.booster_.save_model(model_file)
 
     lgbm = lightgbm.Booster(model_file=model_file)
     llvm = lleaves.Model(model_file=model_file)
