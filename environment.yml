@@ -10,7 +10,7 @@ dependencies:
   # testing
   - pytest
   - hypothesis
-  - lightgbm
+  - lightgbm<4  # Pin needed until https://github.com/onnx/onnxmltools/issues/645 is fixed
   - pre-commit
   - pyarrow
   - pandas
