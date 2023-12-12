@@ -18,8 +18,8 @@ python -m pip install --no-build-isolation -e .
 
 Generate the test data and train the necessary models:
 ```commandline
+./benchmarks/data/setup_data.sh
 cd benchmarks
-data/setup_data.sh
 python train_NYC_model.py
 ```
 
