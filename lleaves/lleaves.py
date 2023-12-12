@@ -111,7 +111,7 @@ class Model:
         :param froot_func_name: Name of entry point function in the compiled binary. This is the function to link when
             writing a C function wrapper. Defaults to "forest_root".
         """
-        assert 0 < fblocksize
+        assert fblocksize > 0
         assert fcodemodel in ("small", "large")
 
         if cache is None or not Path(cache).exists():
@@ -137,7 +137,7 @@ class Model:
 
         self.is_compiled = True
 
-    def predict(self, data, n_jobs=os.cpu_count()):
+    def predict(self, data, n_jobs=None):
         """
         Return predictions for the given data.
 
@@ -150,6 +150,9 @@ class Model:
         :return: 1D numpy array, dtype float64.
             If multiclass model: 2D numpy array of shape (n_rows, model.num_model_per_iteration())
         """
+        if n_jobs is None:
+            n_jobs = os.cpu_count()
+
         if not self.is_compiled:
             raise RuntimeError(
                 "Functionality only available after compilation. Run model.compile()."
