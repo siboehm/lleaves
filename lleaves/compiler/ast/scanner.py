@@ -34,7 +34,7 @@ def scan_model_file(model_str, general_info_only=False):
     general_info_block = next(blocks)
     assert general_info_block[0] == "tree" and general_info_block[1].startswith(
         "version="
-    ), f"supplied model is not a valid LightGBM model definition"
+    ), "supplied model is not a valid LightGBM model definition"
     res["general_info"] = _scan_block(general_info_block, INPUT_SCAN_KEYS)
     if general_info_only:
         return res

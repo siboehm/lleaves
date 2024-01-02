@@ -26,7 +26,7 @@ ENTRY_FUNC_TYPE = CFUNCTYPE(
 
 
 def _read(file):
-    with open(file, "r") as fp:
+    with open(file) as fp:
         return fp.read()
 
 
