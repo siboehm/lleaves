@@ -5,19 +5,22 @@ It doesn't implement any transformations (expect for type casting).
 """
 
 
-def scan_model_file(file_path, general_info_only=False):
+from io import StringIO
+
+
+def scan_model_file(model_str, general_info_only=False):
     res = {"trees": []}
 
-    def read_blocks(file_path):
-        with open(file_path) as f:
-            while True:
-                lines = _get_next_block_of_lines(f)
-                if lines:
-                    yield lines
-                else:
-                    break
+    def read_blocks(model_str):
+        stream = StringIO(model_str)
+        while True:
+            lines = _get_next_block_of_lines(stream)
+            if lines:
+                yield lines
+            else:
+                break
 
-    blocks = read_blocks(file_path)
+    blocks = read_blocks(model_str)
     # List of blocks we expect:
     # 1* General Information
     # N* Tree, one block for each tree
@@ -31,7 +34,7 @@ def scan_model_file(file_path, general_info_only=False):
     general_info_block = next(blocks)
     assert general_info_block[0] == "tree" and general_info_block[1].startswith(
         "version="
-    ), f"{file_path} is not a LightGBM model file"
+    ), f"supplied model is not a valid LightGBM model definition"
     res["general_info"] = _scan_block(general_info_block, INPUT_SCAN_KEYS)
     if general_info_only:
         return res
@@ -50,15 +53,15 @@ def _scan_tree(lines):
     return struct
 
 
-def _get_next_block_of_lines(file):
+def _get_next_block_of_lines(stream):
     # the only function where the position inside the file is advanced
     result = []
-    line = file.readline()
+    line = stream.readline()
     while line == "\n":
-        line = file.readline()
+        line = stream.readline()
     while line != "\n" and line != "":
         result.append(line.strip())
-        line = file.readline()
+        line = stream.readline()
     return result
 
 

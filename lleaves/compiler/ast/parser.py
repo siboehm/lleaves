@@ -92,8 +92,8 @@ def _parse_tree_to_ast(tree_struct, features, class_id):
         return Tree(tree_struct["Tree"], leaves[0], features, class_id)
 
 
-def parse_to_ast(model_path):
-    scanned_model = scan_model_file(model_path)
+def parse_to_ast(model_str):
+    scanned_model = scan_model_file(model_str)
 
     n_args = scanned_model["general_info"]["max_feature_idx"] + 1
     n_classes = scanned_model["general_info"]["num_class"]

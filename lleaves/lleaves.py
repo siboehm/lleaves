@@ -25,6 +25,11 @@ ENTRY_FUNC_TYPE = CFUNCTYPE(
 )
 
 
+def _read(file):
+    with open(file, "r") as fp:
+        return fp.read()
+
+
 class Model:
     """
     The base class of lleaves.
@@ -42,13 +47,26 @@ class Model:
     # prediction function, drops GIL on entry
     _c_entry_func = None
 
-    def __init__(self, model_file):
+    def __init__(self, model_file=None, model_str=None):
         """
         Initialize the uncompiled model.
 
+        Supply exactly one of:
         :param model_file: Path to the model.txt.
+        :param model_str:  model definition as a string
         """
-        self.model_file = model_file
+        if model_file is not None and model_str is not None:
+            raise ValueError("Only one of model_file or model_str may be supplied.")
+
+        if model_file is not None:
+            self.model_str = _read(model_file)
+            self.model_name = str(model_file)
+        elif model_str is not None:
+            self.model_str = model_str
+            self.model_name = None
+        else:
+            raise ValueError("One of model_file or model_str must be defined")
+
         self.is_compiled = False
 
         self._pandas_categorical = extract_pandas_traintime_categories(model_file)
@@ -116,7 +134,8 @@ class Model:
 
         if cache is None or not Path(cache).exists():
             module = compiler.compile_to_module(
-                self.model_file,
+                self.model_str,
+                model_name=self.model_name,
                 raw_score=raw_score,
                 fblocksize=fblocksize,
                 finline=finline,

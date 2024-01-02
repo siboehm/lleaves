@@ -8,13 +8,14 @@ from lleaves.compiler.codegen import gen_forest
 
 
 def compile_to_module(
-    file_path,
+    model_str,
+    model_name=None,
     fblocksize=34,
     finline=True,
     raw_score=False,
     froot_func_name="forest_root",
 ):
-    forest = parse_to_ast(file_path)
+    forest = parse_to_ast(model_str)
     forest.raw_score = raw_score
 
     ir = llvmlite.ir.Module(name="forest")
@@ -22,7 +23,7 @@ def compile_to_module(
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
-    module.name = str(file_path)
+    module.name = model_name or "model.txt"
     module.verify()
 
     if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
