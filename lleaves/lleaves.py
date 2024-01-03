@@ -46,7 +46,8 @@ class Model:
         """
         Initialize the uncompiled model.
 
-        :param model_file: Path to the model.txt.
+        :param model_file: Path to the model.txt. Hint: If you have the string representation of the model,
+            you can use `tempfile` from the standard library to write the string to a file first.
         """
         self.model_file = model_file
         self.is_compiled = False
