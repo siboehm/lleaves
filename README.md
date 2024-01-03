@@ -63,16 +63,21 @@ The function signature might change between major versions.
 ## Development
 High-level explanation of the inner workings of the lleaves compiler: [link](https://siboehm.com/articles/21/lleaves)
 ```bash
-conda env create
+mamba env create
 conda activate lleaves
 pip install -e .
 pre-commit install
 ./benchmarks/data/setup_data.sh
-pytest
+pytest -k "not benchmark"
 ```
 
-Release:
+## Cite
+If you're using lleaves for your research, I'd appreciate if you could cite it. Use:
 ```
-git tag -a 1.0.0
-git push origin 1.0.0
+@software{Boehm_lleaves,
+  author = {Boehm, Simon},
+  title = {lleaves},
+  url = {https://github.com/siboehm/lleaves},
+  license = {MIT},
+}
 ```
