@@ -1,6 +1,6 @@
 import json
 import os
-from ctypes import POINTER, c_double
+from ctypes import POINTER, c_double, c_float
 from typing import List, Optional
 
 import numpy as np
@@ -94,16 +94,22 @@ def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     return data
 
 
-def ndarray_to_ptr(data: np.ndarray):
+def ndarray_to_ptr(data, dtype="float64"):
     """
-    Takes a 2D numpy array, converts to float64 if necessary and returns a pointer
+    Takes a 2D numpy array, converts to the given dtype if necessary and returns a pointer
 
     :param data: 2D numpy array. Copying is avoided if possible.
-    :return: pointer to 1D array of dtype float64.
+    :param dtype: One of ("float64", "float32"). The target dtype to cast the array to.
+    :return: pointer to 1D array of dtype float64 / float32.
     """
+    assert dtype in ("float64", "float32")
     # ravel makes sure we get a contiguous array in memory and not some strided View
-    data = data.astype(np.float64, copy=False, casting="same_kind").ravel()
-    ptr = data.ctypes.data_as(POINTER(c_double))
+    data = data.astype(
+        np.float64 if dtype == "float64" else np.float32,
+        copy=False,
+        casting="same_kind",
+    ).ravel()
+    ptr = data.ctypes.data_as(POINTER(c_double if dtype == "float64" else c_float))
     return ptr
 
 

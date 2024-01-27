@@ -9,6 +9,7 @@ from lleaves.compiler.codegen import gen_forest
 
 def compile_to_module(
     file_path,
+    double_precision=True,
     fblocksize=34,
     finline=True,
     raw_score=False,
@@ -18,7 +19,7 @@ def compile_to_module(
     forest.raw_score = raw_score
 
     ir = llvmlite.ir.Module(name="forest")
-    gen_forest(forest, ir, fblocksize, froot_func_name)
+    gen_forest(forest, ir, double_precision, fblocksize, froot_func_name)
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))
