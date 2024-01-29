@@ -13,12 +13,13 @@ def compile_to_module(
     finline=True,
     raw_score=False,
     froot_func_name="forest_root",
+    use_fp64=True,
 ):
     forest = parse_to_ast(file_path)
     forest.raw_score = raw_score
 
     ir = llvmlite.ir.Module(name="forest")
-    gen_forest(forest, ir, fblocksize, froot_func_name)
+    gen_forest(forest, ir, fblocksize, froot_func_name, use_fp64)
 
     ir.triple = llvm.get_process_triple()
     module = llvm.parse_assembly(str(ir))

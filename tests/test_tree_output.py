@@ -39,6 +39,17 @@ def llvm_lgbm_model(request):
     )
 
 
+@pytest.fixture(scope="session", params=MODEL_DIRS_NUMERICAL)
+def llvm_lgbm_model_single_precision(request):
+    path = request.param
+    llvm = lleaves.Model(model_file=path + "model.txt")
+    llvm.compile(use_fp64=False)
+    return (
+        llvm,
+        lightgbm.Booster(model_file=path + "model.txt"),
+    )
+
+
 @pytest.fixture(
     scope="session", params=zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
 )
@@ -92,8 +103,42 @@ def test_batchmode(data, llvm_lgbm_model):
         )
     )
     input_data = np.array(input_data).reshape((20, llvm_model.num_feature()))
-    np.testing.assert_almost_equal(
-        llvm_model.predict(input_data), lightgbm_model.predict(input_data)
+
+    lgbm_result = lightgbm_model.predict(input_data)
+    llvm_result = llvm_model.predict(input_data)
+    assert llvm_result.dtype == np.float64
+    np.testing.assert_almost_equal(lgbm_result, llvm_result)
+
+
+@settings(max_examples=10)
+@given(data=st.data())
+def test_batchmode_single_precision(data, llvm_lgbm_model_single_precision):
+    llvm_model, lightgbm_model = llvm_lgbm_model_single_precision
+    input_data = data.draw(
+        st.lists(
+            st.floats(allow_nan=True, allow_infinity=True),
+            max_size=20 * llvm_model.num_feature(),
+            min_size=20 * llvm_model.num_feature(),
+        )
+    )
+    input_data = np.array(input_data, dtype=np.float32).reshape(
+        20, llvm_model.num_feature()
+    )
+    lgbm_result = lightgbm_model.predict(input_data)
+    llvm_result = llvm_model.predict(input_data)
+    assert llvm_result.dtype == np.float32
+    """
+    # I set rtol & atol according to:
+    https://numpy.org/doc/stable/reference/generated/numpy.isclose.html#numpy.isclose    
+    https://github.com/numpy/numpy/issues/10161#issuecomment-852783433
+    
+    
+    """
+    np.testing.assert_allclose(
+        lgbm_result,
+        llvm_result,
+        rtol=1e-5,
+        atol=1e-8,
     )
 
 
