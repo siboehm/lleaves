@@ -42,8 +42,8 @@ def llvm_lgbm_model(request):
 @pytest.fixture(scope="session", params=MODEL_DIRS_NUMERICAL)
 def llvm_lgbm_model_single_precision(request):
     path = request.param
-    llvm = lleaves.Model(model_file=path + "model.txt", dtype="float32")
-    llvm.compile()
+    llvm = lleaves.Model(model_file=path + "model.txt")
+    llvm.compile(use_fp64=False)
     return (
         llvm,
         lightgbm.Booster(model_file=path + "model.txt"),

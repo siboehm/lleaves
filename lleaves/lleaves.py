@@ -17,8 +17,8 @@ from lleaves.data_processing import (
 from lleaves.llvm_binding import compile_module_to_asm
 
 
-def get_entry_func_type(dtype):
-    dtype = c_double if dtype == "float64" else c_float
+def get_entry_func_type(use_fp64: bool):
+    dtype = c_double if use_fp64 else c_float
     return CFUNCTYPE(
         None,  # return void
         POINTER(dtype),  # pointer to data array
@@ -45,21 +45,16 @@ class Model:
     # prediction function, drops GIL on entry
     _c_entry_func = None
 
-    def __init__(self, model_file, dtype="float64"):
+    def __init__(self, model_file):
         """
         Initialize the uncompiled model.
 
         :param model_file: Path to the model.txt. Hint: If you have the string representation of the model,
             you can use `tempfile` from the standard library to write the string to a file first.
-
-        :param dtype: One of ("float64", "float32"). Determines how many bits are used inside the tree for storing
-            thresholds, return values and data. LightGBM uses float64, therefore model predictions can
-            differ in float32 mode. Float64 is recommended unless it leads to extra data copies.
         """
         self.model_file = model_file
         self.is_compiled = False
-        assert dtype in ("float64", "float32")
-        self.dtype = dtype
+        self.use_fp64 = True
 
         self._pandas_categorical = extract_pandas_traintime_categories(model_file)
         num_attrs = extract_model_global_features(model_file)
@@ -96,6 +91,7 @@ class Model:
         fcodemodel="large",
         finline=True,
         froot_func_name="forest_root",
+        use_fp64=True,
     ):
         """
         Generate the LLVM IR for this model and compile it to ASM.
@@ -120,18 +116,20 @@ class Model:
             significantly but will slow down prediction.
         :param froot_func_name: Name of entry point function in the compiled binary. This is the function to link when
             writing a C function wrapper. Defaults to "forest_root".
+        :param use_fp64: If true, compile the model to use fp64 (double) precision, else use fp32 (float).
         """
         assert fblocksize > 0
         assert fcodemodel in ("small", "large")
+        self.use_fp64 = use_fp64
 
         if cache is None or not Path(cache).exists():
             module = compiler.compile_to_module(
                 self.model_file,
-                double_precision=self.dtype == "float64",
                 raw_score=raw_score,
                 fblocksize=fblocksize,
                 finline=finline,
                 froot_func_name=froot_func_name,
+                use_fp64=self.use_fp64,
             )
         else:
             # when loading binary from cache we use a dummy empty module
@@ -144,7 +142,7 @@ class Model:
 
         # Drops GIL during call, re-acquires it after
         addr = self._execution_engine.get_function_address(froot_func_name)
-        self._c_entry_func = get_entry_func_type(self.dtype)(addr)
+        self._c_entry_func = get_entry_func_type(self.use_fp64)(addr)
 
         self.is_compiled = True
 
@@ -158,7 +156,7 @@ class Model:
             If the datatype is not equal to the model's dtype, the data will be copied. In any case access is read-only.
         :param n_jobs: Number of threads to use for prediction. Defaults to number of CPUs. For single-row prediction
             this should be set to 1.
-        :return: 1D numpy array, dtype float64 / float32.
+        :return: 1D numpy array. Datatype is fp64/fp32, depending on the `use_fp64` flag passed to .compile()
         """
         if n_jobs is None:
             n_jobs = os.cpu_count()
@@ -183,15 +181,15 @@ class Model:
             )
 
         # setup input data and predictions array
-        ptr_data = ndarray_to_ptr(data, dtype=self.dtype)
+        ptr_data = ndarray_to_ptr(data, use_fp64=self.use_fp64)
 
         pred_shape = (
             n_predictions if self._n_classes == 1 else (n_predictions, self._n_classes)
         )
         predictions = np.zeros(
-            pred_shape, dtype=np.float64 if self.dtype == "float64" else np.float32
+            pred_shape, dtype=np.float64 if self.use_fp64 else np.float32
         )
-        ptr_preds = ndarray_to_ptr(predictions, dtype=self.dtype)
+        ptr_preds = ndarray_to_ptr(predictions, use_fp64=self.use_fp64)
 
         if n_jobs == 1:
             self._c_entry_func(ptr_data, ptr_preds, 0, n_predictions)

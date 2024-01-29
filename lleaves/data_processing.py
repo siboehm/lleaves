@@ -94,22 +94,22 @@ def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
     return data
 
 
-def ndarray_to_ptr(data, dtype="float64"):
+def ndarray_to_ptr(data: np.ndarray, use_fp64: bool = True):
     """
-    Takes a 2D numpy array, converts to the given dtype if necessary and returns a pointer
+    Takes a 2D numpy array, converts it to either float64 or float32 depending on the `use_fp64` flag,
+    and returns a pointer to the data.
 
     :param data: 2D numpy array. Copying is avoided if possible.
-    :param dtype: One of ("float64", "float32"). The target dtype to cast the array to.
-    :return: pointer to 1D array of dtype float64 / float32.
+    :param use_fp64: Bool. Casting to float64 if True, otherwise float32.
+    :return: pointer to 1D array of type float64 if `use_fp64` is True, otherwise float32.
     """
-    assert dtype in ("float64", "float32")
     # ravel makes sure we get a contiguous array in memory and not some strided View
     data = data.astype(
-        np.float64 if dtype == "float64" else np.float32,
+        np.float64 if use_fp64 else np.float32,
         copy=False,
         casting="same_kind",
     ).ravel()
-    ptr = data.ctypes.data_as(POINTER(c_double if dtype == "float64" else c_float))
+    ptr = data.ctypes.data_as(POINTER(c_double if use_fp64 else c_float))
     return ptr
 
 

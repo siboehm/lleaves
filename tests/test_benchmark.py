@@ -45,8 +45,8 @@ def test_NYC_benchmark_correct_output_sp():
     data = feature_enginering().fit_transform(df).astype(np.float32)
 
     lgb = lightgbm.Booster(model_file=model_file)
-    llvm = lleaves.Model(model_file=model_file, dtype="float32")
-    llvm.compile()
+    llvm = lleaves.Model(model_file=model_file)
+    llvm.compile(use_fp64=False)
     lgbm_pred = lgb.predict(data, n_jobs=2).astype(np.float32)
     llvm_pred = llvm.predict(data, n_jobs=2)
     assert llvm_pred.dtype == np.float32
