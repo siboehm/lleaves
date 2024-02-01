@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup conda cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/conda_pkgs_dir
           key:
@@ -34,7 +34,7 @@ jobs:
           use-only-tar-bz2: true
           use-mamba: true
       - name: Setup hypothesis DB cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ./.hypothesis
           key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
