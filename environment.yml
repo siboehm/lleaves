@@ -23,6 +23,7 @@ dependencies:
   # benchmarks
   - benchmark
   - treelite
+  - tlc2gen
   - compilers
   - onnxruntime
   - onnxmltools
