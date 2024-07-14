@@ -7,10 +7,10 @@ import onnxmltools
 import onnxruntime as rt
 import pandas as pd
 import treelite
-import treelite_runtime
+import tl2cgen
 from onnxconverter_common import FloatTensorType
 
-from benchmarks.train_NYC_model import feature_enginering
+from train_NYC_model import feature_enginering
 from lleaves import Model
 
 
@@ -58,20 +58,21 @@ class TreeliteModel(BenchmarkModel):
         # disable thread pinning, which modifies (and never resets!) process-global pthreads state
         os.environ["TREELITE_BIND_THREADS"] = "0"
         treelite_model = treelite.Model.load(self.model_file, model_format="lightgbm")
-        treelite_model.export_lib(
+        tl2cgen.export_lib(
+            model=treelite_model,
             toolchain="gcc",
             libpath="/tmp/treelite_model.so",
             params={"parallel_comp": 4},
             verbose=False,
         )
-        self.model = treelite_runtime.Predictor(
+        self.model = tl2cgen.Predictor(
             "/tmp/treelite_model.so",
             nthread=n_threads,
         )
 
     def predict(self, data, index, batchsize, n_threads):
         return self.model.predict(
-            treelite_runtime.DMatrix(data[index : index + batchsize])
+            tl2cgen.DMatrix(data[index : index + batchsize])
         )
 
 
