@@ -1,7 +1,7 @@
 # lleaves 🍃
 ![CI](https://github.com/siboehm/lleaves/workflows/CI/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/lleaves/badge/?version=latest)](https://lleaves.readthedocs.io/en/latest/?badge=latest)
-[![Downloads](https://pepy.tech/badge/lleaves)](https://pepy.tech/project/lleaves)
+![Downloads](https://static.pepy.tech/badge/lleaves)
 
 A LLVM-based compiler for LightGBM decision trees.
 
