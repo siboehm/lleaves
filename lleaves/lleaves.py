@@ -92,6 +92,8 @@ class Model:
         finline=True,
         froot_func_name="forest_root",
         use_fp64=True,
+        target_cpu=None,
+        target_cpu_features=None,
     ):
         """
         Generate the LLVM IR for this model and compile it to ASM.
@@ -117,6 +119,10 @@ class Model:
         :param froot_func_name: Name of entry point function in the compiled binary. This is the function to link when
             writing a C function wrapper. Defaults to "forest_root".
         :param use_fp64: If true, compile the model to use fp64 (double) precision, else use fp32 (float).
+        :param target_cpu: An optional string specifying the target CPU name to specialize for (defaults to the host's
+            cpu name).
+        :param target_cpu_features: An optional string specifying the target CPU features to enable (defaults to the
+            host's CPU features).
         """
         assert fblocksize > 0
         assert fcodemodel in ("small", "large")
@@ -137,7 +143,11 @@ class Model:
 
         # keep a reference to the engine to protect it from being garbage-collected
         self._execution_engine = compile_module_to_asm(
-            module, cache, fcodemodel=fcodemodel
+            module,
+            cache,
+            fcodemodel=fcodemodel,
+            target_cpu=target_cpu,
+            target_cpu_features=target_cpu_features,
         )
 
         # Drops GIL during call, re-acquires it after

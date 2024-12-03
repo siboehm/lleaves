@@ -13,30 +13,41 @@ def _initialize_llvm():
     llvm.initialize_native_asmprinter()
 
 
-def _get_target_machine(fcodemodel="large"):
+def _get_target_machine(fcodemodel="large", target_cpu=None, target_cpu_features=None):
     target = llvm.Target.from_triple(llvm.get_process_triple())
-    try:
-        # LLVM raises if features cannot be detected
-        features = llvm.get_host_cpu_features().flatten()
-    except RuntimeError:
-        features = ""
+
+    if target_cpu is None:
+        target_cpu = llvm.get_host_cpu_name()
+
+    if target_cpu_features is None:
+        try:
+            # LLVM raises if features cannot be detected
+            target_cpu_features = llvm.get_host_cpu_features().flatten()
+        except RuntimeError:
+            target_cpu_features = ""
 
     # large codemodel is necessary for large, ~1000 tree models.
     # for smaller models "default" codemodel would be faster.
     target_machine = target.create_target_machine(
-        cpu=llvm.get_host_cpu_name(),
-        features=features,
+        cpu=target_cpu,
+        features=target_cpu_features,
         reloc="pic",
         codemodel=fcodemodel,
     )
     return target_machine
 
 
-def compile_module_to_asm(module, cache_path=None, fcodemodel="large"):
+def compile_module_to_asm(
+    module,
+    cache_path=None,
+    fcodemodel="large",
+    target_cpu=None,
+    target_cpu_features=None,
+):
     _initialize_llvm()
 
     # Create a target machine representing the host
-    target_machine = _get_target_machine(fcodemodel)
+    target_machine = _get_target_machine(fcodemodel, target_cpu, target_cpu_features)
 
     # Create execution engine for our module
     execution_engine = llvm.create_mcjit_compiler(module, target_machine)
