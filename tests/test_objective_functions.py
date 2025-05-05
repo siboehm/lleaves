@@ -1,3 +1,5 @@
+import tempfile
+import os
 import lightgbm as lgb
 import numpy as np
 import pytest
@@ -40,6 +42,35 @@ def test_all_obj_funcs(modified_model_txt):
     llvm_model.compile()
     lgbm_model = lgb.Booster(model_file=modified_model_txt)
     np.testing.assert_almost_equal(lgbm_model.predict(data), llvm_model.predict(data))
+
+
+@pytest.fixture
+def custom_objective_model(tmp_path):
+    """Create a model file without the objective= line for testing Issue #92"""
+    model_filep = tmp_path / "custom_objective_model.txt"
+    with open("tests/models/leaf_scan/model.txt") as modelfile, open(
+        model_filep, "w"
+    ) as tmpfile:
+        for line in modelfile:
+            if not line.startswith("objective="):
+                tmpfile.write(line)
+    return str(model_filep)
+
+
+def test_custom_objective(custom_objective_model):
+    """Test that models with custom objectives (no objective= line) work - Issue #92"""
+    # Before our fix, this would raise: RuntimeError: Missing non-nullable keys {'objective'}
+    llvm_model = Model(model_file=custom_objective_model)
+    llvm_model.compile()
+    
+    # Test that the model can make predictions
+    data = np.array([[0.5], [-1.0], [2.0], [-3.0]])
+    predictions = llvm_model.predict(data)
+    
+    # Assertions
+    assert len(predictions) == len(data)
+    # Basic smoke test - predictions should be reasonable values
+    assert all(abs(p) < 10.0 for p in predictions)
 
 
 @pytest.mark.parametrize(

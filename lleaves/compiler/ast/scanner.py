@@ -75,7 +75,7 @@ INPUT_SCAN_KEYS = {
     "num_tree_per_iteration": ScannedValue(int),
     "version": ScannedValue(str),
     "feature_infos": ScannedValue(str, True),
-    "objective": ScannedValue(str, True),
+    "objective": ScannedValue(str, True, null_ok=True),
     "average_output": ScannedValue(bool, null_ok=True),
 }
 TREE_SCAN_KEYS = {
