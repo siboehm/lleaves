@@ -27,7 +27,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
-          miniforge-variant: Mambaforge
+          miniforge-variant: Miniforge3
           miniforge-version: latest
           activate-environment: lleaves
           environment-file: environment.yml
@@ -59,4 +59,4 @@ jobs:
         with:
           python-version: 3.9
       - name: Run pre-commit checks
-        uses: pre-commit/action@v3.0.2
+        uses: pre-commit/action@v3.0.1
