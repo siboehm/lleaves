@@ -29,20 +29,30 @@ def compile_to_module(
     if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
         print(module)
 
-    # Create optimizer
-    pmb = llvm.PassManagerBuilder()
-    pmb.opt_level = 3
+    # Create optimizer using New Pass Manager API (llvmlite >= 0.45)
+    # Initialization is automatic in llvmlite >= 0.45, but target/asmprinter init still needed
+    llvm.initialize_native_target()
+    llvm.initialize_native_asmprinter()
 
+    target = llvm.Target.from_triple(llvm.get_process_triple())
+    try:
+        features = llvm.get_host_cpu_features().flatten()
+    except RuntimeError:
+        features = ""
+    target_machine = target.create_target_machine(
+        cpu=llvm.get_host_cpu_name(),
+        features=features,
+        reloc="pic",
+        codemodel="large",
+    )
+
+    pto = llvm.PipelineTuningOptions(speed_level=3, size_level=0)
     if finline:
-        # if inline_threshold is set LLVM inlines, precise value doesn't seem to matter
-        pmb.inlining_threshold = 1
+        pto.inlining_threshold = 1
 
-    pm_module = llvm.ModulePassManager()
-    # Add optimization passes to module-level optimizer
-    pmb.populate(pm_module)
-
-    # single pass only, compiler optimizations don't bring much speedup and take time
-    pm_module.run(module)
+    pb = llvm.PassBuilder(target_machine, pto)
+    pm_module = pb.getModulePassManager()
+    pm_module.run(module, pb)
 
     if os.environ.get("LLEAVES_PRINT_OPTIMIZED_IR") == "1":
         print(module)

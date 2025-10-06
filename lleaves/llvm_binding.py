@@ -8,7 +8,7 @@ def _initialize_llvm():
     # this initializes the per-process LLVM state. It's save to call multiple times.
     # TODO we never call llvm.shutdown(), is this a problem?
     # some parts of the llvm memory are only deallocated once the process exits
-    llvm.initialize()
+    # Initialization is automatic in llvmlite >= 0.45, but target/asmprinter init still needed
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
 

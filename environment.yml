@@ -5,7 +5,7 @@ channels:
 dependencies:
   # runtime deps
   - python>=3.7
-  - llvmlite>=0.36
+  - llvmlite>=0.45
   - numpy
   # testing
   - pytest
