@@ -31,7 +31,7 @@ jobs:
       - name: Install dependencies with uv
         run: |
           source $HOME/.cargo/env
-          uv pip install --system pytest hypothesis lightgbm pandas pyarrow treelite onnxruntime onnxmltools numpy "llvmlite>=0.36,<0.45"
+          uv pip install --system -e ".[test,benchmark]"
       - name: Run the unittests
         run: ./.github/ci.sh ${{ matrix.PYTHON_VERSION }}
       - name: Publish a Python distribution to PyPI

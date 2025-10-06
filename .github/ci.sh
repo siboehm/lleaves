@@ -3,7 +3,6 @@ set -euox pipefail
 
 export PYTHON_VERSION=$1
 
-python -m pip install --no-deps --disable-pip-version-check -e .
 ./benchmarks/data/setup_data.sh
 pytest -v tests
 

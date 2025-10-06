@@ -27,6 +27,20 @@ dependencies = [
     "numpy",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "hypothesis",
+    "lightgbm<4",
+    "pandas",
+    "pyarrow",
+]
+benchmark = [
+    "treelite",
+    "onnxruntime",
+    "onnxmltools",
+]
+
 [project.urls]
 Homepage = "https://github.com/siboehm/lleaves"
 Documentation = "https://lleaves.readthedocs.io/en/latest/"
