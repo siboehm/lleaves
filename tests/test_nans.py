@@ -30,9 +30,10 @@ import lleaves
 )
 def test_zero_as_missing_numerical(tmp_path, decision_type, threshold_le_zero):
     model_txt = tmp_path / "model.txt"
-    with open("tests/models/tiniest_single_tree/model.txt") as infile, open(
-        model_txt, "w"
-    ) as outfile:
+    with (
+        open("tests/models/tiniest_single_tree/model.txt") as infile,
+        open(model_txt, "w") as outfile,
+    ):
         for line in infile.readlines():
             if line.startswith("decision_type="):
                 outfile.write(line.replace("2", str(decision_type)))
@@ -83,9 +84,10 @@ def test_zero_as_missing_numerical(tmp_path, decision_type, threshold_le_zero):
 )
 def test_zero_as_missing_categorical(tmp_path, decision_type, zero_in_bitvec):
     model_txt = tmp_path / "model.txt"
-    with open("tests/models/pure_categorical/model.txt") as infile, open(
-        model_txt, "w"
-    ) as outfile:
+    with (
+        open("tests/models/pure_categorical/model.txt") as infile,
+        open(model_txt, "w") as outfile,
+    ):
         for line in infile.readlines():
             if line.startswith("decision_type"):
                 outfile.write(line.replace("1", str(decision_type)))

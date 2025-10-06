@@ -1,7 +1,7 @@
 import json
 import os
 from ctypes import POINTER, c_double, c_float
-from typing import List, Optional
+from typing import Optional
 
 import numpy as np
 
@@ -15,7 +15,7 @@ except ImportError:
         pass
 
 
-def _dataframe_to_ndarray(data: pd_DataFrame, pd_traintime_categories: List[List]):
+def _dataframe_to_ndarray(data: pd_DataFrame, pd_traintime_categories: list[list]):
     """
     Converts the given dataframe into a 2D numpy array and converts categorical columns to float.
 
@@ -52,7 +52,7 @@ def _dataframe_to_ndarray(data: pd_DataFrame, pd_traintime_categories: List[List
     return data
 
 
-def data_to_ndarray(data, pd_traintime_categories: Optional[List[List]] = None):
+def data_to_ndarray(data, pd_traintime_categories: Optional[list[list]] = None):
     """
     Convert the given data to a numpy ndarray
 

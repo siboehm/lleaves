@@ -20,9 +20,9 @@ def test_parsing_pandas(tmp_path):
     with open(model_file) as file:
         lines = file.readlines()
     assert lines[-1].startswith("pandas_categorical")
-    lines[
-        -1
-    ] = 'pandas_categorical:[["a", "b", "c"], ["b", "c", "d"], ["w", "x", "y", "z"]]'
+    lines[-1] = (
+        'pandas_categorical:[["a", "b", "c"], ["b", "c", "d"], ["w", "x", "y", "z"]]'
+    )
 
     with open(mod_model_file, "x") as file:
         file.writelines(lines)

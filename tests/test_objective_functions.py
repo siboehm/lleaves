@@ -23,9 +23,10 @@ from lleaves import Model
 )
 def modified_model_txt(request, tmp_path):
     model_filep = tmp_path / request.param.replace(" ", "_")
-    with open("tests/models/leaf_scan/model.txt") as modelfile, open(
-        model_filep, "w"
-    ) as tmpfile:
+    with (
+        open("tests/models/leaf_scan/model.txt") as modelfile,
+        open(model_filep, "w") as tmpfile,
+    ):
         for line in modelfile:
             if line.startswith("objective="):
                 tmpfile.write("objective=" + request.param + "\n")
