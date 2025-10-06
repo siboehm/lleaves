@@ -13,7 +13,7 @@ jobs:
     name: Linux unittest - ${{ matrix.PYTHON_VERSION }}
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true  # Stop all jobs on first failure for faster feedback
       matrix:
         PYTHON_VERSION: ["3.9", "3.11", "3.13"]
     steps:
