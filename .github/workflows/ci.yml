@@ -18,28 +18,21 @@ jobs:
         PYTHON_VERSION: ["3.9", "3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup conda cache
-        uses: actions/cache@v4
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-${{ runner.arch }}-mamba-${{ hashFiles('environment.yml') }}-${{ matrix.PYTHON_VERSION }}
-      - uses: conda-incubator/setup-miniconda@v3
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
-          miniforge-variant: Miniforge3
-          miniforge-version: latest
-          activate-environment: lleaves
-          environment-file: environment.yml
-          use-only-tar-bz2: true
-          use-mamba: true
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
       - name: Setup hypothesis DB cache
         uses: actions/cache@v4
         with:
           path: ./.hypothesis
           key: hypothesisDB ${{ matrix.PYTHON_VERSION }}
+      - name: Install dependencies with uv
+        run: |
+          source $HOME/.cargo/env
+          uv pip install --system pytest hypothesis lightgbm pandas pyarrow treelite onnxruntime onnxmltools numpy "llvmlite>=0.36,<0.45"
       - name: Run the unittests
-        shell: bash -x -l {0}
         run: ./.github/ci.sh ${{ matrix.PYTHON_VERSION }}
       - name: Publish a Python distribution to PyPI
         if: startsWith(github.ref, 'refs/tags') && matrix.PYTHON_VERSION == '3.9'
