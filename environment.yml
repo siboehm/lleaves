@@ -4,8 +4,8 @@ channels:
   - nodefaults
 dependencies:
   # runtime deps
-  - python>=3.7
-  - llvmlite>=0.36
+  - python>=3.9
+  - llvmlite>=0.36,<0.45
   - numpy
   # testing
   - pytest

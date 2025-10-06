@@ -1,8 +1,46 @@
 [build-system]
 requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lleaves"
+dynamic = ["version"]
+description = "LLVM-based compiler for LightGBM models"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Simon Boehm", email = "simon@siboehm.com"}
+]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "llvmlite>=0.36,<0.45",
+    "numpy",
+]
+
+[project.urls]
+Homepage = "https://github.com/siboehm/lleaves"
+Documentation = "https://lleaves.readthedocs.io/en/latest/"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["benchmarks*", "tests*", "docs*"]
+
+[tool.setuptools_scm]
 
 [tool.ruff]
-# 1. Enable flake8-bugbear (`B`) rules, in addition to the defaults.
+target-version = "py39"
+
+[tool.ruff.lint]
 select = [
   # pycodestyle
   "E",
@@ -17,5 +55,4 @@ select = [
   # isort
   "I",
 ]
-# 2. Avoid enforcing line-length violations (`E501`)
 ignore = ["E501"]

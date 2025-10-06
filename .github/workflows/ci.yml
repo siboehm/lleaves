@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        PYTHON_VERSION: ["3.7", "3.10"]
+        PYTHON_VERSION: ["3.9", "3.11", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - name: Setup conda cache
@@ -23,7 +23,7 @@ jobs:
         with:
           path: ~/conda_pkgs_dir
           key:
-            mamba--${{ hashFiles('environment.yml') }}-${{ matrix.PYTHON_VERSION }}
+            ${{ runner.os }}-${{ runner.arch }}-mamba-${{ hashFiles('environment.yml') }}-${{ matrix.PYTHON_VERSION }}
       - uses: conda-incubator/setup-miniconda@v3
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
@@ -42,8 +42,8 @@ jobs:
         shell: bash -x -l {0}
         run: ./.github/ci.sh ${{ matrix.PYTHON_VERSION }}
       - name: Publish a Python distribution to PyPI
-        if: startsWith(github.ref, 'refs/tags') && matrix.PYTHON_VERSION == '3.7'
-        uses: pypa/gh-action-pypi-publish@v1.9.0
+        if: startsWith(github.ref, 'refs/tags') && matrix.PYTHON_VERSION == '3.9'
+        uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
           password: ${{ secrets.PYPI_API_TOKEN }}
@@ -59,4 +59,4 @@ jobs:
         with:
           python-version: 3.9
       - name: Run pre-commit checks
-        uses: pre-commit/action@v3.0.1
+        uses: pre-commit/action@v3.0.2
