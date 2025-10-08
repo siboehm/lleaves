@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import List
 
 from lleaves.compiler.utils import DecisionType
 
@@ -23,7 +22,7 @@ class Tree:
 
 @dataclass
 class Forest:
-    trees: List[Tree]
+    trees: list[Tree]
     features: list
     n_classes: int
     objective_func: str
@@ -40,7 +39,7 @@ class Forest:
 @dataclass
 class DecisionNode(Node):
     # the threshold in bit-representation if this node is categorical
-    cat_threshold: List[int] = field(default=None, init=False)
+    cat_threshold: list[int] = field(default=None, init=False)
 
     # child nodes
     left: Node = field(default=None, init=False)
