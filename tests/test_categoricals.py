@@ -70,9 +70,7 @@ def categorical_model_txt(tmpdir_factory, request):
     )
 
     param = {}
-    lightgbm_model = lgb.train(
-        param, train_data, 1, categorical_feature=list(range(n_categorical))
-    )
+    lightgbm_model = lgb.train(param, train_data, 1)
 
     tmpdir = tmpdir_factory.mktemp("model")
     model_path = tmpdir / "model.txt"
@@ -90,7 +88,7 @@ def test_large_categorical(tmpdir_factory):
     )
     label = np.apply_along_axis(f, axis=1, arr=train_data_cat).flatten()
     train_data = lgb.Dataset(train_data_cat, label=label, categorical_feature=[0])
-    lightgbm_model = lgb.train({}, train_data, 1, categorical_feature=[0])
+    lightgbm_model = lgb.train({}, train_data, 1)
 
     tmpdir = tmpdir_factory.mktemp("model")
     model_path = str(tmpdir / "model.txt")
@@ -124,7 +122,7 @@ def test_predict_pandas_categorical(tmpdir_factory):
     train_df["C2"] = train_df["C2"].astype("category")
     train_df["C3"] = train_df["C3"].astype("category")
     train_data = lgb.Dataset(train_df, label=result, categorical_feature="auto")
-    lightgbm_model = lgb.train({}, train_data, 3, categorical_feature="auto")
+    lightgbm_model = lgb.train({}, train_data, 3)
     assert len(lightgbm_model.pandas_categorical) == 3
 
     tmpdir = tmpdir_factory.mktemp("model")

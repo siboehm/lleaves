@@ -1,8 +1,14 @@
-import numpy as np
-import pandas as pd
+import os
+import sys
 
-from benchmarks.benchmark import NYC_used_columns
-from benchmarks.train_NYC_model import feature_enginering
+# Add the project root to the Python path
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
+
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+
+from benchmarks.benchmark import NYC_used_columns  # noqa: E402
+from benchmarks.train_NYC_model import feature_enginering  # noqa: E402
 
 df = pd.read_csv("airline_data_factorized.csv")
 airline_X = df.to_numpy(np.float64)

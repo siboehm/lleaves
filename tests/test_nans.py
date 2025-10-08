@@ -127,7 +127,7 @@ def test_lightgbm_nan_pred_inconsistency(tmp_path):
     X = np.array(30 * [[1]] + 30 * [[2]] + 30 * [[0]])
     y = np.array(60 * [5] + 30 * [10])
     train_data = lgb.Dataset(X, label=y, categorical_feature=[0])
-    bst = lgb.train({}, train_data, 1, categorical_feature=[0])
+    bst = lgb.train({}, train_data, 1)
     bst.save_model(model_file)
 
     # just to make sure it's not due to LightGBM model export
@@ -135,7 +135,7 @@ def test_lightgbm_nan_pred_inconsistency(tmp_path):
     llvm_model = lleaves.Model(model_file=model_file)
     llvm_model.compile()
 
-    data = np.array([[np.NaN], [0.0], [-0.1], [0.1], [10.0], [np.Inf], [-np.NaN]])
+    data = np.array([[np.nan], [0.0], [-0.1], [0.1], [10.0], [np.inf], [-np.nan]])
     npt.assert_equal(lgbm_model.predict(data), llvm_model.predict(data))
 
 

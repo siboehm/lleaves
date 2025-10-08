@@ -1,5 +1,73 @@
 [build-system]
-requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.0"]
+requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lleaves"
+authors = [{name = "Simon Boehm", email = "simon@siboehm.com"}]
+description = "LLVM-based compiler for LightGBM models"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.9"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "llvmlite>=0.36,<0.42",  # Pin to avoid PassManagerBuilder removal
+    "numpy>=1.21",  # Support both NumPy 1.x and 2.x
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/siboehm/lleaves"
+Documentation = "https://lleaves.readthedocs.io/en/latest/"
+Repository = "https://github.com/siboehm/lleaves"
+Issues = "https://github.com/siboehm/lleaves/issues"
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "hypothesis",
+    "lightgbm>=4.3.0",  # Requires 4.3.0+ for NumPy 2.0 support
+    "pyarrow",
+    "pandas",
+]
+dev = [
+    "pre-commit",
+    "ruff",
+]
+docs = [
+    "sphinx",
+    "sphinx_rtd_theme",
+    "numpydoc",
+    "sphinxcontrib-apidoc",
+]
+benchmark = [
+    "treelite",
+    "treelite_runtime",
+    "onnxruntime",
+    "onnxmltools",
+    "onnxconverter_common",
+    "scikit-learn",
+]
+all = [
+    "lleaves[test,dev,docs,benchmark]",
+]
+
+[tool.setuptools]
+packages = ["lleaves"]
+
+[tool.setuptools.package-dir]
+lleaves = "lleaves"
+
+[tool.setuptools_scm]
+write_to = "lleaves/_version.py"
 
 [tool.ruff]
 # 1. Enable flake8-bugbear (`B`) rules, in addition to the defaults.
@@ -19,3 +87,10 @@ select = [
 ]
 # 2. Avoid enforcing line-length violations (`E501`)
 ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+pythonpath = ["."]
