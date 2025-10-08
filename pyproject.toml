@@ -54,6 +54,7 @@ benchmark = [
     "onnxruntime",
     "onnxmltools",
     "onnxconverter_common",
+    "scikit-learn",
 ]
 all = [
     "lleaves[test,dev,docs,benchmark]",
