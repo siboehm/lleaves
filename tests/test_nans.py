@@ -135,7 +135,7 @@ def test_lightgbm_nan_pred_inconsistency(tmp_path):
     llvm_model = lleaves.Model(model_file=model_file)
     llvm_model.compile()
 
-    data = np.array([[np.NaN], [0.0], [-0.1], [0.1], [10.0], [np.Inf], [-np.NaN]])
+    data = np.array([[np.nan], [0.0], [-0.1], [0.1], [10.0], [np.inf], [-np.nan]])
     npt.assert_equal(lgbm_model.predict(data), llvm_model.predict(data))
 
 

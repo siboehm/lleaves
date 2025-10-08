@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "llvmlite>=0.36,<0.42",  # Pin to avoid PassManagerBuilder removal
-    "numpy",
+    "numpy>=1.21,<2.0",  # Pin to avoid NumPy 2.0 breaking changes in dependencies
 ]
 dynamic = ["version"]
 
