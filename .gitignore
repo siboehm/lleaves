@@ -80,6 +80,9 @@ instance/
 docs/_build/
 docs/api/
 
+# Auto-generated version file (setuptools-scm)
+lleaves/_version.py
+
 # PyBuilder
 .pybuilder/
 target/
