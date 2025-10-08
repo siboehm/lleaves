@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "llvmlite>=0.36,<0.42",  # Pin to avoid PassManagerBuilder removal
-    "numpy>=1.21,<2.0",  # Pin to avoid NumPy 2.0 breaking changes in dependencies
+    "numpy>=1.21",  # Support both NumPy 1.x and 2.x
 ]
 dynamic = ["version"]
 
@@ -34,7 +34,7 @@ Issues = "https://github.com/siboehm/lleaves/issues"
 test = [
     "pytest",
     "hypothesis",
-    "lightgbm<4",  # Pin needed until https://github.com/onnx/onnxmltools/issues/645 is fixed
+    "lightgbm>=4.3.0",  # Requires 4.3.0+ for NumPy 2.0 support
     "pyarrow",
     "pandas",
 ]
