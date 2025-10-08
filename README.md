@@ -26,7 +26,7 @@ llvm_model.compile()
 - Dependencies: `llvmlite` and `numpy`. LLVM comes statically linked.
 
 ## Installation
-`conda install -c conda-forge lleaves` or `pip install lleaves` (Linux and MacOS only).
+`pip install lleaves` or `uv add lleaves` (Linux and MacOS only).
 
 ## Benchmarks
 Ran on a dedicated Intel i7-4770 Haswell, 4 cores.
@@ -63,9 +63,20 @@ The function signature might change between major versions.
 ## Development
 High-level explanation of the inner workings of the lleaves compiler: [link](https://siboehm.com/articles/21/lleaves)
 ```bash
-mamba env create
-conda activate lleaves
-pip install -e .
+# Using uv (recommended)
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+uv pip install -e ".[dev,test]"
+pre-commit install
+./benchmarks/data/setup_data.sh
+pytest -k "not benchmark"
+```
+
+Alternative with pip:
+```bash
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+pip install -e ".[dev,test]"
 pre-commit install
 ./benchmarks/data/setup_data.sh
 pytest -k "not benchmark"
