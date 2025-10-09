@@ -223,7 +223,7 @@ def _populate_instruction_block(
     idx = (builder.add(iter_mul_nargs, lconst(i)) for i in range(forest.n_args))
     raw_ptrs = [builder.gep(root_func.args[0], (c,)) for c in idx]
     # cast the categorical inputs to integer
-    for feature, ptr in zip(forest.features, raw_ptrs):
+    for feature, ptr in zip(forest.features, raw_ptrs, strict=True):
         el = builder.load(ptr)
         if feature.is_categorical:
             # first, check if the value is NaN
@@ -247,7 +247,7 @@ def _populate_instruction_block(
     if instr_block_idx > 0:
         results = [
             builder.fadd(result, builder.load(result_ptr))
-            for result, result_ptr in zip(results, results_ptr)
+            for result, result_ptr in zip(results, results_ptr, strict=True)
         ]
 
     if eval_obj_func:
@@ -261,7 +261,7 @@ def _populate_instruction_block(
             len(forest.trees),
             use_fp64,
         )
-    for result, result_ptr in zip(results, results_ptr):
+    for result, result_ptr in zip(results, results_ptr, strict=True):
         builder.store(result, result_ptr)
 
     builder.store(builder.add(loop_iter_reg, lconst(1)), loop_iter)

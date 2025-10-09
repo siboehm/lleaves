@@ -50,6 +50,7 @@ def _parse_tree_to_ast(tree_struct, features, class_id):
                 tree_struct["decision_type"],
                 tree_struct["left_child"],
                 tree_struct["right_child"],
+                strict=True,
             )
         )
     ]
@@ -111,7 +112,7 @@ def parse_to_ast(model_path):
     trees = [
         _parse_tree_to_ast(scanned_tree, features, class_id)
         for scanned_tree, class_id in zip(
-            scanned_model["trees"], itertools.cycle(range(n_classes))
+            scanned_model["trees"], itertools.cycle(range(n_classes)), strict=False
         )
     ]
     assert len(trees) % n_classes == 0, "Ill formed model file"

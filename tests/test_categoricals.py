@@ -222,6 +222,7 @@ def test_pure_categorical_prediction():
             [-1, 5, 2],
         ],
         [0, 1, 0, 0, 1, 1, 1, 2, 2, 2, 2],
+        strict=True,
     ):
         assert lgbm_model.predict([data]) == [results[res_idx]]
         assert llvm_model.predict([data]) == [results[res_idx]]
@@ -238,6 +239,7 @@ def test_pure_categorical_prediction():
             [na, na, 0.0],
         ],
         [0, 2, 2, 1, 1, 2],
+        strict=True,
     ):
         assert lgbm_model.predict([data]) == [results[res_idx]]
         assert llvm_model.predict([data]) == [results[res_idx]]

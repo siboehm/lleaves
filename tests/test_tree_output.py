@@ -51,7 +51,8 @@ def llvm_lgbm_model_single_precision(request):
 
 
 @pytest.fixture(
-    scope="session", params=zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL)
+    scope="session",
+    params=zip(MODEL_DIRS_CATEGORICAL, CAT_BITVEC_CATEGORICAL, strict=True),
 )
 def llvm_lgbm_model_cat(request):
     path, bitvec = request.param

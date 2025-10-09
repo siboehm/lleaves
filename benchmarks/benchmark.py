@@ -118,7 +118,7 @@ NYC_used_columns = [
 def run_benchmark(
     model_files, np_data, model_classes, threadcount, batchsizes, n_samples=1000
 ):
-    for model_file, data in zip(model_files, np_data):
+    for model_file, data in zip(model_files, np_data, strict=True):
         model_name = model_file.split("/")[-2]
         print(model_file, f"\n---- {str.upper(model_name)} --- \n")
         for n_threads in threadcount:
