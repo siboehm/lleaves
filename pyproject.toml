@@ -7,10 +7,9 @@ name = "lleaves"
 authors = [{name = "Simon Boehm", email = "simon@siboehm.com"}]
 description = "LLVM-based compiler for LightGBM models"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.9"
 classifiers = [
-    "License :: OSI Approved :: MIT License",
     "Development Status :: 4 - Beta",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.9",
@@ -61,10 +60,7 @@ all = [
 ]
 
 [tool.setuptools]
-packages = ["lleaves"]
-
-[tool.setuptools.package-dir]
-lleaves = "lleaves"
+packages = {find = {}}  # Auto-discover all packages
 
 [tool.setuptools_scm]
 write_to = "lleaves/_version.py"

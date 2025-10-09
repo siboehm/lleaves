@@ -9,7 +9,7 @@ uv pip install --system -e ".[test,benchmark]"
 ./benchmarks/data/setup_data.sh
 pytest -v tests
 
-# Check documentation build only in one job, also do releases
+# Check documentation build only in one job
 if [ "${PYTHON_VERSION}" = "3.9" ]; then
   # Install documentation dependencies
   uv pip install --system -e ".[docs]"
@@ -17,9 +17,4 @@ if [ "${PYTHON_VERSION}" = "3.9" ]; then
   pushd docs
   make html
   popd
-
-  # Install build dependencies and build the package
-  uv pip install --system build
-  python -m build --sdist
-  python -m build --wheel
 fi
