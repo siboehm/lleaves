@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=61", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -21,7 +21,7 @@ dependencies = [
     "llvmlite>=0.36,<0.42",  # Pin to avoid PassManagerBuilder removal
     "numpy>=1.21",  # Support both NumPy 1.x and 2.x
 ]
-version = "1.4.0"
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/siboehm/lleaves"
@@ -62,6 +62,8 @@ all = [
 [tool.setuptools]
 packages = {find = {}}  # Auto-discover all packages
 
+[tool.setuptools_scm]
+write_to = "lleaves/_version.py"
 
 [tool.ruff]
 # 1. Enable flake8-bugbear (`B`) rules, in addition to the defaults.
