@@ -5,6 +5,7 @@ import llvmlite.ir
 
 from lleaves.compiler.ast import parse_to_ast
 from lleaves.compiler.codegen import gen_forest
+from lleaves.llvm_binding import _get_target_machine
 
 
 def compile_to_module(
@@ -29,20 +30,23 @@ def compile_to_module(
     if os.environ.get("LLEAVES_PRINT_UNOPTIMIZED_IR") == "1":
         print(module)
 
-    # Create optimizer
-    pmb = llvm.PassManagerBuilder()
-    pmb.opt_level = 3
+    # Create optimizer using new pass manager API (llvmlite >= 0.42)
+    target_machine = _get_target_machine()
+
+    # Create pipeline tuning options with opt_level 3 equivalent (speed_level=3)
+    pto = llvm.PipelineTuningOptions(speed_level=3, size_level=0)
 
     if finline:
-        # if inline_threshold is set LLVM inlines, precise value doesn't seem to matter
-        pmb.inlining_threshold = 1
+        # Enable loop unrolling and vectorization for inlining equivalent
+        pto.loop_unrolling = True
+        pto.loop_vectorization = True
 
-    pm_module = llvm.ModulePassManager()
-    # Add optimization passes to module-level optimizer
-    pmb.populate(pm_module)
+    # Create pass builder and get module pass manager
+    pass_builder = llvm.PassBuilder(target_machine, pto)
+    pm_module = pass_builder.getModulePassManager()
 
-    # single pass only, compiler optimizations don't bring much speedup and take time
-    pm_module.run(module)
+    # Run optimization passes
+    pm_module.run(module, pass_builder)
 
     if os.environ.get("LLEAVES_PRINT_OPTIMIZED_IR") == "1":
         print(module)

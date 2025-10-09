@@ -5,15 +5,14 @@ import llvmlite.binding as llvm
 
 
 def _initialize_llvm():
-    # this initializes the per-process LLVM state. It's save to call multiple times.
-    # TODO we never call llvm.shutdown(), is this a problem?
-    # some parts of the llvm memory are only deallocated once the process exits
-    llvm.initialize()
+    # Main LLVM initialization is now handled automatically in llvmlite >= 0.42,
+    # but we still need to initialize targets explicitly
     llvm.initialize_native_target()
     llvm.initialize_native_asmprinter()
 
 
 def _get_target_machine(fcodemodel="large", target_cpu=None, target_cpu_features=None):
+    _initialize_llvm()  # Ensure targets are initialized
     target = llvm.Target.from_triple(llvm.get_process_triple())
 
     if target_cpu is None:
