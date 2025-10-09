@@ -1,7 +1,6 @@
 import json
 import os
 from ctypes import POINTER, c_double, c_float
-from typing import Optional
 
 import numpy as np
 
@@ -38,7 +37,7 @@ def _dataframe_to_ndarray(data: pd_DataFrame, pd_traintime_categories: list[list
         )
     if len(cat_cols):
         data = data.copy()
-        for col, category in zip(cat_cols, pd_traintime_categories):
+        for col, category in zip(cat_cols, pd_traintime_categories, strict=True):
             # we use set_categories to get the same (category -> code) mapping that we used during train
             if list(data[col].cat.categories) != list(category):
                 data[col] = data[col].cat.set_categories(category)
@@ -52,7 +51,7 @@ def _dataframe_to_ndarray(data: pd_DataFrame, pd_traintime_categories: list[list
     return data
 
 
-def data_to_ndarray(data, pd_traintime_categories: Optional[list[list]] = None):
+def data_to_ndarray(data, pd_traintime_categories: list[list] | None = None):
     """
     Convert the given data to a numpy ndarray
 
