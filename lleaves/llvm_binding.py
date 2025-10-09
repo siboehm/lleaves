@@ -11,7 +11,7 @@ def _initialize_llvm():
     llvm.initialize_native_asmprinter()
 
 
-def _get_target_machine(fcodemodel="large", target_cpu=None, target_cpu_features=None):
+def get_target_machine(fcodemodel="large", target_cpu=None, target_cpu_features=None):
     _initialize_llvm()  # Ensure targets are initialized
     target = llvm.Target.from_triple(llvm.get_process_triple())
 
@@ -46,7 +46,7 @@ def compile_module_to_asm(
     _initialize_llvm()
 
     # Create a target machine representing the host
-    target_machine = _get_target_machine(fcodemodel, target_cpu, target_cpu_features)
+    target_machine = get_target_machine(fcodemodel, target_cpu, target_cpu_features)
 
     # Create execution engine for our module
     execution_engine = llvm.create_mcjit_compiler(module, target_machine)
