@@ -20,7 +20,7 @@ jobs:
       # Fast shallow checkout for testing
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.PYTHON_VERSION }}
       - name: Install uv
@@ -51,7 +51,7 @@ jobs:
       - name: Checkout branch
         uses: actions/checkout@v4
       - name: Install Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13
       - name: Run pre-commit checks
@@ -68,7 +68,7 @@ jobs:
         with:
           fetch-depth: 0  # Full git history for setuptools_scm
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: 3.13
       - name: Install uv
