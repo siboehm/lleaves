@@ -99,9 +99,14 @@ def parse_to_ast(model_path):
     n_args = scanned_model["general_info"]["max_feature_idx"] + 1
     n_classes = scanned_model["general_info"]["num_class"]
     assert n_classes == scanned_model["general_info"]["num_tree_per_iteration"]
-    objective = scanned_model["general_info"]["objective"]
-    objective_func = objective[0]
-    objective_func_config = objective[1] if len(objective) > 1 else None
+    objective = scanned_model["general_info"].get("objective")
+    if objective:
+        objective_func = objective[0]
+        objective_func_config = objective[1] if len(objective) > 1 else None
+    else:
+        # Handle custom objective where objective is not specified
+        objective_func = None
+        objective_func_config = None
     average_output = "average_output" in scanned_model["general_info"]
     features = [
         Feature(is_categorical_feature(x))
